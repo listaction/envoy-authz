@@ -12,10 +12,20 @@ import javax.annotation.PostConstruct;
 @SpringBootApplication
 public class Application {
 
+    private final AclFilterService aclFilterService;
+    private final CacheLoaderService cacheLoaderService;
+
+    public Application(AclFilterService aclFilterService, CacheLoaderService cacheLoaderService) {
+        this.aclFilterService = aclFilterService;
+        this.cacheLoaderService = cacheLoaderService;
+    }
+
     @PostConstruct
     public void start() throws Exception {
+        cacheLoaderService.subscribe();
+
         Server server = ServerBuilder.forPort(8080)
-                .addService(new AuthService())
+                .addService(new AuthService(aclFilterService))
                 .build();
 
         server.start();
