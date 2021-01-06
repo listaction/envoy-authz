@@ -3,6 +3,7 @@ package org.example.authserver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -21,14 +22,13 @@ public class CacheLoaderServiceImpl implements CacheLoaderService {
 
     @Override
     public void subscribe() {
-        loadData();
-        /*
         Flux<String> flux = aclRepository.subscribe();
         flux
-            .parallel()
             .doOnNext(acl -> loadData())
+            .subscribeOn(Schedulers.parallel())
             .subscribe();
-        */
+
+        loadData();
     }
 
     protected void loadData() {
