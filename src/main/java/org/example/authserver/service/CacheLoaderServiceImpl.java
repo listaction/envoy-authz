@@ -1,6 +1,8 @@
-package org.example.authserver;
+package org.example.authserver.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.domain.Acl;
+import org.example.authserver.repo.AclRepository;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -32,12 +34,13 @@ public class CacheLoaderServiceImpl implements CacheLoaderService {
     }
 
     protected void loadData() {
-        log.info("loadData");
+        log.info("loadData started");
         Set<Acl> acls = aclRepository.findAll();
         for (Acl acl : acls){
-            Pattern pattern = Pattern.compile(acl.getResourceRegex());
+            Pattern pattern = Pattern.compile("/service/1"); // todo:
             cacheService.putToPatternCache(pattern, acl);
         }
+        log.info("loadData finished");
     }
 
 }

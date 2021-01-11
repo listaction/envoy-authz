@@ -3,6 +3,9 @@ package org.example.authserver;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.service.AclFilterService;
+import org.example.authserver.service.AuthService;
+import org.example.authserver.service.CacheLoaderService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -14,10 +17,12 @@ public class Application {
 
     private final AclFilterService aclFilterService;
     private final CacheLoaderService cacheLoaderService;
+    private final ExampleDataset exampleDataset;
 
-    public Application(AclFilterService aclFilterService, CacheLoaderService cacheLoaderService) {
+    public Application(AclFilterService aclFilterService, CacheLoaderService cacheLoaderService, ExampleDataset exampleDataset) {
         this.aclFilterService = aclFilterService;
         this.cacheLoaderService = cacheLoaderService;
+        this.exampleDataset = exampleDataset;
     }
 
     @PostConstruct
@@ -29,6 +34,8 @@ public class Application {
                 .build();
 
         server.start();
+        log.info("Started. Listen post: 8080");
+        exampleDataset.init();
         server.awaitTermination();
     }
 

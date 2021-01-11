@@ -1,4 +1,4 @@
-package org.example.authserver;
+package org.example.authserver.service;
 
 import com.google.rpc.Status;
 import io.envoyproxy.envoy.service.auth.v3.AuthorizationGrpc;

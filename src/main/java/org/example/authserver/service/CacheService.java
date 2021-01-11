@@ -1,7 +1,8 @@
-package org.example.authserver;
+package org.example.authserver.service;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.domain.Acl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
