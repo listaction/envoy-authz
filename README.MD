@@ -16,5 +16,4 @@ test.sh
 ```
 
 Headers:
-Authorization: Bearer foo  --> allowed
-other tokens are forbidden
+Authorization: Bearer Bearer user1_viewer disallowed for service1 , user2 and user3 are allowed 
