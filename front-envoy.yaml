@@ -11,18 +11,6 @@ static_resources:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                 codec_type: auto
                 stat_prefix: ingress_http
-                route_config:
-                  name: local_route
-                  virtual_hosts:
-                    - name: backend
-                      domains:
-                        - "*"
-                      routes:
-                        - match:
-                            prefix: "/service/"
-                          route:
-                            cluster: service1
-
                 http_filters:
                   - name: envoy.ext_authz1
                     typed_config:
@@ -31,11 +19,41 @@ static_resources:
                       grpc_service:
                         envoy_grpc:
                           cluster_name: ext-authz
-                        timeout: 0.25s
+                        timeout: 1s
                       include_peer_certificate: true
                   - name: envoy.filters.http.router
-                    typed_config: {}
-
+                    typed_config: { }
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: backend
+                      domains:
+                        - "*"
+                      routes:
+                        - match:
+                            prefix: "/contact/"
+                          route:
+                            cluster: service1
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                              check_settings:
+                                context_extensions:
+                                  namespace_object: "contact"
+                                  namespace_service: "api"
+                                  service_path: "/contact/{objectId}"
+                        - match:
+                            prefix: "/acl/"
+                          route:
+                            cluster: acl_api
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                              check_settings:
+                                context_extensions:
+                                  namespace_object: "acl"
+                                  namespace_service: "api"
+                                  service_path: "/acl/{objectId}"
   clusters:
     - name: service1
       connect_timeout: 0.25s
@@ -51,13 +69,27 @@ static_resources:
                       address: service1
                       port_value: 8002
 
+    - name: acl_api
+      connect_timeout: 0.25s
+      type: strict_dns
+      lb_policy: round_robin
+      load_assignment:
+        cluster_name: acl_api
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: authz
+                      port_value: 8081
+
     - name: ext-authz
       typed_extension_protocol_options:
         envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
           "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
           explicit_http_config:
             http2_protocol_options: { }
-      connect_timeout: 0.25s
+      connect_timeout: 1s
       type: logical_dns
       lb_policy: round_robin
       load_assignment:

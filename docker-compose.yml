@@ -28,21 +28,20 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
     expose:
       - "8080"
+      - "8081"
     ports:
       - "8080:8080"
 
   service1:
     build:
       context: .
-      dockerfile: Dockerfile-service
-    volumes:
-      - ./service-envoy.yaml:/etc/service-envoy.yaml
+      dockerfile: Dockerfile.service
     networks:
       envoymesh:
         aliases:
           - service1
     environment:
-      - SERVICE_NAME=1
+      - SPRING_PROFILES_ACTIVE=docker
     expose:
       - "8002"
     ports:
