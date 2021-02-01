@@ -2,11 +2,10 @@ package org.example.authserver.controller;
 
 import authserver.acl.Acl;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.repo.AclRepository;
+import org.example.authserver.service.zanzibar.AclRepository;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.util.UUID;
 
 @Slf4j
 @RestController

@@ -4,11 +4,7 @@ import authserver.acl.Acl;
 import authserver.acl.AclRelation;
 import authserver.acl.AclRelationConfig;
 import authserver.acl.AclRelationParent;
-import org.example.authserver.repo.AclRelationConfigRepository;
-import org.example.authserver.repo.AclRepository;
-import org.example.authserver.service.AclRelationConfigService;
-import org.example.authserver.service.Zanzibar;
-import org.example.authserver.service.ZanzibarImpl;
+import org.example.authserver.service.zanzibar.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -18,7 +14,6 @@ import org.mockito.MockitoAnnotations;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
 class ZanzibarImplTest {
@@ -42,7 +37,7 @@ class ZanzibarImplTest {
     void check() {
         Map<String, Boolean> usersToTest = Map.of("user1_viewer", false, "user2_editor", true, "user3_owner", true);
         for (Map.Entry<String, Boolean> entry : usersToTest.entrySet()){
-
+            String principal = entry.getKey();
             Set<Acl> acls = prepAcls();
             Set<Acl> aclsDocReadme = acls.stream()
                     .filter(acl->acl.getNamespace().equals("doc") && acl.getObject().equals("readme"))
@@ -53,10 +48,10 @@ class ZanzibarImplTest {
             AclRelationConfig config = prepConfig();
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
-            Mockito.doReturn(aclsDocReadme).when(aclRepository).findAllByNamespaceAndObject(eq("doc"), eq("readme"));
-            Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByNamespaceAndObject(eq("group"), eq("document"));
-            Mockito.doReturn(config).when(configRepository).findOneByNamespace(anyString());
-
+            Mockito.doReturn(aclsDocReadme).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("doc"), eq("readme"), eq(principal));
+            Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("group"), eq("document"), eq(principal));
+            Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
+            aclRelationConfigService.update();
 
             boolean result = zanzibar.check("doc", "readme","allow_to_update", entry.getKey());
             System.out.println(String.format("user %s [expected result: %s] => %s ", entry.getKey(), entry.getValue(), result));
@@ -79,9 +74,9 @@ class ZanzibarImplTest {
             AclRelationConfig config = prepConfig();
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
-            Mockito.doReturn(aclsDocReadme).when(aclRepository).findAllByNamespaceAndObject(eq("doc"), eq("readme"));
-            Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByNamespaceAndObject(eq("group"), eq("document"));
-            Mockito.doReturn(config).when(configRepository).findOneByNamespace(anyString());
+            Mockito.doReturn(aclsDocReadme).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("doc"), eq("readme"), eq(principal));
+            Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("group"), eq("document"), eq(principal));
+            Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
 
             Set<String> result = zanzibar.getRelations("doc", "readme", principal);
             System.out.println(String.format("user %s => %s ", principal, result));
@@ -102,8 +97,8 @@ class ZanzibarImplTest {
             AclRelationConfig config = new AclRelationConfig();
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
-            Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObject(eq("namespace"), eq("object"));
-            Mockito.doReturn(config).when(configRepository).findOneByNamespace(anyString());
+            Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("namespace"), eq("object"), eq(principal));
+            Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
 
             Set<String> result = zanzibar.getRelations("namespace", "object", principal);
             System.out.println(String.format("user %s => %s ", principal, result));
@@ -131,14 +126,15 @@ class ZanzibarImplTest {
                     .filter(acl->acl.getNamespace().equals("group") && acl.getObject().equals("user2"))
                     .collect(Collectors.toSet());
 
-            AclRelationConfig config = prepConfig2();
+            Set<AclRelationConfig> configs = prepConfig2();
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
-            Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObject(eq("contact"), eq("uuid1"));
-            Mockito.doReturn(aclsGroupUser1).when(aclRepository).findAllByNamespaceAndObject(eq("group"), eq("user1"));
-            Mockito.doReturn(aclsGroupUser2).when(aclRepository).findAllByNamespaceAndObject(eq("group"), eq("user2"));
+            Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("contact"), eq("uuid1"), eq(principal));
+            Mockito.doReturn(aclsGroupUser1).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("group"), eq("user1"), eq(principal));
+            Mockito.doReturn(aclsGroupUser2).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("group"), eq("user2"), eq(principal));
 
-            Mockito.doReturn(config).when(configRepository).findOneByNamespace(anyString());
+            Mockito.doReturn(configs).when(configRepository).findAll();
+            aclRelationConfigService.update();
 
             Set<String> result = zanzibar.getRelations("contact", "uuid1", principal);
             System.out.println(String.format("user %s => %s ", principal, result));
@@ -170,13 +166,75 @@ class ZanzibarImplTest {
                     .collect(Collectors.toSet());
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
-            Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByNamespaceAndObject(eq("group"), eq("contactusers"));
-            Mockito.doReturn(aclsApiContact).when(aclRepository).findAllByNamespaceAndObject(eq("api"), eq("contact"));
+            Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("group"), eq("contactusers"), eq(principal));
+            Mockito.doReturn(aclsApiContact).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("api"), eq("contact"), eq(principal));
 
-            Mockito.doReturn(new AclRelationConfig()).when(configRepository).findOneByNamespace(anyString());
+            Mockito.doReturn(Set.of(new AclRelationConfig())).when(configRepository).findAll();
 
             // user1 and user2 are have access. And user3 is not.
             assert zanzibar.check("api", "contact", "enable", principal) == expected;
+        }
+    }
+
+    @Test
+    void wildcardRelationsTest() throws InterruptedException {
+        Set<Acl> acls = new HashSet<>();
+        acls.add(Acl.create("group:contactusers#member@user1")); // user1 has relation 'member' for group:contactuser
+        acls.add(Acl.create("group:contactusers#member@user2")); // user2 has relation 'member' for group:contactuser
+
+        AclRelationConfig relationConfigContact = new AclRelationConfig();
+        relationConfigContact.setNamespace("contact:*");
+        relationConfigContact.setRelations(Set.of(
+                AclRelation.builder()
+                        .object("*")
+                        .relation("owner")
+                        .build(),
+                AclRelation.builder()
+                        .object("*")
+                        .relation("editor")
+                        .parents(Set.of(
+                                AclRelationParent.builder()
+                                        .relation("owner")
+                                        .build()
+                        ))
+                        .build(),
+                AclRelation.builder()
+                        .object("*")
+                        .relation("viewer")
+                        .parents(Set.of(
+                                AclRelationParent.builder()
+                                        .relation("editor")
+                                        .build()
+                        ))
+                        .build()
+        ));
+
+        Mockito.doReturn(Set.of(relationConfigContact)).when(configRepository).findAll();
+        aclRelationConfigService.update();
+
+        // user <-> expected result of check
+        Map<String, Boolean> usersToTest = Map.of("user1", true, "user2", true, "user3", false);
+        for (Map.Entry<String, Boolean> entry : usersToTest.entrySet()) {
+            String principal = entry.getKey();
+            boolean expected = entry.getValue();
+            String uuid = UUID.randomUUID().toString();
+            acls.add(Acl.create(String.format("contact:%s#owner@group:contactusers#member", uuid)));
+
+            Set<Acl> aclsGroupContactusers = new ArrayList<>(acls).stream()
+                    .filter(acl->acl.getNamespace().equals("group") && acl.getObject().equals("contactusers") && principal.equals(acl.getUser()))
+                    .collect(Collectors.toSet());
+
+            Set<Acl> aclsContact = new ArrayList<>(acls).stream()
+                    .filter(acl->acl.getNamespace().equals("contact") && acl.getObject().equals(uuid))
+                    .collect(Collectors.toSet());
+
+            Mockito.doReturn(acls).when(aclRepository).findAll();
+            Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("group"), eq("contactusers"), eq(principal));
+            Mockito.doReturn(aclsContact).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("contact"), eq(uuid), eq(principal));
+
+            System.out.println("user: " + principal);
+            // user1 and user2 are have access. And user3 is not.
+            assert zanzibar.check("contact", uuid, "viewer", principal) == expected;
         }
     }
 
@@ -192,15 +250,12 @@ class ZanzibarImplTest {
             Acl parsedAcl = Acl.create(s);
 
             System.out.println(parsedAcl);
-
         }
-
-
     }
 
     private AclRelationConfig prepConfig() {
         AclRelationConfig relationConfig = new AclRelationConfig();
-        relationConfig.setNamespace("group");
+        relationConfig.setNamespace("group:document");
         relationConfig.setRelations(Set.of(
                 AclRelation.builder()
                         .object("document")
@@ -273,9 +328,9 @@ class ZanzibarImplTest {
         return acls;
     }
 
-    private AclRelationConfig prepConfig2(){
+    private Set<AclRelationConfig> prepConfig2(){
         AclRelationConfig relationConfig = new AclRelationConfig();
-        relationConfig.setNamespace("group");
+        relationConfig.setNamespace("group:user1");
         relationConfig.setRelations(Set.of(
                 AclRelation.builder()
                         .object("user1")
@@ -298,9 +353,12 @@ class ZanzibarImplTest {
                                         .relation("editor")
                                         .build()
                         ))
-                        .build(),
+                        .build()
+        ));
 
-
+        AclRelationConfig relationConfig2 = new AclRelationConfig();
+        relationConfig2.setNamespace("group:user2");
+        relationConfig2.setRelations(Set.of(
                 AclRelation.builder()
                         .object("user2")
                         .relation("owner")
@@ -324,7 +382,8 @@ class ZanzibarImplTest {
                         ))
                         .build()
         ));
-        return relationConfig;
+
+        return Set.of(relationConfig, relationConfig2);
     }
 
 }

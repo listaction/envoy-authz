@@ -3,7 +3,7 @@ package org.example.authserver.service;
 import lombok.extern.slf4j.Slf4j;
 
 import authserver.acl.Acl;
-import org.example.authserver.repo.AclRepository;
+import org.example.authserver.service.zanzibar.AclRepository;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;

@@ -3,7 +3,7 @@ package org.example.authserver;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.service.AclFilterService;
+import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.AuthService;
 import org.example.authserver.service.CacheLoaderService;
 import org.springframework.boot.SpringApplication;

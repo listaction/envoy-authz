@@ -1,19 +1,18 @@
 package org.example.authserver;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-
 import authserver.acl.Acl;
 import authserver.acl.AclRelation;
 import authserver.acl.AclRelationConfig;
 import authserver.acl.AclRelationParent;
-import org.example.authserver.repo.AclRelationConfigRepository;
-import org.example.authserver.repo.AclRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.service.zanzibar.AclRelationConfigRepository;
+import org.example.authserver.service.zanzibar.AclRepository;
+import org.example.authserver.service.zanzibar.AclRelationConfigService;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-
 
 import java.util.Set;
 
@@ -28,11 +27,13 @@ public class ExampleDataset {
     private final JedisPool jedis;
     private final AclRepository aclRepository;
     private final AclRelationConfigRepository relationConfigRepository;
+    private final AclRelationConfigService relationConfigService;
 
-    public ExampleDataset(JedisPool jedis, AclRepository aclRepository, AclRelationConfigRepository relationConfigRepository) {
+    public ExampleDataset(JedisPool jedis, AclRepository aclRepository, AclRelationConfigRepository relationConfigRepository, AclRelationConfigService relationConfigService) {
         this.jedis = jedis;
         this.aclRepository = aclRepository;
         this.relationConfigRepository = relationConfigRepository;
+        this.relationConfigService = relationConfigService;
     }
 
     public void init() {
@@ -45,14 +46,18 @@ public class ExampleDataset {
 
         // acls for service level
         aclRepository.save(Acl.create("api:contact#enable@group:contactusers#member")); //group
+        aclRepository.save(Acl.create("group:contactusers#member@user1"));
+        aclRepository.save(Acl.create("group:contactusers#member@user2"));
 
         // acls for object level
         aclRepository.save(Acl.create("acl:create#owner@acl_admin")); // allow to create acls for acl_admin
         aclRepository.save(Acl.create("contact:null#owner@group:contactusers#member")); //group permission to create contacts
 
-        //group membership
-        aclRepository.save(Acl.create("group:contactusers#member@user1"));
-        aclRepository.save(Acl.create("group:contactusers#member@user2"));
+//        aclRepository.save(Acl.create("group:user1#owner@user1")); // user1 is owner of group:user1
+//        aclRepository.save(Acl.create("group:user1#editor@user2")); // user2 can edit docs of user1
+//        aclRepository.save(Acl.create("group:user2#owner@user2"));  // user2 is owner of group:user2
+//        aclRepository.save(Acl.create("group:user2#viewer@user1")); // user1 can only view docs of user2
+//        aclRepository.save(Acl.create("contact:null#owner@user2")); // user2 can create new contacts
 
         conn.publish(ACL_REDIS_KEY, "update");
 
@@ -100,9 +105,38 @@ public class ExampleDataset {
                         .build()
                 ));
 
-        relationConfigRepository.save(relationConfig1);
+        AclRelationConfig relationConfigContact = new AclRelationConfig();
+        relationConfigContact.setNamespace("contact:*");
+        relationConfigContact.setRelations(Set.of(
+                AclRelation.builder()
+                        .object("*")
+                        .relation("owner")
+                        .build(),
+                AclRelation.builder()
+                        .object("*")
+                        .relation("editor")
+                        .parents(Set.of(
+                                AclRelationParent.builder()
+                                        .relation("owner")
+                                        .build()
+                        ))
+                        .build(),
+                AclRelation.builder()
+                        .object("*")
+                        .relation("viewer")
+                        .parents(Set.of(
+                                AclRelationParent.builder()
+                                        .relation("editor")
+                                        .build()
+                        ))
+                        .build()
+        ));
+
+        relationConfigService.save(relationConfig1);
+        relationConfigService.save(relationConfigContact);
 
         log.info("{}", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(relationConfig1));
+        log.info("{}", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(relationConfigContact));
     }
 
 }

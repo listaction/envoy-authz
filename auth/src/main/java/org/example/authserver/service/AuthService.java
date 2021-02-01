@@ -7,6 +7,7 @@ import io.envoyproxy.envoy.service.auth.v3.CheckResponse;
 import io.envoyproxy.envoy.service.auth.v3.OkHttpResponse;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.service.zanzibar.AclFilterService;
 
 @Slf4j
 public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {

@@ -1,7 +1,8 @@
-package org.example.authserver.service;
+package org.example.authserver.service.zanzibar;
 
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;

@@ -1,4 +1,4 @@
-package org.example.authserver.repo;
+package org.example.authserver.service.zanzibar;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,11 +20,7 @@ public class AclRelationConfigRepository {
         return new HashSet<>(data.values());
     }
 
-    public AclRelationConfig findOneByNamespace(String namespace){
-        return data.get(namespace);
-    }
-
-    public void save(AclRelationConfig config) {
+    protected void save(AclRelationConfig config) {
         data.put(config.getNamespace(), config);
     }
 

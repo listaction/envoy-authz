@@ -1,4 +1,4 @@
-package org.example.authserver.service;
+package org.example.authserver.service.zanzibar;
 
 import java.util.Set;
 

@@ -1,4 +1,4 @@
-package org.example.authserver.repo;
+package org.example.authserver.service.zanzibar;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.Utils;
@@ -33,30 +33,33 @@ public class AclRepository {
     public Set<Acl> findAll(){
         Jedis conn = jedis.getResource();
         List<String> jsons = conn.lrange(ACL_REDIS_KEY, 0, -1);
+        conn.close();
         return jsons.stream()
                 .map(Utils::jsonToAcl)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }
 
-    public Set<Acl> findAllByNamespaceAndObject(String namespace, String object) {
+    public Set<Acl> findAllByNamespaceAndObjectAndPrincipal(String namespace, String object, String principal) {
         Set<Acl> allAcls = findAll();
         return allAcls.stream()
                 .filter(acl->acl.getNamespace().equals(namespace))
                 .filter(acl->acl.getObject().equals(object))
+                .filter(f->(f.hasUserset() || (!f.hasUserset() && principal.equals(f.getUser()))))
                 .collect(Collectors.toSet());
     }
-
 
     public void save(Acl acl) {
         String json = Utils.aclToJson(acl);
         Jedis conn = jedis.getResource();
         conn.lpush(ACL_REDIS_KEY, json);
+        conn.close();
     }
 
     public void publish() {
         Jedis conn = jedis.getResource();
         conn.publish(ACL_REDIS_KEY, UUID.randomUUID().toString());
+        conn.close();
     }
 
     public void delete(Acl acl){
