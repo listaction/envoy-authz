@@ -2,7 +2,6 @@ package org.example.authserver.service.zanzibar;
 
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
@@ -14,12 +13,6 @@ import java.util.Map;
 @Slf4j
 @Service
 public class AclFilterService {
-
-//    private final CacheService cacheService;
-//
-//    public AclFilterService(CacheService cacheService) {
-//        this.cacheService = cacheService;
-//    }
 
     private final Zanzibar zanzibar;
 
@@ -57,17 +50,6 @@ public class AclFilterService {
         if (route == null) route = new HashMap<>();
         token = token.replace("Bearer ", "");
         log.info("Token: {}", token);
-//        List<Acl> aclList = cacheService.getFromUrlCache(path);
-//        if (aclList == null || aclList.size() == 0){
-//            aclList = cacheService.getFromPatternCache(path);
-//            if (aclList.size() == 0) return false;
-//        }
-//
-//        for (Acl acl : aclList){
-//            if (!token.equals(acl.getToken())) continue; // skip another tokens
-//
-//            if (acl.getAllow()) return true;
-//        }
 
         String relation;
         switch (method.toLowerCase(Locale.getDefault())){

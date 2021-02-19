@@ -1,14 +1,19 @@
 package org.example.authserver.service.zanzibar;
 
 import authserver.acl.Acl;
+import authserver.acl.AclRelation;
+import authserver.acl.AclRelationConfig;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuple3;
+import reactor.util.function.Tuples;
 
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 @Slf4j
@@ -35,23 +40,53 @@ public class ZanzibarImpl implements Zanzibar {
     @Override
     public Set<String> getRelations(String namespace, String object, String principal) {
         Set<ExpandedAcl> relations = expand(namespace, object, principal);
-        Set<String> l = lookup(relations, namespace, object, principal);
-        return l;
+        Set<Tuple2<String, String>> lookups = lookup(relations, namespace, object, principal);
+
+        Set<String> result = new HashSet<>();
+        for (Tuple2<String, String> l : lookups){
+            Set<Tuple2<String, String>> exclusions = new HashSet<>();
+            Set<Tuple2<String, String>> intersections = new HashSet<>();
+
+            AclRelation relation = relationConfigService.getConfigRelation(l.getT1(), l.getT2());
+            if (relation == null) {
+                result.add(generateTag(l.getT1(), l.getT2()));
+                continue; // some relations are not described with configs
+            }
+
+            for (String exclusion : relation.getExclusions()){
+                exclusions.add(Tuples.of(l.getT1(), exclusion));
+            }
+
+            for (String intersection : relation.getIntersections()){
+                intersections.add(Tuples.of(l.getT1(), intersection));
+            }
+
+            if (!Collections.disjoint(exclusions, lookups)){
+                log.info("relation {}#{} is excluded [exclusion]", l.getT1(), l.getT2());
+            } else if (intersections.size() > 0 && Collections.disjoint(intersections, lookups)) {
+                log.info("relation {}#{} is excluded [interception]", l.getT1(), l.getT2());
+            } else {
+                result.add(generateTag(l.getT1(), l.getT2()));
+            }
+
+        }
+
+        return result;
     }
 
-    private Set<String> lookup(Set<ExpandedAcl> relations, String namespace, String object, String principal) {
-        Set<String> result = new HashSet<>();
+    private Set<Tuple2<String, String>> lookup(Set<ExpandedAcl> relations, String namespace, String object, String principal) {
+        Set<Tuple2<String, String>> result = new HashSet<>(); // Tuples of {namespace:object, relation}
         Set<ExpandedAcl> filtered = filter(relations, namespace, object);
         for (ExpandedAcl t : filtered){
             String user = t.getUser();
             if (principal.equals(user)){
-                result.add(generateTag(t.getNamespace(), t.getObject(), t.getRelation()));
+                result.add(Tuples.of(String.format("%s:%s", t.getNamespace(), t.getObject()), t.getRelation()));
             } else if (Strings.isEmpty(user)){
-                Set<String> nested = lookup(relations, t.getUsersetNamespace(), t.getUsersetObject(), principal);
+                Set<Tuple2<String, String>> nested = lookup(relations, t.getUsersetNamespace(), t.getUsersetObject(), principal);
                 if (nested.size() > 0) {
-                    String rightPart = generateTag(t.getUsersetNamespace(), t.getUsersetObject(), t.getUsersetRelation());
+                    Tuple2<String, String> rightPart = Tuples.of(String.format("%s:%s", t.getUsersetNamespace(), t.getUsersetObject()), t.getUsersetRelation());
                     if (nested.contains(rightPart)) {
-                        result.add(generateTag(t.getNamespace(), t.getObject(), t.getRelation()));
+                        result.add(Tuples.of(String.format("%s:%s", t.getNamespace(), t.getObject()), t.getRelation()));
                     }
                     result.addAll(nested);
                 }
@@ -123,6 +158,10 @@ public class ZanzibarImpl implements Zanzibar {
 
     private String generateTag(String namespace, String object, String relation) {
         return String.format("%s:%s#%s", namespace, object, relation);
+    }
+
+    private String generateTag(String namespaceObject, String relation) {
+        return String.format("%s#%s", namespaceObject, relation);
     }
 
 

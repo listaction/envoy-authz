@@ -2,6 +2,8 @@ package authserver.acl;
 
 import lombok.Data;
 
+import java.util.Objects;
+
 @Data
 public class FlatRelationTree {
     private final String namespace;
@@ -25,4 +27,16 @@ public class FlatRelationTree {
         return String.format("%s:%s#%s [%s;%s]{%s}", namespace, object, relation, left, right, level);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof FlatRelationTree)) return false;
+        FlatRelationTree that = (FlatRelationTree) o;
+        return namespace.equals(that.namespace) && object.equals(that.object) && relation.equals(that.relation) && left.equals(that.left) && right.equals(that.right) && level.equals(that.level);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(left);
+    }
 }

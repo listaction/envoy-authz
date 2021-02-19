@@ -17,6 +17,7 @@ import redis.clients.jedis.JedisPool;
 import java.util.Set;
 
 import static org.example.authserver.config.Constants.ACL_REDIS_KEY;
+import static org.example.authserver.config.Constants.ACL_REL_CONFIG_REDIS_KEY;
 
 @Slf4j
 @Service
@@ -26,13 +27,11 @@ public class ExampleDataset {
 
     private final JedisPool jedis;
     private final AclRepository aclRepository;
-    private final AclRelationConfigRepository relationConfigRepository;
     private final AclRelationConfigService relationConfigService;
 
-    public ExampleDataset(JedisPool jedis, AclRepository aclRepository, AclRelationConfigRepository relationConfigRepository, AclRelationConfigService relationConfigService) {
+    public ExampleDataset(JedisPool jedis, AclRepository aclRepository, AclRelationConfigService relationConfigService) {
         this.jedis = jedis;
         this.aclRepository = aclRepository;
-        this.relationConfigRepository = relationConfigRepository;
         this.relationConfigService = relationConfigService;
     }
 
@@ -40,24 +39,20 @@ public class ExampleDataset {
         log.info("Initialize example dataset");
         Jedis conn = jedis.getResource();
         conn.del(ACL_REDIS_KEY);
+        conn.del(ACL_REL_CONFIG_REDIS_KEY);
 
         // acls for admin service level
         aclRepository.save(Acl.create("api:acl#enable@acl_admin")); // contact_service's user who calls acl service to create acls for a new contacts
 
         // acls for service level
         aclRepository.save(Acl.create("api:contact#enable@group:contactusers#member")); //group
-        aclRepository.save(Acl.create("group:contactusers#member@user1"));
-        aclRepository.save(Acl.create("group:contactusers#member@user2"));
+        aclRepository.save(Acl.create("group:contactusers#admin@user1"));
+        aclRepository.save(Acl.create("group:contactusers#admin@user2"));
+        aclRepository.save(Acl.create("group:contactusers#editor@user3"));
 
         // acls for object level
         aclRepository.save(Acl.create("acl:create#owner@acl_admin")); // allow to create acls for acl_admin
-        aclRepository.save(Acl.create("contact:null#owner@group:contactusers#member")); //group permission to create contacts
-
-//        aclRepository.save(Acl.create("group:user1#owner@user1")); // user1 is owner of group:user1
-//        aclRepository.save(Acl.create("group:user1#editor@user2")); // user2 can edit docs of user1
-//        aclRepository.save(Acl.create("group:user2#owner@user2"));  // user2 is owner of group:user2
-//        aclRepository.save(Acl.create("group:user2#viewer@user1")); // user1 can only view docs of user2
-//        aclRepository.save(Acl.create("contact:null#owner@user2")); // user2 can create new contacts
+        aclRepository.save(Acl.create("contact:null#owner@group:contactusers#admin")); //group permission to create contacts
 
         conn.publish(ACL_REDIS_KEY, "update");
 
@@ -74,14 +69,14 @@ public class ExampleDataset {
         relationConfig1.setRelations(Set.of(
                 AclRelation.builder()
                         .object("contactusers")
-                        .relation("owner")
+                        .relation("admin")
                         .build(),
                 AclRelation.builder()
                         .object("contactusers")
                         .relation("editor")
                         .parents(Set.of(
                                 AclRelationParent.builder()
-                                        .relation("owner")
+                                        .relation("admin")
                                 .build()
                         ))
                         .build(),

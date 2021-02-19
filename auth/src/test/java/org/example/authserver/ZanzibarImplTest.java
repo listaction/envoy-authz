@@ -4,6 +4,7 @@ import authserver.acl.Acl;
 import authserver.acl.AclRelation;
 import authserver.acl.AclRelationConfig;
 import authserver.acl.AclRelationParent;
+import org.example.authserver.service.CacheService;
 import org.example.authserver.service.zanzibar.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
 class ZanzibarImplTest {
@@ -22,6 +24,8 @@ class ZanzibarImplTest {
     private AclRepository aclRepository;
     @Mock
     private AclRelationConfigRepository configRepository;
+    @Mock
+    private CacheService cacheService;
 
     private AclRelationConfigService aclRelationConfigService;
     private Zanzibar zanzibar;
@@ -29,7 +33,7 @@ class ZanzibarImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        aclRelationConfigService = new AclRelationConfigService(configRepository);
+        aclRelationConfigService = new AclRelationConfigService(configRepository, cacheService);
         zanzibar = new ZanzibarImpl(aclRepository, aclRelationConfigService);
     }
 
@@ -51,6 +55,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(aclsDocReadme).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("doc"), eq("readme"), eq(principal));
             Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("group"), eq("document"), eq(principal));
             Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
+            Mockito.doReturn(Map.of(config.getNamespace(), config)).when(cacheService).getConfigs();
             aclRelationConfigService.update();
 
             boolean result = zanzibar.check("doc", "readme","allow_to_update", entry.getKey());
@@ -99,6 +104,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("namespace"), eq("object"), eq(principal));
             Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
+            Mockito.doReturn(Map.of("namespace:object", config)).when(cacheService).getConfigs();
 
             Set<String> result = zanzibar.getRelations("namespace", "object", principal);
             System.out.println(String.format("user %s => %s ", principal, result));
@@ -177,7 +183,7 @@ class ZanzibarImplTest {
     }
 
     @Test
-    void wildcardRelationsTest() throws InterruptedException {
+    void wildcardRelationsTest() {
         Set<Acl> acls = new HashSet<>();
         acls.add(Acl.create("group:contactusers#member@user1")); // user1 has relation 'member' for group:contactuser
         acls.add(Acl.create("group:contactusers#member@user2")); // user2 has relation 'member' for group:contactuser
@@ -209,7 +215,10 @@ class ZanzibarImplTest {
                         .build()
         ));
 
+        Map<String, AclRelationConfig> configMap = Map.of(relationConfigContact.getNamespace(), relationConfigContact);
+
         Mockito.doReturn(Set.of(relationConfigContact)).when(configRepository).findAll();
+        Mockito.doReturn(configMap).when(cacheService).getConfigs();
         aclRelationConfigService.update();
 
         // user <-> expected result of check
@@ -235,6 +244,104 @@ class ZanzibarImplTest {
             System.out.println("user: " + principal);
             // user1 and user2 are have access. And user3 is not.
             assert zanzibar.check("contact", uuid, "viewer", principal) == expected;
+        }
+    }
+
+    @Test
+    void exclusionTest() {
+        Set<Acl> acls = new HashSet<>();
+        acls.add(Acl.create("group:object#rel1@user1"));
+        acls.add(Acl.create("group:object#rel2@user1"));
+
+        acls.add(Acl.create("group:object#rel1@user2"));
+        acls.add(Acl.create("group:object#rel3@user2"));
+
+        AclRelationConfig relationConfigContact = new AclRelationConfig();
+        relationConfigContact.setNamespace("group:object");
+        relationConfigContact.setRelations(Set.of(
+                AclRelation.builder()
+                        .object("object")
+                        .relation("rel1")
+                        .exclusions(
+                                Set.of("rel2")
+                        )
+                        .build(),
+                AclRelation.builder()
+                        .object("object")
+                        .relation("rel2")
+                        .exclusions(
+                                Set.of("rel1")
+                        )
+                        .build()
+        ));
+
+        Map<String, AclRelationConfig> configMap = Map.of(relationConfigContact.getNamespace(), relationConfigContact);
+
+        Mockito.doReturn(Set.of(relationConfigContact)).when(configRepository).findAll();
+        Mockito.doReturn(configMap).when(cacheService).getConfigs();
+        aclRelationConfigService.update();
+
+        // user <-> expected result of check
+        Map<String, Boolean> usersToTest = Map.of("user1", false, "user2", true);
+        for (Map.Entry<String, Boolean> entry : usersToTest.entrySet()) {
+            String principal = entry.getKey();
+            boolean expected = entry.getValue();
+
+            Mockito.doReturn(acls).when(aclRepository).findAll();
+            Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("group"), eq("object"), anyString());
+
+            System.out.println("user: " + principal);
+            // user1 should be excluded, user2 should pass
+            assert zanzibar.check("group", "object", "rel1", principal) == expected;
+        }
+    }
+
+    @Test
+    void intersectionTest() {
+        Set<Acl> acls = new HashSet<>();
+        acls.add(Acl.create("group:object#rel1@user1"));
+        acls.add(Acl.create("group:object#rel2@user1"));
+
+        acls.add(Acl.create("group:object#rel1@user2"));
+        acls.add(Acl.create("group:object#rel3@user2"));
+
+        AclRelationConfig relationConfigContact = new AclRelationConfig();
+        relationConfigContact.setNamespace("group:object");
+        relationConfigContact.setRelations(Set.of(
+                AclRelation.builder()
+                        .object("object")
+                        .relation("rel1")
+                        .intersections(
+                                Set.of("rel2")
+                        )
+                        .build(),
+                AclRelation.builder()
+                        .object("object")
+                        .relation("rel2")
+                        .intersections(
+                                Set.of("rel1")
+                        )
+                        .build()
+        ));
+
+        Map<String, AclRelationConfig> configMap = Map.of(relationConfigContact.getNamespace(), relationConfigContact);
+
+        Mockito.doReturn(Set.of(relationConfigContact)).when(configRepository).findAll();
+        Mockito.doReturn(configMap).when(cacheService).getConfigs();
+        aclRelationConfigService.update();
+
+        // user <-> expected result of check
+        Map<String, Boolean> usersToTest = Map.of("user1", true, "user2", false);
+        for (Map.Entry<String, Boolean> entry : usersToTest.entrySet()) {
+            String principal = entry.getKey();
+            boolean expected = entry.getValue();
+
+            Mockito.doReturn(acls).when(aclRepository).findAll();
+            Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndPrincipal(eq("group"), eq("object"), anyString());
+
+            System.out.println("user: " + principal);
+            // user1 should pass, user2 should be excluded
+            assert zanzibar.check("group", "object", "rel1", principal) == expected;
         }
     }
 

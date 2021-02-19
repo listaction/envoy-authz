@@ -103,7 +103,7 @@ def main(args):
     api3 = AuthTest()
     api3.init(auth="user3", service_url="http://localhost:18000/contact")
     print("user3 deleting the contact")
-    del_resp2 = api2.delete(contact_id=contact_id)
+    del_resp2 = api3.delete(contact_id=contact_id)
     if del_resp2.status_code == 403:
         print("[OK] Unable to delete. User has only update permission. Owner permission is required to delete item.")
     else:

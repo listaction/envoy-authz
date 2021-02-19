@@ -1,9 +1,10 @@
 package org.example.authserver;
 
+import authserver.acl.Acl;
+import authserver.acl.AclRelationConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import authserver.acl.Acl;
 
 
 @Slf4j
@@ -20,6 +21,15 @@ public class Utils {
         }
     }
 
+    public static AclRelationConfig jsonToConfig(String json){
+        try {
+            return mapper.readValue(json, AclRelationConfig.class);
+        } catch (JsonProcessingException e) {
+            log.warn("Can't deserialize ACL: {}", json, e);
+            return null;
+        }
+    }
+
     public static String aclToJson(Acl acl){
         try {
             return mapper.writeValueAsString(acl);
@@ -28,4 +38,14 @@ public class Utils {
             return null;
         }
     }
+
+    public static String configToJson(AclRelationConfig acl){
+        try {
+            return mapper.writeValueAsString(acl);
+        } catch (JsonProcessingException e) {
+            log.warn("Can't serialize Config: {}", acl, e);
+            return null;
+        }
+    }
+
 }

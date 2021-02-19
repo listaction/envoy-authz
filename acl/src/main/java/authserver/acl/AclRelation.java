@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Data
@@ -15,6 +16,11 @@ public class AclRelation {
 
     private String object;
     private String relation;
-    private Set<AclRelationParent> parents;
+    @Builder.Default
+    private Set<AclRelationParent> parents = new HashSet<>();
+    @Builder.Default
+    private Set<String> exclusions = new HashSet<>();
+    @Builder.Default
+    private Set<String> intersections = new HashSet<>();
 
 }

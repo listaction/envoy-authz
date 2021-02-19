@@ -1,47 +1,46 @@
 package org.example.authserver.service;
 
+import authserver.acl.AclRelationConfig;
 import lombok.extern.slf4j.Slf4j;
-
-import authserver.acl.Acl;
-import org.example.authserver.service.zanzibar.AclRepository;
+import org.example.authserver.service.zanzibar.AclRelationConfigRepository;
+import org.example.authserver.service.zanzibar.AclRelationConfigService;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.Set;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class CacheLoaderServiceImpl implements CacheLoaderService {
 
     private final CacheService cacheService;
-    private final AclRepository aclRepository;
+    private final AclRelationConfigRepository configRepository;
+    private final AclRelationConfigService configService;
 
-    public CacheLoaderServiceImpl(CacheService cacheService, AclRepository aclRepository) {
+    public CacheLoaderServiceImpl(CacheService cacheService, AclRelationConfigRepository configRepository, AclRelationConfigService configService) {
         this.cacheService = cacheService;
-        this.aclRepository = aclRepository;
+        this.configRepository = configRepository;
+        this.configService = configService;
     }
 
     @Override
     public void subscribe() {
-        Flux<String> flux = aclRepository.subscribe();
-        flux
-            .doOnNext(acl -> loadData())
-            .subscribeOn(Schedulers.parallel())
-            .subscribe();
+        configRepository.subscribe()
+                .doOnNext(config->updateConfigs())
+                .subscribeOn(Schedulers.parallel())
+                .subscribe();
 
-        loadData();
+        updateConfigs();
     }
 
-    protected void loadData() {
-        log.info("loadData started");
-        Set<Acl> acls = aclRepository.findAll();
-        for (Acl acl : acls){
-            Pattern pattern = Pattern.compile("/service/1"); // todo:
-            cacheService.putToPatternCache(pattern, acl);
-        }
-        log.info("loadData finished");
+    public void updateConfigs() {
+        log.info("updateConfigs started");
+        Map<String, AclRelationConfig> configMap = configRepository.findAll().stream()
+                .collect(Collectors.toMap(AclRelationConfig::getNamespace, m->m));
+        cacheService.updateConfigs(configMap);
+        configService.update();
+        log.info("updateConfigs finished");
     }
 
 }

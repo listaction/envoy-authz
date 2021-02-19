@@ -23,14 +23,11 @@ public class ContactController {
         log.info("Authorization: {}", authorization);
         String token = authorization.replace("Bearer ", "");
         String uuid = UUID.randomUUID().toString(); // contact id
-        Acl acl1 = Acl.create(String.format("contact:%s#%s@%s", uuid, "owner", "group:contactusers#member"));
+        Acl acl1 = Acl.create(String.format("contact:%s#%s@%s", uuid, "owner", "group:contactusers#admin"));
+        Acl acl2 = Acl.create(String.format("contact:%s#%s@%s", uuid, "editor", "group:contactusers#member"));
 
-//        Acl acl1 = Acl.create(String.format("contact:%s#%s@%s", uuid, "owner", token));
-//        Acl acl2 = Acl.create(String.format("contact:%s#%s@%s", uuid, "editor", String.format("group:contactusers#member", token)));
-//        Acl acl3 = Acl.create(String.format("contact:%s#%s@%s", uuid, "viewer", String.format("group:contactusers#member", token)));
         api.addRule(acl1);
-//        api.addRule(acl2);
-//        api.addRule(acl3);
+        api.addRule(acl2);
         return uuid;
     }
 
