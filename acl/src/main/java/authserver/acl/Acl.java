@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.java.Log;
 
 import java.io.Serializable;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +22,8 @@ public class Acl implements Cloneable, Serializable {
     private final static Pattern aclExprPattern = Pattern.compile("(\\S+):(\\S+)#(\\S+)@(\\S+)");
     private final static Pattern usersetPattern = Pattern.compile("(\\S+):(\\S+)#(\\S+)");
 
+    @Builder.Default
+    private UUID id = UUID.randomUUID();
     private String namespace;
     private String object;
     private String relation;

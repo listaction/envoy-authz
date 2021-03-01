@@ -2,14 +2,14 @@ package org.example.authserver.service.zanzibar;
 
 import authserver.acl.Acl;
 import authserver.acl.AclRelation;
-import authserver.acl.AclRelationConfig;
+import io.micrometer.core.annotation.Timed;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
+import org.example.authserver.repo.AclRepository;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
-import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
 import java.util.Collections;
@@ -28,6 +28,7 @@ public class ZanzibarImpl implements Zanzibar {
         this.relationConfigService = relationConfigService;
     }
 
+    @Timed(value = "checkAcl", percentiles = {0.99, 0.95, 0.75})
     @Override
     public boolean check(String namespace, String object, String relation, String principal) {
         String tag = String.format("%s:%s#%s", namespace, object, relation);
@@ -74,6 +75,7 @@ public class ZanzibarImpl implements Zanzibar {
         return result;
     }
 
+    @Timed(value = "lookup", percentiles = {0.99, 0.95, 0.75})
     private Set<Tuple2<String, String>> lookup(Set<ExpandedAcl> relations, String namespace, String object, String principal) {
         Set<Tuple2<String, String>> result = new HashSet<>(); // Tuples of {namespace:object, relation}
         Set<ExpandedAcl> filtered = filter(relations, namespace, object);
@@ -106,9 +108,10 @@ public class ZanzibarImpl implements Zanzibar {
         return result;
     }
 
+    @Timed(value = "expand", percentiles = {0.99, 0.95, 0.75})
     private Set<ExpandedAcl> expand(String namespace, String object, String principal) {
         Set<ExpandedAcl> relations = new HashSet<>();
-        Set<Acl> acls = repository.findAllByNamespaceAndObjectAndPrincipal(namespace, object, principal);
+        Set<Acl> acls = repository.findAllByNamespaceAndObjectAndUser(namespace, object, principal);
         for (Acl acl : acls) {
             Set<String> nested = relationConfigService.nestedRelations(acl.getNamespace(), acl.getObject(), acl.getRelation());
             if (acl.hasUserset()) {

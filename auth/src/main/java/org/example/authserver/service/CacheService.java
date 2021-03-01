@@ -20,6 +20,14 @@ public class CacheService {
         configs.putAll(configMap);
     }
 
+    public void updateConfig(AclRelationConfig config) {
+        configs.put(config.getNamespace(), config);
+    }
+
+    public void deleteConfig(String namespace) {
+        configs.remove(namespace);
+    }
+
     public Map<String, AclRelationConfig> getConfigs() {
         return configs;
     }

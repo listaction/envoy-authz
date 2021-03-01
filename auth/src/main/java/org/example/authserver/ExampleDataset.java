@@ -7,8 +7,7 @@ import authserver.acl.AclRelationParent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.service.zanzibar.AclRelationConfigRepository;
-import org.example.authserver.service.zanzibar.AclRepository;
+import org.example.authserver.repo.AclRepository;
 import org.example.authserver.service.zanzibar.AclRelationConfigService;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
@@ -40,6 +39,8 @@ public class ExampleDataset {
         Jedis conn = jedis.getResource();
         conn.del(ACL_REDIS_KEY);
         conn.del(ACL_REL_CONFIG_REDIS_KEY);
+        conn.del("idx_namespace");
+        conn.del("idx_user");
 
         // acls for admin service level
         aclRepository.save(Acl.create("api:acl#enable@acl_admin")); // contact_service's user who calls acl service to create acls for a new contacts
@@ -53,8 +54,6 @@ public class ExampleDataset {
         // acls for object level
         aclRepository.save(Acl.create("acl:create#owner@acl_admin")); // allow to create acls for acl_admin
         aclRepository.save(Acl.create("contact:null#owner@group:contactusers#admin")); //group permission to create contacts
-
-        conn.publish(ACL_REDIS_KEY, "update");
 
         try {
             initRelationConfigs();

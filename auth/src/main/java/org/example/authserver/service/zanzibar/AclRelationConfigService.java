@@ -1,9 +1,13 @@
 package org.example.authserver.service.zanzibar;
 
 import authserver.acl.*;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.repo.AclRelationConfigRepository;
+import org.example.authserver.repo.SubscriptionRepository;
 import org.example.authserver.service.CacheService;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
@@ -20,16 +24,40 @@ public class AclRelationConfigService {
 
     private final AclRelationConfigRepository repository;
     private final CacheService cacheService;
+    private final SubscriptionRepository subscriptionRepository;
 
-    public AclRelationConfigService(AclRelationConfigRepository repository, CacheService cacheService) {
+    public AclRelationConfigService(AclRelationConfigRepository repository, CacheService cacheService, SubscriptionRepository subscriptionRepository) {
         this.repository = repository;
         this.cacheService = cacheService;
+        this.subscriptionRepository = subscriptionRepository;
+    }
+
+    public Set<AclRelationConfig> findAll(){
+        return repository.findAll();
+    }
+
+    public AclRelationConfig findOneById(String id){
+        return repository.findOneById(id);
     }
 
     public void save(AclRelationConfig config) {
         repository.save(config);
+        subscriptionRepository.publish(config);
     }
 
+    public void publish(AclRelationConfig config){
+        subscriptionRepository.publish(config);
+    }
+
+    public void delete(AclRelationConfig config){
+        repository.delete(config);
+    }
+
+    public Flux<String> subscribe(){
+        return subscriptionRepository.subscribeConfig();
+    }
+
+    @Timed(value = "relations.nested", percentiles = {0.99, 0.95, 0.75})
     public Set<String> nestedRelations(String namespace, String object, String relation) {
         Tuple2<String, String> key = Tuples.of(namespace, object);
 
@@ -67,6 +95,7 @@ public class AclRelationConfigService {
         return result;
     }
 
+    @Timed(value = "relations.root", percentiles = {0.99, 0.95, 0.75})
     public Set<String> rootRelations(String namespace, String object, String relation) {
         Set<String> result = new HashSet<>();
         result.add(relation);
@@ -125,7 +154,6 @@ public class AclRelationConfigService {
         }
         return null;
     }
-
 
     public List<FlatRelation> getFlatRelationListFromConfigs() {
         return getFlatRelationListFromConfigs(new HashSet<>(cacheService.getConfigs().values()));

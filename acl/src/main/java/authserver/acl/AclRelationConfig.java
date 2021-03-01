@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -14,6 +15,8 @@ import java.util.Set;
 @AllArgsConstructor
 public class AclRelationConfig {
 
+    @Builder.Default
+    private UUID id = UUID.randomUUID();
     private String namespace;
     @Builder.Default
     private Set<AclRelation> relations = new HashSet<>();

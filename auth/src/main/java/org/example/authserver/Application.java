@@ -8,10 +8,14 @@ import org.example.authserver.service.AuthService;
 import org.example.authserver.service.CacheLoaderService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import javax.annotation.PostConstruct;
 
 @Slf4j
+@EnableConfigurationProperties
+@ConfigurationPropertiesScan
 @SpringBootApplication
 public class Application {
 

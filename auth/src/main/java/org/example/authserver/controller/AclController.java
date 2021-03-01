@@ -2,8 +2,11 @@ package org.example.authserver.controller;
 
 import authserver.acl.Acl;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.service.zanzibar.AclRepository;
-import org.springframework.web.bind.annotation.*;
+import org.example.authserver.repo.AclRepository;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 
@@ -22,7 +25,6 @@ public class AclController {
     public void addAcl(@Valid @RequestBody Acl acl){
         log.info("Created ACL: {}", acl);
         repository.save(acl);
-        repository.publish();
     }
 
 }
