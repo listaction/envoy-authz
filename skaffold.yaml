@@ -1,7 +1,7 @@
 apiVersion: skaffold/v2beta12
 kind: Config
 metadata:
-  name: envoy-authz
+  name: faas-authserver
 build:
   artifacts:
   - image: docker.io/kettil/faas-authserver
