@@ -12,7 +12,7 @@ Run pods locally:
 skaffold run
 
 while [[ $(kubectl get pods -l app=cassandra -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod" && sleep 1; done
-
+sleep 30
 kubectl exec cassandra -- cqlsh cassandra -u cassandra -p cassandra -e "CREATE KEYSPACE authz WITH replication= {'class':'SimpleStrategy', 'replication_factor':1};"
 
 ```
