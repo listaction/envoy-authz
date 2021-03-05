@@ -1,0 +1,22 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: cassandra
+  labels:
+    app: cassandra
+spec:
+  volumes:
+    - name: cassandra-data
+      emptyDir: {}
+  containers:
+    - name: cassandra
+      image: docker.io/bitnami/cassandra
+      ports:
+#        - containerPort: 7199 # JMX
+#        - containerPort: 7000 # cluster communication
+#        - containerPort: 7001 # cluster communication (SSL)
+        - containerPort: 9042 # native protocol clients
+#        - containerPort: 9160 # thrift clients
+      volumeMounts:
+        - name: cassandra-data
+          mountPath: /bitnami

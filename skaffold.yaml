@@ -1,0 +1,13 @@
+apiVersion: skaffold/v2beta12
+kind: Config
+metadata:
+  name: envoy-authz
+build:
+  artifacts:
+  - image: docker.io/kettil/faas-authserver
+    docker:
+      dockerfile: Dockerfile
+deploy:
+  kustomize:
+    paths:
+    - kube/kustomize

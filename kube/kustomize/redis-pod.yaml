@@ -1,0 +1,21 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  volumes:
+    - name: redis-data
+      emptyDir: {}
+  containers:
+    - name: redis
+      image: docker.io/bitnami/redis
+      env:
+        - name: ALLOW_EMPTY_PASSWORD
+          value: 'yes'
+      ports:
+        - containerPort: 6379
+      volumeMounts:
+        - name: redis-data
+          mountPath: /bitnami/redis

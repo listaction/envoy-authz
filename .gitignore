@@ -21,3 +21,5 @@ target/
 
 ### VS Code ###
 .vscode/
+
+venv/

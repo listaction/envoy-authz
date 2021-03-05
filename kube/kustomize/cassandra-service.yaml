@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cassandra
+  labels:
+    app: cassandra
+spec:
+#  type: LoadBalancer
+  ports:
+    - name: jmx
+      port: 7199
+      targetPort: 7199
+    - name: cluster-communication
+      port: 7000
+      targetPort: 7000
+    - name: cluster-communication-ssl
+      port: 7001
+      targetPort: 7001
+    - name: native-protocol-clients
+      port: 9042
+      targetPort: 9042
+    - name: thrift-clients
+      port: 9160
+      targetPort: 9160
+  selector:
+    app: cassandra
