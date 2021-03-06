@@ -7,7 +7,7 @@ class AuthTest:
     service_url = ""
     auth = ""
 
-    def init(self, service_url="http://localhost:18000", auth=""):
+    def init(self, service_url="http://localhost:18000/contact", auth=""):
         self.service_url = service_url
         self.auth = auth
 
@@ -18,7 +18,11 @@ class AuthTest:
             "Authorization": "Bearer " + self.auth
         }
 
-        response = requests.post(self.service_url + "/", headers=headers, verify=False)
+        data = {
+            "name": "Testy Testerson"
+        }
+
+        response = requests.post(self.service_url + "/create", headers=headers, json=data, verify=False)
         return response
 
     def update(self, contact_id):
@@ -28,7 +32,12 @@ class AuthTest:
             "Authorization": "Bearer " + self.auth
         }
 
-        response = requests.put(self.service_url + "/" + contact_id, headers=headers, verify=False)
+        data = {
+            "id": contact_id,
+            "name": "Testy McTestface"
+        }
+
+        response = requests.post(self.service_url + "/update", headers=headers, json=data, verify=False)
         return response
 
     def get(self, contact_id):
@@ -38,7 +47,11 @@ class AuthTest:
             "Authorization": "Bearer " + self.auth
         }
 
-        response = requests.get(self.service_url + "/" + contact_id, headers=headers, verify=False)
+        data = {
+            "id": contact_id
+        }
+
+        response = requests.post(self.service_url + "/read", headers=headers, json=data, verify=False)
         return response
 
     def delete(self, contact_id):
@@ -48,8 +61,13 @@ class AuthTest:
             "Authorization": "Bearer " + self.auth
         }
 
-        response = requests.delete(self.service_url + "/" + contact_id, headers=headers, verify=False)
+        data = {
+            "id": contact_id
+        }
+
+        response = requests.post(self.service_url + "/delete", headers=headers, json=data, verify=False)
         return response
+
 
 def main(args):
     urllib3.disable_warnings()
@@ -80,7 +98,6 @@ def main(args):
     else:
         print("FAILED")
         sys.exit(1)
-
 
     api2 = AuthTest()
     api2.init(auth="user2", service_url="http://localhost:18000/contact")
@@ -113,4 +130,3 @@ def main(args):
 
 if __name__ == "__main__":
     main(sys.argv)
-

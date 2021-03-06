@@ -21,6 +21,10 @@ static_resources:
                           cluster_name: ext-authz
                         timeout: 1s
                       include_peer_certificate: true
+                      with_request_body:
+                        max_request_bytes: 65536
+                        allow_partial_message: false
+                        pack_as_bytes: false
                   - name: envoy.filters.http.router
                     typed_config: { }
                 route_config:
@@ -31,17 +35,60 @@ static_resources:
                         - "*"
                       routes:
                         - match:
-                            prefix: "/contact/"
+                            path: "/contact/create"
                           route:
-                            cluster: service1
+                            cluster: "service1"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz:
-                              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                              '@type': "type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute"
                               check_settings:
                                 context_extensions:
                                   namespace_object: "contact"
                                   namespace_service: "api"
-                                  service_path: "/contact/{objectId}"
+                                  service_path: "/contact/create"
+                                  relation: "owner"
+                        - match:
+                            path: "/contact/delete"
+                          route:
+                            cluster: "service1"
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz:
+                              '@type': "type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute"
+                              check_settings:
+                                context_extensions:
+                                  namespace_object: "contact"
+                                  namespace_service: "api"
+                                  service_path: "/contact/delete"
+                                  objectid_ptr: "/id"
+                                  relation: "owner"
+                        - match:
+                            path: "/contact/read"
+                          route:
+                            cluster: "service1"
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz:
+                              '@type': "type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute"
+                              check_settings:
+                                context_extensions:
+                                  namespace_object: "contact"
+                                  namespace_service: "api"
+                                  service_path: "/contact/read"
+                                  objectid_ptr: "/id"
+                                  relation: "viewer"
+                        - match:
+                            path: "/contact/update"
+                          route:
+                            cluster: "service1"
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz:
+                              '@type': "type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute"
+                              check_settings:
+                                context_extensions:
+                                  namespace_object: "contact"
+                                  namespace_service: "api"
+                                  service_path: "/contact/update"
+                                  objectid_ptr: "/id"
+                                  relation: "editor"
                         - match:
                             prefix: "/acl/"
                           route:
@@ -54,6 +101,7 @@ static_resources:
                                   namespace_object: "acl"
                                   namespace_service: "api"
                                   service_path: "/acl/{objectId}"
+                                  relation: "owner"
   clusters:
     - name: service1
       connect_timeout: 0.25s
