@@ -7,9 +7,11 @@ import org.example.authserver.repo.AclRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Configuration
@@ -41,9 +43,10 @@ public class AclCassandraRepository implements AclRepository {
 
     @Override
     public Set<Acl> findAllByNamespaceAndObjectAndUser(String namespace, String object, String user) {
-        return cassandraRepository.findAllByNamespaceAndObject(namespace, object).stream()
+        Set<AclEntity> usersetAcls = cassandraRepository.findAllByNsobjectAndUser(String.format("%s:%s", namespace, object), "*");
+        Set<AclEntity> userAcls = cassandraRepository.findAllByNsobjectAndUser(String.format("%s:%s", namespace, object), user);
+        return Stream.concat(usersetAcls.stream(), userAcls.stream())
                 .map(AclEntity::toAcl)
-                .filter(f->(f.hasUserset() || (!f.hasUserset() && user.equals(f.getUser()))))
                 .collect(Collectors.toSet());
     }
 
@@ -51,10 +54,11 @@ public class AclCassandraRepository implements AclRepository {
     @Override
     public void save(Acl acl) {
         AclEntity entity = AclEntity.builder()
+                .nsobject(String.format("%s:%s", acl.getNamespace(), acl.getObject()))
                 .namespace(acl.getNamespace())
                 .object(acl.getObject())
                 .relation(acl.getRelation())
-                .user(acl.getUser())
+                .user((acl.hasUserset()) ? "*" : acl.getUser())
                 .usersetNamespace(acl.getUsersetNamespace())
                 .usersetObject(acl.getUsersetObject())
                 .usersetRelation(acl.getUsersetRelation())

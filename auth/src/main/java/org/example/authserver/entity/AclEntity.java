@@ -25,24 +25,15 @@ import java.util.UUID;
 @Table(value = "acls")
 public class AclEntity implements Serializable {
 
-    @Id
-    @PrimaryKeyColumn(
-            name = "id",
-            ordinal = 2,
-            type = PrimaryKeyType.PARTITIONED,
-            ordering = Ordering.DESCENDING)
-    @Builder.Default
-    private UUID id = UUID.randomUUID();
-    @Indexed
-    @Column
-    private String namespace;
-    @Indexed
-    @Column
-    private String object;
-    private String relation;
-    @Indexed
-    @Column
+    @PrimaryKeyColumn(type = PrimaryKeyType.PARTITIONED)
+    private String nsobject;
+    @PrimaryKeyColumn
     private String user;
+    @PrimaryKeyColumn
+    private String relation;
+
+    private String namespace;
+    private String object;
 
     private String usersetNamespace;
     private String usersetObject;

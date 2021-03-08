@@ -12,6 +12,7 @@
         <module>acl</module>
         <module>auth</module>
         <module>demo-service</module>
+        <module>perftest</module>
     </modules>
 
 </project>

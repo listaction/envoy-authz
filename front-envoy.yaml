@@ -19,7 +19,7 @@ static_resources:
                       grpc_service:
                         envoy_grpc:
                           cluster_name: ext-authz
-                        timeout: 1s
+                        timeout: 2s
                       include_peer_certificate: true
                   - name: envoy.filters.http.router
                     typed_config: { }
