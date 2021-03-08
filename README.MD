@@ -1,20 +1,7 @@
 ## Envoy w/ external auth example
 
 ### Quick Start
-
-build authz server
 ```
-mvn clean install
+./demo.sh
 ```
-startup envoy , authz server and a service that is behind envoy
-```
-docker-compose build && docker-compose up -d
-```
-run test scripts
-```
-test.sh
-```
-
-Headers:
-Authorization: Bearer foo  --> allowed
-other tokens are forbidden
+(builds authz service, demo service (which is behind envoy+authz) , starts envoy which connects to authz and demoservice and runs test.py which validates acls for routes and objects created by the demo service) 
