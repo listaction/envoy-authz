@@ -70,10 +70,12 @@ class AuthTest:
 
 
 def main(args):
+    ingress = args[1]
+
     urllib3.disable_warnings()
 
     api1 = AuthTest()
-    api1.init(auth="user1", service_url="http://localhost:18000/contact")
+    api1.init(auth="user1", service_url=ingress + "/contact")
     print("user1 creating new contact")
     create = api1.create()
     if create.status_code == 200:
@@ -100,7 +102,7 @@ def main(args):
         sys.exit(1)
 
     api2 = AuthTest()
-    api2.init(auth="user2", service_url="http://localhost:18000/contact")
+    api2.init(auth="user2", service_url=ingress + "/contact")
     print("user2 reading the contact")
     get_resp2 = api2.get(contact_id=contact_id)
     if get_resp2.status_code == 200:
@@ -118,7 +120,7 @@ def main(args):
         sys.exit(1)
 
     api3 = AuthTest()
-    api3.init(auth="user3", service_url="http://localhost:18000/contact")
+    api3.init(auth="user3", service_url=ingress + "/contact")
     print("user3 deleting the contact")
     del_resp2 = api3.delete(contact_id=contact_id)
     if del_resp2.status_code == 403:
