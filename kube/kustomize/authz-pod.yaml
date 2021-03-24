@@ -1,0 +1,16 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: authz
+  labels:
+    app: authz
+spec:
+  containers:
+    - name: authz
+      image: docker.io/kettil/faas-authserver
+      env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: docker
+      ports:
+        - containerPort: 8080
+        - containerPort: 8081

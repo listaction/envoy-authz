@@ -1,26 +1,32 @@
 package org.example.authserver.service.zanzibar;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AclFilterService {
 
     private final Zanzibar zanzibar;
+    private final ObjectMapper mapper;
 
-    public AclFilterService(Zanzibar zanzibar) {
-        this.zanzibar = zanzibar;
-    }
-
-    public boolean isAllowed(CheckRequest request){
+    public boolean isAllowed(CheckRequest request) {
         String method;
         String path;
         String token;
@@ -28,6 +34,10 @@ public class AclFilterService {
         String serviceNamespace;
         String servicePath;
         Map<String, String> route;
+
+        String relation;
+        String objectId;
+
         try {
             path = request.getAttributes().getRequest().getHttp().getPath();
             objectNamespace = request.getAttributes().getContextExtensionsOrThrow("namespace_object");
@@ -38,41 +48,42 @@ public class AclFilterService {
             log.info("method: {}", method);
             PathPatternParser parser = new PathPatternParser();
             PathPatternRouteMatcher matcher = new PathPatternRouteMatcher(parser);
-            route  = matcher.matchAndExtract(servicePath, matcher.parseRoute(path));
+            route = matcher.matchAndExtract(servicePath, matcher.parseRoute(path));
             log.info("route: {}", route);
             Map<String, String> headers = request.getAttributes().getRequest().getHttp().getHeadersMap();
             token = headers.get("authorization");
-        } catch (NullPointerException npe){
+
+            relation = request.getAttributes().getContextExtensionsOrThrow("relation");
+            objectId = route.get("objectId");
+
+            String objectIdPtr = request.getAttributes().getContextExtensionsMap().get("objectid_ptr");
+            if (objectId == null && objectIdPtr != null) {
+                byte[] requestBody = request.getAttributes().getRequest().getHttp().getBodyBytes().toByteArray();
+                if (requestBody != null) {
+                    ObjectNode nodes = mapper.readValue(requestBody, ObjectNode.class);
+                    JsonNode objectIdNode = nodes.at(objectIdPtr);
+                    objectId = objectIdNode.asText();
+                }
+            }
+
+        } catch (NullPointerException npe) {
             log.warn("Can't parse request's headers {}", request, npe);
+            return false;
+        } catch (IOException e) {
+            log.warn("Can't parse request body {}", request, e);
             return false;
         }
         if (token == null) return false;
-        if (route == null) route = new HashMap<>();
         token = token.replace("Bearer ", "");
         log.info("Token: {}", token);
 
-        String relation;
-        switch (method.toLowerCase(Locale.getDefault())){
-            case "post":
-                relation = "owner";
-                break;
-            case "put":
-                relation = "editor";
-                break;
-            case "delete":
-                relation = "owner";
-                break;
-            default:
-                relation = "viewer";
-        }
+        log.info("[{}] CHECKING: {}:{}#{}@{}", method, objectNamespace, objectId, relation, token);
 
-        log.info("[{}] CHECKING: {}:{}#{}@{}", method, objectNamespace, route.get("objectId"), relation, token);
-
-        if (!zanzibar.check(serviceNamespace, objectNamespace, "enable", token)){
+        if (!zanzibar.check(serviceNamespace, objectNamespace, "enable", token)) {
             return false;
         }
 
-        return zanzibar.check(objectNamespace, route.getOrDefault("objectId", "null"), relation, token);
+        return zanzibar.check(objectNamespace, objectId != null ? objectId : "null", relation, token);
     }
 
 }
