@@ -1,7 +1,8 @@
-version: '2'
+version: '3'
 services:
 
   front-envoy:
+    container_name: front-envoy
     build:
       context: .
       dockerfile: Dockerfile-frontenvoy
@@ -17,6 +18,7 @@ services:
       - "8001:8001"
 
   authz:
+    container_name: authz
     build:
       context: .
       dockerfile: Dockerfile
@@ -35,11 +37,27 @@ services:
       - "8081:8081"
     depends_on:
       - redis
-      - cassandra
       - service1
       - front-envoy
 
+  postgres:
+    container_name: postgres
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      envoymesh:
+        aliases:
+          - postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: authz
+      POSTGRES_USER: authz
+      POSTGRES_PASSWORD: password
+
   service1:
+    container_name: service1
     build:
       context: .
       dockerfile: Dockerfile.service
@@ -56,9 +74,9 @@ services:
     depends_on:
       - front-envoy
       - redis
-      - cassandra
 
   redis:
+    container_name: redis
     image: 'bitnami/redis:latest'
     environment:
       # ALLOW_EMPTY_PASSWORD is recommended only for development.
@@ -77,35 +95,12 @@ services:
     volumes:
       - 'redis_data:/bitnami/redis'
 
-  cassandra:
-    image: bitnami/cassandra:latest
-    labels:
-      kompose.service.type: nodeport
-    networks:
-      envoymesh:
-        aliases:
-          - cassandra
-    expose:
-      - "7199"
-      - "7000"
-      - "7001"
-      - "9042"
-      - "9160"
-    ports:
-      - "7199:7199" # JMX
-      - "7000:7000" # cluster communication
-      - "7001:7001" # cluster communication (SSL)
-      - "9042:9042" # native protocol clients
-      - "9160:9160" # thrift clients
-    volumes:
-      - 'cassandra_data:/bitnami'
-
 networks:
-  envoymesh: 
+  envoymesh:
     name: envoymesh
 
 volumes:
   redis_data:
     driver: local
-  cassandra_data:
+  postgres_data:
     driver: local

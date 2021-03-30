@@ -1,46 +1,40 @@
-package org.example.authserver.repo.cassandra;
+package org.example.authserver.repo.pgsql;
 
 import authserver.acl.AclRelationConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.Utils;
-import org.example.authserver.config.AppProperties;
 import org.example.authserver.entity.AclRelationConfigEntity;
 import org.example.authserver.repo.AclRelationConfigRepository;
-import org.example.authserver.repo.cassandra.AclRelationConfigSpringDataRepository;
-import org.example.authserver.repo.redis.AclRelationConfigRedisRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Configuration
 @ConditionalOnProperty(
         value="app.database",
-        havingValue = "CASSANDRA"
+        havingValue = "POSTGRES"
 )
-public class AclRelationConfigCassandraRepository implements AclRelationConfigRepository {
+public class AclRelationConfigPgRepository implements AclRelationConfigRepository {
 
-    private final AclRelationConfigSpringDataRepository cassandraRepository;
+    private final AclRelationConfigSpringDataRepository repository;
 
-    public AclRelationConfigCassandraRepository(AclRelationConfigSpringDataRepository cassandraRepository) {
-        this.cassandraRepository = cassandraRepository;
+    public AclRelationConfigPgRepository(AclRelationConfigSpringDataRepository repository) {
+        this.repository = repository;
     }
 
     @Override
     public Set<AclRelationConfig> findAll() {
-        return cassandraRepository.findAll().stream()
+        return repository.findAll().stream()
                 .map(AclRelationConfigEntity::toAclRelationConfig)
                 .collect(Collectors.toSet());
     }
 
     @Override
     public AclRelationConfig findOneById(String id) {
-        return cassandraRepository.findById(UUID.fromString(id))
+        return repository.findById(id)
                 .map(AclRelationConfigEntity::toAclRelationConfig)
                 .orElse(null);
     }
@@ -48,17 +42,17 @@ public class AclRelationConfigCassandraRepository implements AclRelationConfigRe
     @Override
     public void save(AclRelationConfig config) {
         AclRelationConfigEntity entity = AclRelationConfigEntity.builder()
-                .id(config.getId())
+                .id(config.getId().toString())
                 .namespace(config.getNamespace())
-                .json(Utils.configToJson(config))
+                .config(config)
                 .build();
 
-        cassandraRepository.save(entity);
+        repository.save(entity);
     }
 
     @Override
     public void delete(AclRelationConfig config) {
-        cassandraRepository.deleteById(config.getId());
+        repository.deleteById(config.getId().toString());
     }
 
 }

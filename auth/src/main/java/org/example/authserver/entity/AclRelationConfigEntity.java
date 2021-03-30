@@ -1,45 +1,40 @@
 package org.example.authserver.entity;
 
+import authserver.acl.AclRelation;
 import authserver.acl.AclRelationConfig;
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.authserver.Utils;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.cassandra.core.cql.Ordering;
-import org.springframework.data.cassandra.core.cql.PrimaryKeyType;
-import org.springframework.data.cassandra.core.mapping.Column;
-import org.springframework.data.cassandra.core.mapping.Indexed;
-import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn;
-import org.springframework.data.cassandra.core.mapping.Table;
+import org.hibernate.annotations.Type;
+import org.hibernate.annotations.TypeDef;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import java.util.Set;
 import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(value = "configs")
+@Entity(name = "configs")
+@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
 public class AclRelationConfigEntity {
 
     @Id
-    @PrimaryKeyColumn(
-            name = "id",
-            ordinal = 2,
-            type = PrimaryKeyType.PARTITIONED,
-            ordering = Ordering.DESCENDING)
-    private UUID id;
-    @Indexed
-    @Column
+    private String id;
     private String namespace;
-    @Column
-    private String json;
+    @Type(type = "jsonb")
+    @Column(columnDefinition = "jsonb")
+    private AclRelationConfig config;
 
 
     public static AclRelationConfig toAclRelationConfig(AclRelationConfigEntity entity) {
-        String json = entity.getJson();
-        return Utils.jsonToConfig(json);
+        return entity.getConfig();
     }
 
 }
