@@ -39,8 +39,6 @@ public class Application {
 
         server.start();
         log.info("Started. Listen post: 8080");
-        exampleDataset.init();
-        //server.awaitTermination();
     }
 
     public static void main(String[] args) {
