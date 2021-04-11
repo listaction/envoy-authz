@@ -32,6 +32,20 @@ public class MappingController {
         repository.save(dto);
     }
 
+    @PostMapping("/create-many")
+    public void addMappings(@Valid @RequestBody MappingEntityList dto){
+        for (MappingEntity entity : dto.getMappings()){
+            addMapping(entity);
+        }
+    }
+
+//    @DeleteMapping("/delete/{id}")
+//    public void deleteAcl(@PathVariable String id){
+//        log.info("Delete Mapping: {}", id);
+//        repository.delete(id);
+//    }
+
+
     @DeleteMapping("/delete/{id}")
     public void deleteMapping(@PathVariable String id){
         log.info("Delete Mapping: {}", id);
