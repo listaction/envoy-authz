@@ -19,7 +19,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity(name = "mapping")
+@Entity(name = "mappings")
 @TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
 public class MappingEntity implements Serializable {
 
