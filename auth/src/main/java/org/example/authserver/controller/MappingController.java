@@ -2,6 +2,7 @@ package org.example.authserver.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.MappingEntity;
+import org.example.authserver.entity.MappingEntityList;
 import org.example.authserver.repo.pgsql.MappingRepository;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,6 +38,12 @@ public class MappingController {
         for (MappingEntity entity : dto.getMappings()){
             addMapping(entity);
         }
+    }
+
+    @DeleteMapping("/clear")
+    public void clearMappings(){
+        log.info("Delete Mappings");
+        repository.deleteAll();
     }
 
 //    @DeleteMapping("/delete/{id}")

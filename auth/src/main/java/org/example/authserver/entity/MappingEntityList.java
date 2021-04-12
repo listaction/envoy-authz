@@ -1,4 +1,4 @@
-package org.example.authserver.controller;
+package org.example.authserver.entity;
 
 import lombok.Data;
 import org.example.authserver.entity.MappingEntity;
