@@ -1,12 +1,15 @@
 package org.example.authserver.service;
 
 import com.google.rpc.Status;
+import io.envoyproxy.envoy.config.core.v3.HeaderValue;
+import io.envoyproxy.envoy.config.core.v3.HeaderValueOption;
 import io.envoyproxy.envoy.service.auth.v3.AuthorizationGrpc;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.envoyproxy.envoy.service.auth.v3.CheckResponse;
 import io.envoyproxy.envoy.service.auth.v3.OkHttpResponse;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.AclFilterService;
 
 @Slf4j
@@ -25,11 +28,18 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     public void check(CheckRequest request, StreamObserver<CheckResponse> responseObserver) {
         log.info("request: {}", request);
 
-        boolean allow = aclFilterService.isAllowed(request);
+        CheckResult result = aclFilterService.checkRequest(request);
+
+        HeaderValueOption allowedTagsHeaders = HeaderValueOption.newBuilder()
+                .setHeader(HeaderValue.newBuilder()
+                        .setKey("ALLOWED_TAGS")
+                        .setValue(String.join(",", result.getTags()))
+                .build())
+                .build();
 
         CheckResponse response = CheckResponse.newBuilder()
-                .setStatus(Status.newBuilder().setCode(getCode(allow)).build())
-                .setOkResponse(OkHttpResponse.newBuilder().build())
+                .setStatus(Status.newBuilder().setCode(getCode(result.isResult())).build())
+                .setOkResponse(OkHttpResponse.newBuilder().addHeaders(allowedTagsHeaders).build())
                 .build();
 
         log.info("response: {}", response);

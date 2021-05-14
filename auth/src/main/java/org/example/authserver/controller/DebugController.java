@@ -1,9 +1,11 @@
 package org.example.authserver.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.Set;
 
 @Slf4j
@@ -24,9 +26,11 @@ public class DebugController {
     }
 
     @GetMapping("/test")
-    public boolean test(@RequestParam String namespace, @RequestParam String object, @RequestParam String relation, @RequestParam String principal){
+    public boolean test(@RequestParam String namespace, @RequestParam String object, @RequestParam String relation, @RequestParam String principal, HttpServletResponse response){
         log.info("get relations: {}:{} @ {}", namespace, object, principal);
-        return zanzibar.check(namespace, object, relation, principal);
+        CheckResult result = zanzibar.check(namespace, object, relation, principal);
+        response.addHeader("ALLOWED_TAGS", String.join(",", result.getTags()));
+        return result.isResult();
     }
 
 }

@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
+import org.example.authserver.entity.CheckResult;
 import org.example.authserver.repo.AclRepository;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
@@ -30,12 +31,15 @@ public class ZanzibarImpl implements Zanzibar {
 
     @Timed(value = "checkAcl", percentiles = {0.99, 0.95, 0.75})
     @Override
-    public boolean check(String namespace, String object, String relation, String principal) {
+    public CheckResult check(String namespace, String object, String relation, String principal) {
         String tag = String.format("%s:%s#%s", namespace, object, relation);
         log.info("expected tag: {}", tag);
         Set<String> relations = getRelations(namespace, object, principal);
         log.info("relations available: {}", relations);
-        return relations.contains(tag);
+        return CheckResult.builder()
+                .result(relations.contains(tag))
+                .tags(relations)
+                .build();
     }
 
     @Override

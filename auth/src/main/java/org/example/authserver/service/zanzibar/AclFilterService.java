@@ -4,11 +4,10 @@ import com.google.common.base.Strings;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.entity.CheckResult;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -24,17 +23,18 @@ public class AclFilterService {
         this.tokenService = tokenService;
     }
 
-    public boolean isAllowed(CheckRequest request){
+    public CheckResult checkRequest(CheckRequest request){
         Claims claims = tokenService.getAllClaimsFromRequest(request);
-        if (claims == null) return false;
+        if (claims == null) return CheckResult.builder().result(false).build();
 
         List<Map<String, String>> mappings = mappingService.processRequest(request, claims);
         if (mappings == null || mappings.size() == 0){
-            return false;
+            return CheckResult.builder().result(false).build();
         }
 
-        for (Map<String, String> variables : mappings){
+        Set<String> allowedTags = new HashSet<>();
 
+        for (Map<String, String> variables : mappings){
             String mappingRoles = variables.getOrDefault("roles", "");
             List<String> mRoles;
             if (!Strings.isNullOrEmpty(mappingRoles)){
@@ -42,19 +42,20 @@ public class AclFilterService {
                 mRoles = Arrays.asList(tmp);
             } else {
                 log.info("No roles assigned");
-                return false;
+                return CheckResult.builder().result(false).build();
             }
 
             boolean r = false;
             for (String role : mRoles) {
                 log.info("CHECKING: {}:{}#{}@{}", variables.get("namespace"), variables.get("object"), role, claims.getSubject());
-                boolean check = zanzibar.check(variables.get("namespace"), variables.get("object"), role, claims.getSubject());
-                if (check) r = true;
+                CheckResult check = zanzibar.check(variables.get("namespace"), variables.get("object"), role, claims.getSubject());
+                if (check.isResult()) r = true;
+                allowedTags.addAll(check.getTags());
             }
-            if (!r) return false;
+            if (!r) return CheckResult.builder().result(false).build();
         }
 
-        return true;
+        return CheckResult.builder().result(true).tags(allowedTags).build();
     }
 
 }

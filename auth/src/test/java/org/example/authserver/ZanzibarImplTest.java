@@ -4,6 +4,7 @@ import authserver.acl.Acl;
 import authserver.acl.AclRelation;
 import authserver.acl.AclRelationConfig;
 import authserver.acl.AclRelationParent;
+import org.example.authserver.entity.CheckResult;
 import org.example.authserver.repo.AclRelationConfigRepository;
 import org.example.authserver.repo.AclRepository;
 import org.example.authserver.repo.SubscriptionRepository;
@@ -63,9 +64,9 @@ class ZanzibarImplTest {
             Mockito.doReturn(Map.of(config.getNamespace(), config)).when(cacheService).getConfigs();
             aclRelationConfigService.update();
 
-            boolean result = zanzibar.check("doc", "readme","allow_to_update", entry.getKey());
-            System.out.println(String.format("user %s [expected result: %s] => %s ", entry.getKey(), entry.getValue(), result));
-            assert result == entry.getValue();
+            CheckResult result = zanzibar.check("doc", "readme","allow_to_update", entry.getKey());
+            System.out.println(String.format("user %s [expected result: %s] => %s ", entry.getKey(), entry.getValue(), result.isResult()));
+            assert result.isResult() == entry.getValue();
         }
     }
 
@@ -183,7 +184,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(Set.of(new AclRelationConfig())).when(configRepository).findAll();
 
             // user1 and user2 are have access. And user3 is not.
-            assert zanzibar.check("api", "contact", "enable", principal) == expected;
+            assert zanzibar.check("api", "contact", "enable", principal).isResult() == expected;
         }
     }
 
@@ -248,7 +249,7 @@ class ZanzibarImplTest {
 
             System.out.println("user: " + principal);
             // user1 and user2 are have access. And user3 is not.
-            assert zanzibar.check("contact", uuid, "viewer", principal) == expected;
+            assert zanzibar.check("contact", uuid, "viewer", principal).isResult() == expected;
         }
     }
 
@@ -297,7 +298,7 @@ class ZanzibarImplTest {
 
             System.out.println("user: " + principal);
             // user1 should be excluded, user2 should pass
-            assert zanzibar.check("group", "object", "rel1", principal) == expected;
+            assert zanzibar.check("group", "object", "rel1", principal).isResult() == expected;
         }
     }
 
@@ -346,7 +347,7 @@ class ZanzibarImplTest {
 
             System.out.println("user: " + principal);
             // user1 should pass, user2 should be excluded
-            assert zanzibar.check("group", "object", "rel1", principal) == expected;
+            assert zanzibar.check("group", "object", "rel1", principal).isResult() == expected;
         }
     }
 
