@@ -32,7 +32,7 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
 
         HeaderValueOption allowedTagsHeaders = HeaderValueOption.newBuilder()
                 .setHeader(HeaderValue.newBuilder()
-                        .setKey("ALLOWED_TAGS")
+                        .setKey("X-ALLOWED-TAGS")
                         .setValue(String.join(",", result.getTags()))
                 .build())
                 .build();
