@@ -140,6 +140,8 @@ public class MappingService {
     }
 
     private static String removeQuery(String pathOrig) {
-        return pathOrig.substring(0, pathOrig.indexOf('?'));
+        int idx = pathOrig.indexOf('?');
+        if (idx == -1) return pathOrig;
+        return pathOrig.substring(0, idx);
     }
 }
