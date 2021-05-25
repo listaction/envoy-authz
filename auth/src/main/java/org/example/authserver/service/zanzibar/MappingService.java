@@ -66,6 +66,7 @@ public class MappingService {
                 variables.put("tenant", m.group(2));
             }
 
+            variables.put("userId", claims.getSubject());
             variables.forEach((key, value) -> log.info("{} => {}", key, value));
 
             compositeAclStuff(mapping, variables);
@@ -88,7 +89,7 @@ public class MappingService {
                 continue; // skip entries that don't match
             }
 
-            String path = request.getAttributes().getRequest().getHttp().getPath();
+            String path = removeQuery(request.getAttributes().getRequest().getHttp().getPath());
             PathPatternParser parser = new PathPatternParser();
             PathPatternRouteMatcher matcher = new PathPatternRouteMatcher(parser);
             route  = matcher.matchAndExtract(currentMapping.getPath(), matcher.parseRoute(path));
@@ -138,4 +139,7 @@ public class MappingService {
         return variables;
     }
 
+    private static String removeQuery(String pathOrig) {
+        return pathOrig.substring(0, pathOrig.indexOf('?'));
+    }
 }
