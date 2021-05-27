@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.AuthService;
 import org.example.authserver.service.CacheLoaderService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
@@ -22,23 +23,25 @@ public class Application {
     private final AclFilterService aclFilterService;
     private final CacheLoaderService cacheLoaderService;
     private final ExampleDataset exampleDataset;
+    private final int grpcPort;
 
-    public Application(AclFilterService aclFilterService, CacheLoaderService cacheLoaderService, ExampleDataset exampleDataset) {
+    public Application(AclFilterService aclFilterService, CacheLoaderService cacheLoaderService, ExampleDataset exampleDataset, @Value("${grpc.port:8080}") int grpcPort) {
         this.aclFilterService = aclFilterService;
         this.cacheLoaderService = cacheLoaderService;
         this.exampleDataset = exampleDataset;
+        this.grpcPort = grpcPort;
     }
 
     @PostConstruct
     public void start() throws Exception {
         cacheLoaderService.subscribe();
 
-        Server server = ServerBuilder.forPort(8080)
+        Server server = ServerBuilder.forPort(grpcPort)
                 .addService(new AuthService(aclFilterService))
                 .build();
 
         server.start();
-        log.info("Started. Listen post: 8080");
+        log.info("Started. Listen post: {}}", grpcPort);
     }
 
     public static void main(String[] args) {
