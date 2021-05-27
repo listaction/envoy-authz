@@ -1,6 +1,7 @@
 package org.example.authserver.controller;
 
 import authserver.acl.Acl;
+import org.example.authserver.entity.AclsRequestDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.repo.AclRepository;
 import org.example.authserver.repo.SubscriptionRepository;
@@ -28,10 +29,17 @@ public class AclController {
     }
 
     @PostMapping("/create")
-    public void addAcl(@Valid @RequestBody Acl acl){
+    public void createAcl(@Valid @RequestBody Acl acl){
         log.info("Created ACL: {}", acl);
         repository.save(acl);
         subscriptionRepository.publish(acl);
+    }
+
+    @PostMapping("/create_multiple")
+    public void createMultiAcl(@Valid @RequestBody AclsRequestDTO multiAcl){
+        for (Acl acl : multiAcl.getAcls()){
+            createAcl(acl);
+        }
     }
 
 
