@@ -67,7 +67,8 @@ public class MappingService {
             }
 
             variables.put("userId", claims.getSubject());
-            variables.forEach((key, value) -> log.info("{} => {}", key, value));
+            variables.put("aclId", mapping.getId());
+            variables.forEach((key, value) -> log.trace("{} => {}", key, value));
 
             compositeAclStuff(mapping, variables);
             result.add(variables);
@@ -98,7 +99,7 @@ public class MappingService {
                 continue; // skip entries that don't match
             }
 
-            log.info("route: {}", route);
+            log.debug("route: {}", route);
 
             Map<String, String> pathVariables = new HashMap<>();
             for (Map.Entry<String, String> entry : route.entrySet()){

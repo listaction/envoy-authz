@@ -33,9 +33,10 @@ public class ZanzibarImpl implements Zanzibar {
     @Override
     public CheckResult check(String namespace, String object, String relation, String principal) {
         String tag = String.format("%s:%s#%s", namespace, object, relation);
-        log.info("expected tag: {}", tag);
+        log.trace("expected tag: {}", tag);
         Set<String> relations = getRelations(namespace, object, principal);
-        log.info("relations available: {}", relations);
+
+        log.trace("relations available: {}", relations);
         return CheckResult.builder()
                 .result(relations.contains(tag))
                 .tags(relations)
@@ -67,9 +68,9 @@ public class ZanzibarImpl implements Zanzibar {
             }
 
             if (!Collections.disjoint(exclusions, lookups)){
-                log.info("relation {}#{} is excluded [exclusion]", l.getT1(), l.getT2());
+                log.trace("relation {}#{} is excluded [exclusion]", l.getT1(), l.getT2());
             } else if (intersections.size() > 0 && Collections.disjoint(intersections, lookups)) {
-                log.info("relation {}#{} is excluded [interception]", l.getT1(), l.getT2());
+                log.trace("relation {}#{} is excluded [interception]", l.getT1(), l.getT2());
             } else {
                 result.add(generateTag(l.getT1(), l.getT2()));
             }

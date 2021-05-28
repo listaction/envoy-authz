@@ -3,6 +3,7 @@ package org.example.authserver;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.config.AppProperties;
 import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.AuthService;
 import org.example.authserver.service.CacheLoaderService;
@@ -22,13 +23,13 @@ public class Application {
 
     private final AclFilterService aclFilterService;
     private final CacheLoaderService cacheLoaderService;
-    private final ExampleDataset exampleDataset;
+    private final AppProperties appProperties;
     private final int grpcPort;
 
-    public Application(AclFilterService aclFilterService, CacheLoaderService cacheLoaderService, ExampleDataset exampleDataset, @Value("${grpc.port:8080}") int grpcPort) {
+    public Application(AclFilterService aclFilterService, CacheLoaderService cacheLoaderService, AppProperties appProperties, @Value("${grpc.port:8080}") int grpcPort) {
         this.aclFilterService = aclFilterService;
         this.cacheLoaderService = cacheLoaderService;
-        this.exampleDataset = exampleDataset;
+        this.appProperties = appProperties;
         this.grpcPort = grpcPort;
     }
 
@@ -37,7 +38,7 @@ public class Application {
         cacheLoaderService.subscribe();
 
         Server server = ServerBuilder.forPort(grpcPort)
-                .addService(new AuthService(aclFilterService))
+                .addService(new AuthService(aclFilterService, appProperties))
                 .build();
 
         server.start();

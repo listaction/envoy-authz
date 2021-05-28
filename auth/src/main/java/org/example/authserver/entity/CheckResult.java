@@ -13,6 +13,10 @@ import java.util.HashSet;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CheckResult {
+    private String rejectedWithMappingId;
+    private boolean mappingsPresent;
+    @Builder.Default
+    private boolean jwtPresent = true;
     private boolean result;
     @Builder.Default
     private Collection<String> tags = new HashSet<>();

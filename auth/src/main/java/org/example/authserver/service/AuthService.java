@@ -9,6 +9,7 @@ import io.envoyproxy.envoy.service.auth.v3.CheckResponse;
 import io.envoyproxy.envoy.service.auth.v3.OkHttpResponse;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.config.AppProperties;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.AclFilterService;
 
@@ -19,30 +20,50 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     private static final Integer PERMISSION_DENIED=7;
 
     private final AclFilterService aclFilterService;
+    private final AppProperties appProperties;
 
-    public AuthService(AclFilterService aclFilterService) {
+    public AuthService(AclFilterService aclFilterService, AppProperties appProperties) {
         this.aclFilterService = aclFilterService;
+        this.appProperties = appProperties;
     }
 
     @Override
     public void check(CheckRequest request, StreamObserver<CheckResponse> responseObserver) {
-        log.info("request: {}", request);
 
         CheckResult result = aclFilterService.checkRequest(request);
 
-        HeaderValueOption allowedTagsHeaders = HeaderValueOption.newBuilder()
-                .setHeader(HeaderValue.newBuilder()
-                        .setKey("X-ALLOWED-TAGS")
-                        .setValue(String.join(",", result.getTags()))
-                .build())
+        HeaderValue headerAllowedTags = HeaderValue.newBuilder()
+                .setKey("X-ALLOWED-TAGS")
+                .setValue(String.join(",", result.getTags()))
+                .build();
+
+        HeaderValueOption headers = HeaderValueOption.newBuilder()
+                .setHeader(headerAllowedTags)
                 .build();
 
         CheckResponse response = CheckResponse.newBuilder()
                 .setStatus(Status.newBuilder().setCode(getCode(result.isResult())).build())
-                .setOkResponse(OkHttpResponse.newBuilder().addHeaders(allowedTagsHeaders).build())
+                .setOkResponse(OkHttpResponse.newBuilder().addHeaders(headers).build())
                 .build();
 
-        log.info("response: {}", response);
+        if (result.isMappingsPresent()) {
+            log.info("request: {} {}",
+                    request.getAttributes().getRequest().getHttp().getMethod(),
+                    request.getAttributes().getRequest().getHttp().getPath()
+
+            );
+            log.info("request allowed: {}", result.isResult());
+
+            if (!result.isResult()){
+                log.info("REJECTED by mapping id: {}", result.getRejectedWithMappingId());
+            }
+
+        } else {
+            log.warn("NO MAPPINGS found for {} {}",
+                    request.getAttributes().getRequest().getHttp().getMethod(),
+                    request.getAttributes().getRequest().getHttp().getPath()
+            );
+        }
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();

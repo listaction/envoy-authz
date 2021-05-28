@@ -23,39 +23,43 @@ public class AclFilterService {
         this.tokenService = tokenService;
     }
 
-    public CheckResult checkRequest(CheckRequest request){
+    public CheckResult checkRequest(CheckRequest request) {
         Claims claims = tokenService.getAllClaimsFromRequest(request);
-        if (claims == null) return CheckResult.builder().result(false).build();
+        if (claims == null) return CheckResult.builder().jwtPresent(false).result(false).build();
 
         List<Map<String, String>> mappings = mappingService.processRequest(request, claims);
-        if (mappings == null || mappings.size() == 0){
-            return CheckResult.builder().result(false).build();
+        if (mappings == null || mappings.size() == 0) {
+            return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
         Set<String> allowedTags = new HashSet<>();
-
-        for (Map<String, String> variables : mappings){
+        for (Map<String, String> variables : mappings) {
+            String mappingId = variables.get("aclId");
             String mappingRoles = variables.getOrDefault("roles", "");
             List<String> mRoles;
-            if (!Strings.isNullOrEmpty(mappingRoles)){
+            if (!Strings.isNullOrEmpty(mappingRoles)) {
                 String[] tmp = mappingRoles.split(",");
                 mRoles = Arrays.asList(tmp);
             } else {
-                log.info("No roles assigned");
-                return CheckResult.builder().result(false).build();
+                log.info("No roles assigned for mappingId {}", mappingId);
+                return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
             }
 
             boolean r = false;
             for (String role : mRoles) {
-                log.info("CHECKING: {}:{}#{}@{}", variables.get("namespace"), variables.get("object"), role, claims.getSubject());
+                log.trace("CHECKING: {}:{}#{}@{}", variables.get("namespace"), variables.get("object"), role, claims.getSubject());
                 CheckResult check = zanzibar.check(variables.get("namespace"), variables.get("object"), role, claims.getSubject());
+
                 if (check.isResult()) r = true;
                 allowedTags.addAll(check.getTags());
             }
-            if (!r) return CheckResult.builder().result(false).build();
+            if (!r) {
+                log.info("NO ACLS found for {}:{} for userId: {}", variables.get("namespace"), variables.get("object"), claims.getSubject());
+                return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
+            }
         }
 
-        return CheckResult.builder().result(true).tags(allowedTags).build();
+        return CheckResult.builder().mappingsPresent(true).result(true).tags(allowedTags).build();
     }
 
 }
