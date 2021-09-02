@@ -59,7 +59,9 @@ class ZanzibarImplTest {
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(aclsDocReadme).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("doc"), eq("readme"), eq(principal));
+            Mockito.doReturn(aclsDocReadme).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("doc:readme")));
             Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("group"), eq("document"), eq(principal));
+            Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("group:document")));
             Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
             Mockito.doReturn(Map.of(config.getNamespace(), config)).when(cacheService).getConfigs();
             aclRelationConfigService.update();
@@ -109,6 +111,7 @@ class ZanzibarImplTest {
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("namespace"), eq("object"), eq(principal));
+            Mockito.doReturn(acls).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("namespace:object")));
             Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
             Mockito.doReturn(Map.of("namespace:object", config)).when(cacheService).getConfigs();
 
@@ -179,7 +182,9 @@ class ZanzibarImplTest {
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("group"), eq("contactusers"), eq(principal));
+            Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("group:contactusers")));
             Mockito.doReturn(aclsApiContact).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("api"), eq("contact"), eq(principal));
+            Mockito.doReturn(aclsApiContact).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("api:contact")));
 
             Mockito.doReturn(Set.of(new AclRelationConfig())).when(configRepository).findAll();
 
@@ -245,7 +250,9 @@ class ZanzibarImplTest {
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("group"), eq("contactusers"), eq(principal));
+            Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("group:contactusers")));
             Mockito.doReturn(aclsContact).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("contact"), eq(uuid), eq(principal));
+            Mockito.doReturn(aclsContact).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of(String.format("contact:%s", uuid))));
 
             System.out.println("user: " + principal);
             // user1 and user2 are have access. And user3 is not.
@@ -295,6 +302,7 @@ class ZanzibarImplTest {
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("group"), eq("object"), anyString());
+            Mockito.doReturn(acls).when(aclRepository).findAllByPrincipalAndNsObjectIn(anyString(), eq(List.of("group:object")));
 
             System.out.println("user: " + principal);
             // user1 should be excluded, user2 should pass
@@ -344,6 +352,7 @@ class ZanzibarImplTest {
 
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("group"), eq("object"), anyString());
+            Mockito.doReturn(acls).when(aclRepository).findAllByPrincipalAndNsObjectIn(anyString(), eq(List.of("group:object")));
 
             System.out.println("user: " + principal);
             // user1 should pass, user2 should be excluded
@@ -411,6 +420,7 @@ class ZanzibarImplTest {
         acl1.setNamespace("doc");
         acl1.setObject("readme");
         acl1.setRelation("allow_to_update");
+        acl1.setUser("*");
         acl1.setUsersetNamespace("group");
         acl1.setUsersetObject("document");
         acl1.setUsersetRelation("editor");

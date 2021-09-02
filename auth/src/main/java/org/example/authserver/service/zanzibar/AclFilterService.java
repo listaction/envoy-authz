@@ -41,7 +41,6 @@ public class AclFilterService {
                 String[] tmp = mappingRoles.split(",");
                 mRoles = Arrays.asList(tmp);
             } else {
-                log.info("No roles assigned for mappingId {}", mappingId);
                 return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
             }
 

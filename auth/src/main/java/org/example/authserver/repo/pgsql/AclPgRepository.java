@@ -7,8 +7,8 @@ import org.example.authserver.repo.AclRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,6 +41,16 @@ public class AclPgRepository implements AclRepository {
     }
 
     @Override
+    public Set<Acl> findAllByPrincipalAndNsObjectIn(String principal, List<String> nsObjects) {
+        Set<AclEntity> usersetAcls = repository.findAllByNsobjectInAndUser(nsObjects, "*");
+        Set<AclEntity> userAcls = repository.findAllByUser(principal);
+        return Stream.concat(usersetAcls.stream(), userAcls.stream())
+                .map(AclEntity::toAcl)
+                .collect(Collectors.toSet());
+    }
+
+
+    @Override
     public Set<Acl> findAllByNamespaceAndObjectAndUser(String namespace, String object, String user) {
         Set<AclEntity> usersetAcls = repository.findAllByNsobjectAndUser(String.format("%s:%s", namespace, object), "*");
         Set<AclEntity> userAcls = repository.findAllByNsobjectAndUser(String.format("%s:%s", namespace, object), user);
@@ -71,5 +81,6 @@ public class AclPgRepository implements AclRepository {
     public void delete(Acl acl) {
         repository.deleteById(acl.getId().toString());
     }
+
 
 }

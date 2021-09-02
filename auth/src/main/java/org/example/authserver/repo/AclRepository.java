@@ -2,6 +2,7 @@ package org.example.authserver.repo;
 
 import authserver.acl.Acl;
 
+import java.util.List;
 import java.util.Set;
 
 public interface AclRepository {
@@ -16,4 +17,5 @@ public interface AclRepository {
 
     void delete(Acl acl);
 
+    Set<Acl> findAllByPrincipalAndNsObjectIn(String principal, List<String> nsObjects);
 }
