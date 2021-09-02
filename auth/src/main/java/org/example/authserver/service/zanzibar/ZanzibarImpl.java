@@ -116,7 +116,7 @@ public class ZanzibarImpl implements Zanzibar {
 
     @Timed(value = "expandMultiple", percentiles = {0.99, 0.95, 0.75})
     private Set<ExpandedAcl> expandMultiple(Set<Tuple2<String, String>> namespaceObjects, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache){
-        log.trace("calling expandMultiple [cache: {}] =>  {}", cache.size(), namespaceObjects);
+        log.info("calling expandMultiple [cache: {}] =>  {}", cache.size(), namespaceObjects);
         if (namespaceObjects.size() == 0){
             return new HashSet<>();
         }

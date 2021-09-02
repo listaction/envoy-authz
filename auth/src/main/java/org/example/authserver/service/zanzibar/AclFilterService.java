@@ -49,12 +49,12 @@ public class AclFilterService {
             for (String role : mRoles) {
                 String namespace = variables.get("namespace");
                 String object = variables.get("object");
-                log.trace("CHECKING: {}:{}#{}@{}", namespace, object, role, claims.getSubject());
+                log.info("CHECKING: {}:{}#{}@{}", namespace, object, role, claims.getSubject());
                 String currentTag = String.format("%s:%s#%s", namespace, object, role);
                 boolean tagFound = relations.contains(currentTag);
-                log.trace("expected tag: {} {}", currentTag, (tagFound) ? "is NOT present" : "is present");
+                log.info("expected tag: {} {}", currentTag, (tagFound) ? "is NOT present" : "is present");
                 if (!tagFound) {
-                    log.trace("relations available: {}", relations);
+                    log.info("relations available: {}", relations);
                 }
 
                 if (tagFound) r = true;
