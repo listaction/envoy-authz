@@ -53,7 +53,17 @@ public class AclRedisRepository implements AclRepository {
 
     @Override
     public Set<Acl> findAllByPrincipalAndNsObjectIn(String principal, List<String> nsObjects) {
+        throw new RuntimeException("findAllByPrincipalAndNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<Acl> findAllByPrincipal(String principal) {
         throw new RuntimeException("findAllByPrincipal_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<Acl> findAllByNsObjectIn(List<String> nsObjects) {
+        throw new RuntimeException("findAllByNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
     }
 
     @Override

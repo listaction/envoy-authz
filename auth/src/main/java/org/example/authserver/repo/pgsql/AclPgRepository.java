@@ -51,6 +51,23 @@ public class AclPgRepository implements AclRepository {
 
 
     @Override
+    public Set<Acl> findAllByPrincipal(String principal) {
+        Set<AclEntity> userAcls = repository.findAllByUser(principal);
+        return userAcls.stream()
+                .map(AclEntity::toAcl)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<Acl> findAllByNsObjectIn(List<String> nsObjects) {
+        Set<AclEntity> usersetAcls = repository.findAllByNsobjectInAndUser(nsObjects, "*");
+        return usersetAcls.stream()
+                .map(AclEntity::toAcl)
+                .collect(Collectors.toSet());
+    }
+
+
+    @Override
     public Set<Acl> findAllByNamespaceAndObjectAndUser(String namespace, String object, String user) {
         Set<AclEntity> usersetAcls = repository.findAllByNsobjectAndUser(String.format("%s:%s", namespace, object), "*");
         Set<AclEntity> userAcls = repository.findAllByNsobjectAndUser(String.format("%s:%s", namespace, object), user);

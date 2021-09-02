@@ -1,11 +1,13 @@
 package org.example.authserver.service.zanzibar;
 
+import authserver.acl.Acl;
 import com.google.common.base.Strings;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.CheckResult;
 import org.springframework.stereotype.Service;
+import reactor.util.function.Tuple2;
 
 import java.util.*;
 
@@ -32,6 +34,8 @@ public class AclFilterService {
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
+        Map<Tuple2<String, String>, Set<ZanzibarImpl.ExpandedAcl>> cache = new HashMap<>();
+        Map<String, Set<Acl>> principalAclCache = new HashMap<>();
         Set<String> allowedTags = new HashSet<>();
         for (Map<String, String> variables : mappings) {
             String mappingId = variables.get("aclId");
@@ -45,7 +49,7 @@ public class AclFilterService {
             }
 
             boolean r = false;
-            Set<String> relations = zanzibar.getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject());
+            Set<String> relations = zanzibar.getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject(), cache, principalAclCache);
             for (String role : mRoles) {
                 String namespace = variables.get("namespace");
                 String object = variables.get("object");
