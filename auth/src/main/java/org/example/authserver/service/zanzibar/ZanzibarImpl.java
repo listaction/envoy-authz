@@ -44,6 +44,7 @@ public class ZanzibarImpl implements Zanzibar {
     }
 
     @Override
+    @Timed(value = "getRelation", percentiles = {0.99, 0.95, 0.75})
     public Set<String> getRelations(String namespace, String object, String principal) {
         Set<ExpandedAcl> relations = expandMultiple(Set.of(Tuples.of(namespace, object)), principal);
         Set<Tuple2<String, String>> lookups = lookup(relations, namespace, object, principal);

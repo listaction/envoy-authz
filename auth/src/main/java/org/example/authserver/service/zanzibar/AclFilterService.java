@@ -45,12 +45,20 @@ public class AclFilterService {
             }
 
             boolean r = false;
+            Set<String> relations = zanzibar.getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject());
             for (String role : mRoles) {
-                log.trace("CHECKING: {}:{}#{}@{}", variables.get("namespace"), variables.get("object"), role, claims.getSubject());
-                CheckResult check = zanzibar.check(variables.get("namespace"), variables.get("object"), role, claims.getSubject());
+                String namespace = variables.get("namespace");
+                String object = variables.get("object");
+                log.trace("CHECKING: {}:{}#{}@{}", namespace, object, role, claims.getSubject());
+                String currentTag = String.format("%s:%s#%s", namespace, object, role);
+                boolean tagFound = relations.contains(currentTag);
+                log.trace("expected tag: {} {}", currentTag, (tagFound) ? "is NOT present" : "is present");
+                if (!tagFound) {
+                    log.trace("relations available: {}", relations);
+                }
 
-                if (check.isResult()) r = true;
-                allowedTags.addAll(check.getTags());
+                if (tagFound) r = true;
+                allowedTags.addAll(relations);
             }
             if (!r) {
                 log.info("NO ACLS found for {}:{} for userId: {}", variables.get("namespace"), variables.get("object"), claims.getSubject());
