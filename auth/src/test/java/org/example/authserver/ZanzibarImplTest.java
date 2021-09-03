@@ -11,6 +11,7 @@ import org.example.authserver.repo.SubscriptionRepository;
 import org.example.authserver.service.CacheService;
 import org.example.authserver.service.zanzibar.*;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
+@Disabled
 class ZanzibarImplTest {
 
     @Mock
