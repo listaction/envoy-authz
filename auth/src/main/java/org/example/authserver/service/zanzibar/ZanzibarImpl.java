@@ -30,10 +30,10 @@ public class ZanzibarImpl implements Zanzibar {
 
     @Timed(value = "checkAcl", percentiles = {0.99, 0.95, 0.75})
     @Override
-    public CheckResult check(String namespace, String object, String relation, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache) {
+    public CheckResult check(String namespace, String object, String relation, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache, Map<Tuple2<String, String>, Set<Acl>> groupsCache) {
         String tag = String.format("%s:%s#%s", namespace, object, relation);
         log.trace("expected tag: {}", tag);
-        Set<String> relations = getRelations(namespace, object, principal, cache, principalAclCache);
+        Set<String> relations = getRelations(namespace, object, principal, cache, principalAclCache, groupsCache);
 
         log.trace("relations available: {}", relations);
         return CheckResult.builder()
@@ -44,8 +44,8 @@ public class ZanzibarImpl implements Zanzibar {
 
     @Override
     @Timed(value = "getRelation", percentiles = {0.99, 0.95, 0.75})
-    public Set<String> getRelations(String namespace, String object, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache) {
-        Set<ExpandedAcl> relations = expandMultiple(Set.of(Tuples.of(namespace, object)), principal, cache, principalAclCache);
+    public Set<String> getRelations(String namespace, String object, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache, Map<Tuple2<String, String>, Set<Acl>> groupsCache) {
+        Set<ExpandedAcl> relations = expandMultiple(Set.of(Tuples.of(namespace, object)), principal, cache, principalAclCache, groupsCache);
         Set<Tuple2<String, String>> lookups = lookup(relations, namespace, object, principal);
 
         Set<String> result = new HashSet<>();
@@ -114,14 +114,11 @@ public class ZanzibarImpl implements Zanzibar {
     }
 
     @Timed(value = "expandMultiple", percentiles = {0.99, 0.95, 0.75})
-    private Set<ExpandedAcl> expandMultiple(Set<Tuple2<String, String>> namespaceObjects, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache){
-        log.info("calling expandMultiple [cache: {}] =>  {}", cache.size(), namespaceObjects);
+    private Set<ExpandedAcl> expandMultiple(Set<Tuple2<String, String>> namespaceObjects, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache, Map<Tuple2<String, String>, Set<Acl>> groupsCache){
+        log.trace("calling expandMultiple [cache: {}] =>  {}", cache.size(), namespaceObjects);
         if (namespaceObjects.size() == 0){
             return new HashSet<>();
         }
-        List<String> nsObjects = namespaceObjects.stream()
-                .map(tuple->String.format("%s:%s", tuple.getT1(), tuple.getT2()))
-                .collect(Collectors.toList());
 
         Set<Acl> acls = new HashSet<>();
         if (principalAclCache.containsKey(principal)) {
@@ -131,14 +128,30 @@ public class ZanzibarImpl implements Zanzibar {
             acls.addAll(principalAcls);
             principalAclCache.put(principal, principalAcls);
         }
-        acls.addAll(repository.findAllByNsObjectIn(nsObjects));
+
+        List<String> nsObjects = namespaceObjects.stream()
+                .filter(ns->!groupsCache.containsKey(ns))
+                .map(tuple->String.format("%s:%s", tuple.getT1(), tuple.getT2()))
+                .collect(Collectors.toList());
+        if (nsObjects.size() > 0) {
+            Set<Acl> aclsFromDb = repository.findAllByNsObjectIn(nsObjects);
+            acls.addAll(aclsFromDb);
+            Map<Tuple2<String, String>, Set<Acl>> toCache = aclsFromDb.stream()
+                    .collect(Collectors.groupingBy(m->Tuples.of(m.getNamespace(), m.getObject()),  Collectors.toSet()));
+            groupsCache.putAll(toCache);
+        }
+
+        for (Tuple2<String, String> group : namespaceObjects){
+            acls.addAll(groupsCache.getOrDefault(group, new HashSet<>()));
+            //groupsCache.putIfAbsent(group, new HashSet<>()); // caches all groups that have no nested groups
+        }
 
         Set<ExpandedAcl> result = new HashSet<>(acls.size());
         for (Acl acl : acls){
             for (Tuple2<String, String> tuple : namespaceObjects){
                 String ns = String.format("%s:%s", tuple.getT1(), tuple.getT2());
                 if (acl.getNsObject().equalsIgnoreCase(ns)){
-                    Set<ExpandedAcl> tmp = expand(tuple.getT1(), tuple.getT2(), principal, acls, cache, principalAclCache);
+                    Set<ExpandedAcl> tmp = expand(tuple.getT1(), tuple.getT2(), principal, acls, cache, principalAclCache, groupsCache);
                     result.addAll(tmp);
                 }
             }
@@ -147,9 +160,19 @@ public class ZanzibarImpl implements Zanzibar {
     }
 
     @Timed(value = "expandNoDbQuery", percentiles = {0.99, 0.95, 0.75})
-    private Set<ExpandedAcl> expand(String namespace, String object, String principal, Set<Acl> acls, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache) {
+    private Set<ExpandedAcl> expand(String namespace, String object, String principal, Set<Acl> acls, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache, Map<Tuple2<String, String>, Set<Acl>> groupsCache) {
         if (cache.containsKey(Tuples.of(namespace, object))){
-            return cache.get(Tuples.of(namespace, object));
+            Set<ExpandedAcl> setFromCache = cache.get(Tuples.of(namespace, object));
+            for (Acl acl : principalAclCache.getOrDefault(principal, new HashSet<>())){
+                ExpandedAcl expandedAcl = ExpandedAcl.builder()
+                        .namespace(acl.getNamespace())
+                        .object(acl.getObject())
+                        .relation(acl.getRelation())
+                        .user(acl.getUser())
+                        .build();
+                setFromCache.add(expandedAcl);
+            }
+            return setFromCache;
         }
         Set<ExpandedAcl> relations = new HashSet<>();
         for (Acl acl : acls) {
@@ -174,10 +197,9 @@ public class ZanzibarImpl implements Zanzibar {
                         } else {
                             aclsToExpand.add(Tuples.of(acl.getUsersetNamespace(), acl.getUsersetObject()));
                         }
-//                        relations.addAll(expand(acl.getUsersetNamespace(), acl.getUsersetObject(), principal));
                     }
                 }
-                relations.addAll(expandMultiple(aclsToExpand, principal, cache, principalAclCache));
+                relations.addAll(expandMultiple(aclsToExpand, principal, cache, principalAclCache, groupsCache));
             } else {
                 for (String rel : nested) {
                     ExpandedAcl expandedAcl = ExpandedAcl.builder()
@@ -192,46 +214,6 @@ public class ZanzibarImpl implements Zanzibar {
         }
 
         cache.put(Tuples.of(namespace, object), relations);
-        return relations;
-    }
-
-    @Timed(value = "expand", percentiles = {0.99, 0.95, 0.75})
-    private Set<ExpandedAcl> expand(String namespace, String object, String principal) {
-        Set<ExpandedAcl> relations = new HashSet<>();
-        Set<Acl> acls = repository.findAllByNamespaceAndObjectAndUser(namespace, object, principal);
-        for (Acl acl : acls) {
-            Set<String> nested = relationConfigService.nestedRelations(acl.getNamespace(), acl.getObject(), acl.getRelation());
-            if (acl.hasUserset()) {
-                Set<Tuple2<String, String>> aclsToExpand = new HashSet<>();
-                Set<String> roots = relationConfigService.rootRelations(acl.getUsersetNamespace(), acl.getUsersetObject(), acl.getUsersetRelation());
-                for (String rel : nested) {
-                    for (String rootRel : roots) {
-                        ExpandedAcl expandedAcl = ExpandedAcl.builder()
-                                .namespace(acl.getNamespace())
-                                .object(acl.getObject())
-                                .relation(rel)
-                                .usersetNamespace(acl.getUsersetNamespace())
-                                .usersetObject(acl.getUsersetObject())
-                                .usersetRelation(rootRel)
-                                .build();
-                        relations.add(expandedAcl);
-                        aclsToExpand.add(Tuples.of(acl.getUsersetNamespace(), acl.getUsersetObject()));
-                        relations.addAll(expand(acl.getUsersetNamespace(), acl.getUsersetObject(), principal));
-                    }
-                }
-                //relations.addAll(expandMultiple(aclsToExpand, principal));
-            } else {
-                for (String rel : nested) {
-                    ExpandedAcl expandedAcl = ExpandedAcl.builder()
-                            .namespace(acl.getNamespace())
-                            .object(acl.getObject())
-                            .relation(rel)
-                            .user(acl.getUser())
-                            .build();
-                    relations.add(expandedAcl);
-                }
-            }
-        }
         return relations;
     }
 

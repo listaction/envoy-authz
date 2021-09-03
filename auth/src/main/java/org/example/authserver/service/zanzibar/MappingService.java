@@ -10,7 +10,7 @@ import org.example.authserver.entity.BodyMapping;
 import org.example.authserver.entity.BodyMappingKey;
 import org.example.authserver.entity.HeaderMappingKey;
 import org.example.authserver.entity.MappingEntity;
-import org.example.authserver.repo.pgsql.MappingRepository;
+import org.example.authserver.service.MappingCacheService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,11 +28,13 @@ import java.util.regex.Pattern;
 public class MappingService {
 
     private final static Pattern pattern = Pattern.compile("(.*)\\/realms\\/(.*)");
-    private final MappingRepository mappingRepository;
 
-    public MappingService(MappingRepository mappingRepository) {
-        this.mappingRepository = mappingRepository;
+    private final MappingCacheService mappingCacheService;
+
+    public MappingService(MappingCacheService mappingCacheService) {
+        this.mappingCacheService = mappingCacheService;
     }
+
 
     /**
      * @return mapping variables, or {@code null} for no match
@@ -78,7 +81,7 @@ public class MappingService {
     }
 
     public Map<MappingEntity, Map<String, String>> findMappings(CheckRequest request){
-        List<MappingEntity> mappings = mappingRepository.findAll(); // todo: replace with cache
+        List<MappingEntity> mappings = mappingCacheService.getAll();
         Map<MappingEntity, Map<String, String>> result = new HashMap<>();
 
         String requestMethod = request.getAttributes().getRequest().getHttp().getMethod();

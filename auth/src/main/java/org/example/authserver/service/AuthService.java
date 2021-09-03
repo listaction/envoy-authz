@@ -29,7 +29,11 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
 
     @Override
     public void check(CheckRequest request, StreamObserver<CheckResponse> responseObserver) {
+        log.info("request: {} {}",
+                request.getAttributes().getRequest().getHttp().getMethod(),
+                request.getAttributes().getRequest().getHttp().getPath()
 
+        );
         CheckResult result = aclFilterService.checkRequest(request);
 
         HeaderValue headerAllowedTags = HeaderValue.newBuilder()
@@ -47,15 +51,10 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
                 .build();
 
         if (result.isMappingsPresent()) {
-            log.info("request: {} {}",
-                    request.getAttributes().getRequest().getHttp().getMethod(),
-                    request.getAttributes().getRequest().getHttp().getPath()
-
-            );
             log.info("request allowed: {}", result.isResult());
 
             if (!result.isResult()){
-                log.info("REJECTED by mapping id: {}", result.getRejectedWithMappingId());
+                log.trace("REJECTED by mapping id: {}", result.getRejectedWithMappingId());
             }
 
         } else {

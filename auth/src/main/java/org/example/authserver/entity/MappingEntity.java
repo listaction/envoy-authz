@@ -13,6 +13,7 @@ import org.springframework.http.HttpMethod;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Builder
@@ -41,4 +42,16 @@ public class MappingEntity implements Serializable {
     private String namespace;
     private String object;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof MappingEntity)) return false;
+        MappingEntity that = (MappingEntity) o;
+        return id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }

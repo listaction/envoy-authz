@@ -66,7 +66,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(Map.of(config.getNamespace(), config)).when(cacheService).getConfigs();
             aclRelationConfigService.update();
 
-            CheckResult result = zanzibar.check("doc", "readme","allow_to_update", entry.getKey(), new HashMap<>(), new HashMap<>());
+            CheckResult result = zanzibar.check("doc", "readme","allow_to_update", entry.getKey(), new HashMap<>(), new HashMap<>(), new HashMap<>());
             System.out.println(String.format("user %s [expected result: %s] => %s ", entry.getKey(), entry.getValue(), result.isResult()));
             assert result.isResult() == entry.getValue();
         }
@@ -91,7 +91,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("group"), eq("document"), eq(principal));
             Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
 
-            Set<String> result = zanzibar.getRelations("doc", "readme", principal, new HashMap<>(), new HashMap<>());
+            Set<String> result = zanzibar.getRelations("doc", "readme", principal, new HashMap<>(), new HashMap<>(), new HashMap<>());
             System.out.println(String.format("user %s => %s ", principal, result));
         }
     }
@@ -115,7 +115,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
             Mockito.doReturn(Map.of("namespace:object", config)).when(cacheService).getConfigs();
 
-            Set<String> result = zanzibar.getRelations("namespace", "object", principal, new HashMap<>(), new HashMap<>());
+            Set<String> result = zanzibar.getRelations("namespace", "object", principal, new HashMap<>(), new HashMap<>(), new HashMap<>());
             System.out.println(String.format("user %s => %s ", principal, result));
             assert result.size() == 1;
             assert new ArrayList<>(result).get(0).equals(expected);
@@ -151,7 +151,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(configs).when(configRepository).findAll();
             aclRelationConfigService.update();
 
-            Set<String> result = zanzibar.getRelations("contact", "uuid1", principal, new HashMap<>(), new HashMap<>());
+            Set<String> result = zanzibar.getRelations("contact", "uuid1", principal, new HashMap<>(), new HashMap<>(), new HashMap<>());
             System.out.println(String.format("user %s => %s ", principal, result));
 //            assert result.size() == 1;
 //            assert new ArrayList<>(result).get(0).equals(expected);
@@ -189,7 +189,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(Set.of(new AclRelationConfig())).when(configRepository).findAll();
 
             // user1 and user2 are have access. And user3 is not.
-            assert zanzibar.check("api", "contact", "enable", principal, new HashMap<>(), new HashMap<>()).isResult() == expected;
+            assert zanzibar.check("api", "contact", "enable", principal, new HashMap<>(), new HashMap<>(), new HashMap<>()).isResult() == expected;
         }
     }
 
@@ -256,7 +256,7 @@ class ZanzibarImplTest {
 
             System.out.println("user: " + principal);
             // user1 and user2 are have access. And user3 is not.
-            assert zanzibar.check("contact", uuid, "viewer", principal, new HashMap<>(), new HashMap<>()).isResult() == expected;
+            assert zanzibar.check("contact", uuid, "viewer", principal, new HashMap<>(), new HashMap<>(), new HashMap<>()).isResult() == expected;
         }
     }
 
@@ -306,7 +306,7 @@ class ZanzibarImplTest {
 
             System.out.println("user: " + principal);
             // user1 should be excluded, user2 should pass
-            assert zanzibar.check("group", "object", "rel1", principal, new HashMap<>(), new HashMap<>()).isResult() == expected;
+            assert zanzibar.check("group", "object", "rel1", principal, new HashMap<>(), new HashMap<>(), new HashMap<>()).isResult() == expected;
         }
     }
 
@@ -356,7 +356,7 @@ class ZanzibarImplTest {
 
             System.out.println("user: " + principal);
             // user1 should pass, user2 should be excluded
-            assert zanzibar.check("group", "object", "rel1", principal, new HashMap<>(), new HashMap<>()).isResult() == expected;
+            assert zanzibar.check("group", "object", "rel1", principal, new HashMap<>(), new HashMap<>(), new HashMap<>()).isResult() == expected;
         }
     }
 
