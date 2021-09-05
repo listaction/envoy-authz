@@ -2,8 +2,6 @@ package org.example.authserver.service.zanzibar;
 
 import authserver.acl.Acl;
 import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +10,6 @@ import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -21,19 +18,12 @@ public class AclFilterService {
     private final Zanzibar zanzibar;
     private final MappingService mappingService;
     private final TokenService tokenService;
-    private final Cache<Tuple2<String, String>, Set<Acl>> groupsCache;
 
     public AclFilterService(Zanzibar zanzibar, MappingService mappingService, TokenService tokenService) {
         this.zanzibar = zanzibar;
         this.mappingService = mappingService;
         this.tokenService = tokenService;
-
-        groupsCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(10, TimeUnit.MINUTES)
-                .recordStats()
-                .maximumSize(1000)
-                .build();
-    }
+  }
 
     public CheckResult checkRequest(CheckRequest request) {
         Claims claims = tokenService.getAllClaimsFromRequest(request);
@@ -44,7 +34,6 @@ public class AclFilterService {
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
-        Map<Tuple2<String, String>, Set<Acl>> localGroupsCache = new HashMap<>(groupsCache.asMap());
         Map<Tuple2<String, String>, Set<ZanzibarImpl.ExpandedAcl>> cache = new HashMap<>();
         Map<String, Set<Acl>> principalAclCache = new HashMap<>();
         Set<String> allowedTags = new HashSet<>();
@@ -60,7 +49,7 @@ public class AclFilterService {
             }
 
             boolean r = false;
-            Set<String> relations = zanzibar.getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject(), cache, principalAclCache, localGroupsCache);
+            Set<String> relations = zanzibar.getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject(), cache, principalAclCache);
             for (String role : mRoles) {
                 String namespace = variables.get("namespace");
                 String object = variables.get("object");
@@ -77,7 +66,6 @@ public class AclFilterService {
             }
         }
 
-        groupsCache.putAll(localGroupsCache);
         return CheckResult.builder().mappingsPresent(true).result(true).tags(allowedTags).build();
     }
 
