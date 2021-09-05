@@ -5,19 +5,17 @@ import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.repo.pgsql.MappingRepository;
 
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.*;
 
 @Slf4j
 public class MappingCacheLoader {
 
     private final static ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    private final CopyOnWriteArrayList<MappingEntity> cache;
+    private final Map<String, MappingEntity> cache;
     private final MappingRepository mappingRepository;
 
-    public MappingCacheLoader(MappingRepository mappingRepository, CopyOnWriteArrayList<MappingEntity> cache) {
+    public MappingCacheLoader(MappingRepository mappingRepository, Map<String, MappingEntity> cache) {
         this.mappingRepository = mappingRepository;
         this.cache = cache;
     }
@@ -25,9 +23,31 @@ public class MappingCacheLoader {
     public void schedule(int t, TimeUnit timeUnit) {
         executor.scheduleAtFixedRate(() -> {
             log.info("Refreshing mappings cache");
-            List<MappingEntity> mappings = mappingRepository.findAll();
-            cache.addAll(mappings);
-            cache.removeIf(entry -> !mappings.contains(entry));
+            refreshCache();
         }, 0, t,  timeUnit);
+    }
+
+    public List<MappingEntity> refreshCache(){
+        List<MappingEntity> mappings = mappingRepository.findAll();
+        // cleanup old mappings
+        for (String id : cache.keySet()){
+            boolean found = false;
+            for (MappingEntity entity : mappings){
+                if (entity.getId().equals(id)){
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                log.info("Removing mapping {} from cache", id);
+                cache.remove(id);
+            }
+        }
+
+        for (MappingEntity entity : mappings){
+            cache.put(entity.getId(), entity);
+        }
+
+        return mappings;
     }
 }
