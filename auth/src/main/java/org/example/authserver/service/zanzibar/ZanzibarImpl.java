@@ -120,6 +120,10 @@ public class ZanzibarImpl implements Zanzibar {
             return new HashSet<>();
         }
 
+        List<String> nsObjects = namespaceObjects.stream()
+                .map(tuple->String.format("%s:%s", tuple.getT1(), tuple.getT2()))
+                .collect(Collectors.toList());
+
         Set<Acl> acls = new HashSet<>();
         if (principalAclCache.containsKey(principal)) {
             acls.addAll(principalAclCache.get(principal));
@@ -128,6 +132,7 @@ public class ZanzibarImpl implements Zanzibar {
             acls.addAll(principalAcls);
             principalAclCache.put(principal, principalAcls);
         }
+        acls.addAll(repository.findAllByNsObjectIn(nsObjects));
 
         Set<ExpandedAcl> result = new HashSet<>(acls.size());
         for (Acl acl : acls){
