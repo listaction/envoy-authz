@@ -26,10 +26,13 @@ public class AclFilterService {
   }
 
     public CheckResult checkRequest(CheckRequest request) {
+        long start = System.currentTimeMillis();
         Claims claims = tokenService.getAllClaimsFromRequest(request);
+        long time2 = System.currentTimeMillis();;
         if (claims == null) return CheckResult.builder().jwtPresent(false).result(false).build();
 
         List<Map<String, String>> mappings = mappingService.processRequest(request, claims);
+        long time3 = System.currentTimeMillis();;
         if (mappings == null || mappings.size() == 0) {
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
@@ -49,7 +52,10 @@ public class AclFilterService {
             }
 
             boolean r = false;
+            long time4 = System.currentTimeMillis();;
             Set<String> relations = zanzibar.getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject(), cache, principalAclCache);
+            long time5 = System.currentTimeMillis();;
+            log.info("zanzibar.getRelations {} ms.", time5-time4);
             for (String role : mRoles) {
                 String namespace = variables.get("namespace");
                 String object = variables.get("object");
@@ -62,10 +68,17 @@ public class AclFilterService {
             if (!r) {
                 log.info("expected roles: {}:{} {}", variables.get("namespace"), variables.get("object"), mRoles);
                 log.info("roles available for {}: {}", claims.getSubject(), relations);
+                long end = System.currentTimeMillis();
+                log.info("checkRequest {} ms.", end - start);
                 return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
             }
         }
 
+        long end = System.currentTimeMillis();
+        log.info("getAllClaimsFromRequest {} ms.", time2-start);
+        log.info("mappingService.processRequest {} ms.", time3-time2);
+        log.info("checkRequest {} ms.", end - start);
+        log.info("mappings size: {}.", mappings.size());
         return CheckResult.builder().mappingsPresent(true).result(true).tags(allowedTags).build();
     }
 
