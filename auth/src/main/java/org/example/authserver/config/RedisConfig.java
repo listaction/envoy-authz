@@ -1,5 +1,7 @@
 package org.example.authserver.config;
 
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,10 +12,15 @@ import java.time.Duration;
 
 @Configuration
 public class RedisConfig {
-
     @Bean
-    public JedisPool jedisPool(@Value("${redis.hostname}") String redisHost, JedisPoolConfig poolConfig){
-        return new JedisPool(poolConfig, redisHost);
+    public JedisPool jedisPool(@Value("${redis.hostname}") String redisHost,
+                               @Value("${redis.port}") Integer redisPort,
+                               @Value("${redis.ssl}") Boolean sslEnabled,
+                               @Value("${redis.password}") String redisPassword,
+                               JedisPoolConfig poolConfig){
+
+        if( Strings.isEmpty(redisPassword)) redisPassword = null;
+        return new JedisPool(poolConfig, redisHost, redisPort, 2000, redisPassword, sslEnabled) ;
     }
 
     @Bean
