@@ -9,5 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 public class AppProperties {
     private AppDatabase database;
-    private boolean testModeEnabled;
+    private boolean testMode;
+    private boolean cacheEnabled;
 }
