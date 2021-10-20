@@ -20,6 +20,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
@@ -69,8 +70,8 @@ class ZanzibarImplTest {
             aclRelationConfigService.update();
 
             CheckResult result = zanzibar.check("doc", "readme","allow_to_update", entry.getKey(), new HashMap<>(), new HashMap<>());
-            System.out.println(String.format("user %s [expected result: %s] => %s ", entry.getKey(), entry.getValue(), result.isResult()));
-            assert result.isResult() == entry.getValue();
+            System.out.printf("user %s [expected result: %s] => %s %n", entry.getKey(), entry.getValue(), result.isResult());
+            assertEquals(result.isResult(), entry.getValue());
         }
     }
 
@@ -95,6 +96,8 @@ class ZanzibarImplTest {
 
             Set<String> result = zanzibar.getRelations("doc", "readme", principal, new HashMap<>(), new HashMap<>());
             System.out.println(String.format("user %s => %s ", principal, result));
+
+            // todo what do we assert here ?
         }
     }
 
@@ -118,9 +121,10 @@ class ZanzibarImplTest {
             Mockito.doReturn(Map.of("namespace:object", config)).when(cacheService).getConfigs();
 
             Set<String> result = zanzibar.getRelations("namespace", "object", principal, new HashMap<>(), new HashMap<>());
-            System.out.println(String.format("user %s => %s ", principal, result));
-            assert result.size() == 1;
-            assert new ArrayList<>(result).get(0).equals(expected);
+            System.out.printf("user %s => %s %n", principal, result);
+
+            assertEquals(1, result.size());
+            assertEquals(expected, new ArrayList<>(result).get(0));
         }
     }
 
@@ -191,7 +195,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(Set.of(new AclRelationConfig())).when(configRepository).findAll();
 
             // user1 and user2 are have access. And user3 is not.
-            assert zanzibar.check("api", "contact", "enable", principal, new HashMap<>(), new HashMap<>()).isResult() == expected;
+            assertEquals(expected, zanzibar.check("api", "contact", "enable", principal, new HashMap<>(), new HashMap<>()).isResult());
         }
     }
 
@@ -258,7 +262,7 @@ class ZanzibarImplTest {
 
             System.out.println("user: " + principal);
             // user1 and user2 are have access. And user3 is not.
-            assert zanzibar.check("contact", uuid, "viewer", principal, new HashMap<>(), new HashMap<>()).isResult() == expected;
+            assertEquals(expected, zanzibar.check("contact", uuid, "viewer", principal, new HashMap<>(), new HashMap<>()).isResult());
         }
     }
 
@@ -308,7 +312,7 @@ class ZanzibarImplTest {
 
             System.out.println("user: " + principal);
             // user1 should be excluded, user2 should pass
-            assert zanzibar.check("group", "object", "rel1", principal, new HashMap<>(), new HashMap<>()).isResult() == expected;
+            assertEquals(expected, zanzibar.check("group", "object", "rel1", principal, new HashMap<>(), new HashMap<>()).isResult());
         }
     }
 
@@ -358,7 +362,7 @@ class ZanzibarImplTest {
 
             System.out.println("user: " + principal);
             // user1 should pass, user2 should be excluded
-            assert zanzibar.check("group", "object", "rel1", principal, new HashMap<>(), new HashMap<>()).isResult() == expected;
+            assertEquals(expected, zanzibar.check("group", "object", "rel1", principal, new HashMap<>(), new HashMap<>()).isResult());
         }
     }
 
@@ -510,5 +514,4 @@ class ZanzibarImplTest {
 
         return Set.of(relationConfig, relationConfig2);
     }
-
 }
