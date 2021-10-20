@@ -1,14 +1,24 @@
-import requests
-import sys
-import urllib3
 
-class AuthTest:
+import sys
+from locust import HttpUser, task
+
+# Run as:
+# locust --headless --users 3 --spawn-rate 1 --host http://localhost:8183/debug  -f .\debug_contoller_test.py
+class AuthTest(HttpUser):
     service_url = ""
     auth = ""
 
-    def init(self, service_url="http://localhost:18000", auth=""):
-        self.service_url = service_url
+    def init(self, auth=""):
         self.auth = auth
+
+    @task
+    def testTask(self):
+        test_resp = self.test("relation", "object", "relation", "principal")
+        # if test_resp.status_code == 200:
+        #     print("[OK] Data: " + test_resp.text)
+        # else:
+        #     print("FAILED status: " + str(test_resp.status_code) + ", text: " + test_resp.text)
+        #     sys.exit(1)
 
     def test(self, namespace, object, relation, principal):
         headers = {
@@ -17,22 +27,4 @@ class AuthTest:
             "Authorization": "Bearer " + self.auth
         }
 
-        params = {"namespace": namespace, "object": object, "relation": relation, "principal": principal}
-        response = requests.get(self.service_url + "/test", headers=headers, verify=False, params=params)
-        return response
-
-def main(args):
-    urllib3.disable_warnings()
-
-    t = AuthTest()
-    t.init(auth="user1", service_url="http://localhost:8183/debug")
-
-    test_resp = t.test("relation", "object", "relation", "principal")
-    if test_resp.status_code == 200:
-        print("[OK] Data: " + test_resp.text)
-    else:
-        print("FAILED status: " + str(test_resp.status_code) + ", text: " + test_resp.text)
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main(sys.argv)
+        return self.client.get(f"/test?namespace={namespace}&object={object}&relation={relation}&principal={principal}", headers=headers)
