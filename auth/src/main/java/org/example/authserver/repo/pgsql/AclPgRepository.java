@@ -68,9 +68,17 @@ public class AclPgRepository implements AclRepository {
 
     @Override
     public Set<String> findAllEndUsers() {
-        return repository.findAllDistinctByUserNot("*").stream()
-                .map(AclEntity::getUser)
-                .collect(Collectors.toSet());
+        return repository.findDistinctEndUsers();
+    }
+
+    @Override
+    public Set<String> findAllNamespaces() {
+        return repository.findDistinctNamespaces();
+    }
+
+    @Override
+    public Set<String> findAllObjects() {
+        return repository.findDistinctObjects();
     }
 
     @Override

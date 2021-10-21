@@ -4,21 +4,21 @@ import com.google.common.base.Stopwatch;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.example.authserver.config.UserRelationsConfig;
+import org.example.authserver.entity.UserRelationEntity;
 import org.example.authserver.repo.AclRepository;
 import org.example.authserver.repo.pgsql.UserRelationRepository;
 import org.example.authserver.service.zanzibar.Zanzibar;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class UserRelationCacheBuilder {
-
-    private final static ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     private final UserRelationsConfig config;
     private final Zanzibar zanzibar;
@@ -67,9 +67,22 @@ public class UserRelationCacheBuilder {
             return;
         }
 
+        Set<String> namespaces = aclRepository.findAllNamespaces();
+        if (namespaces.isEmpty()) {
+            log.warn("Unable to find namespaces. Skip building all cache.");
+            return;
+        }
+
+        Set<String> objects = aclRepository.findAllObjects();
+        if (objects.isEmpty()) {
+            log.warn("Unable to find objects. Skip building all cache.");
+            return;
+        }
+
         inProgressUsers.addAll(endUsers);
+
         for (String endUser : endUsers) {
-            buildUserRelations(endUser);
+            buildUserRelations(endUser, namespaces, objects);
         }
         inProgressUsers.clear();
 
@@ -93,6 +106,22 @@ public class UserRelationCacheBuilder {
     }
 
     private void buildUserRelations(String user) {
+        Set<String> namespaces = aclRepository.findAllNamespaces();
+        if (namespaces.isEmpty()) {
+            log.warn("Unable to find namespaces. Skip building cache for user: {}", user);
+            return;
+        }
+
+        Set<String> objects = aclRepository.findAllObjects();
+        if (objects.isEmpty()) {
+            log.warn("Unable to find objects. Skip building cache for user: {}", user);
+            return;
+        }
+
+        buildUserRelations(user, namespaces, objects);
+    }
+
+    private void buildUserRelations(String user, Set<String> namespaces, Set<String> objects) {
         if (StringUtils.isBlank(user) || "*".equals(user)) {
             log.trace("Skip building cache for user: {}", user);
             return;
@@ -101,7 +130,19 @@ public class UserRelationCacheBuilder {
         Stopwatch stopwatch = Stopwatch.createStarted();
         log.trace("Building user relations cache for user {} ...", user);
 
+        Set<String> relations = new HashSet<>();
+        for (String namespace : namespaces) {
+            for (String object : objects) {
+                relations.addAll(zanzibar.getRelations(namespace, object, user, new HashMap<>(), new HashMap<>()));
+            }
+        }
 
+        log.info("Found {} relations for user {}", relations.size(), user);
+
+        userRelationRepository.save(UserRelationEntity.builder()
+                .user(user)
+                .relations(relations)
+                .build());
 
         log.trace("Finished building user relations cache for user {}, time: {}", user, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }

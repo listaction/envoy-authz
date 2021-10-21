@@ -20,12 +20,12 @@ public class UserRelationsCacheService {
     @Getter
     private final boolean enabled;
     private final UserRelationCacheBuilder builder;
-    private final UserRelationRepository userTagRepository;
+    private final UserRelationRepository userRelationRepository;
 
-    public UserRelationsCacheService(AppProperties appProperties, AclRepository aclRepository, UserRelationRepository userTagRepository, Zanzibar zanzibar) {
+    public UserRelationsCacheService(AppProperties appProperties, AclRepository aclRepository, UserRelationRepository userRelationRepository, Zanzibar zanzibar) {
         this.enabled = appProperties.getUserRelationsCache().isEnabled();
-        this.userTagRepository = userTagRepository;
-        this.builder = new UserRelationCacheBuilder(appProperties.getUserRelationsCache(), aclRepository, userTagRepository, zanzibar);
+        this.userRelationRepository = userRelationRepository;
+        this.builder = new UserRelationCacheBuilder(appProperties.getUserRelationsCache(), aclRepository, userRelationRepository, zanzibar);
         this.builder.firstTimeBuildAsync(); // async to release bean creation
     }
 
@@ -34,7 +34,7 @@ public class UserRelationsCacheService {
             return Collections.emptySet();
         }
 
-        Optional<UserRelationEntity> entity = userTagRepository.findById(user);
+        Optional<UserRelationEntity> entity = userRelationRepository.findById(user);
         if (entity.isEmpty()) {
             return Collections.emptySet();
         }

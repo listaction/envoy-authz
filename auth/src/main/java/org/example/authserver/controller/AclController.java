@@ -18,12 +18,12 @@ public class AclController {
 
     private final AclRepository repository;
     private final SubscriptionRepository subscriptionRepository;
-    private final UserRelationsCacheService userTagCacheService;
+    private final UserRelationsCacheService userRelationCacheService;
 
-    public AclController(AclRepository repository, SubscriptionRepository subscriptionRepository, UserRelationsCacheService userTagCacheService) {
+    public AclController(AclRepository repository, SubscriptionRepository subscriptionRepository, UserRelationsCacheService userRelationCacheService) {
         this.repository = repository;
         this.subscriptionRepository = subscriptionRepository;
-        this.userTagCacheService = userTagCacheService;
+        this.userRelationCacheService = userRelationCacheService;
     }
 
     @GetMapping("/list")
@@ -36,7 +36,7 @@ public class AclController {
         log.info("Created ACL: {}", acl);
         repository.save(acl);
         subscriptionRepository.publish(acl);
-        userTagCacheService.update(acl);
+        userRelationCacheService.update(acl);
     }
 
     @PostMapping("/create_multiple")

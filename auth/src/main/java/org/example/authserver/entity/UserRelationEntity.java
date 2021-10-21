@@ -11,7 +11,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import java.io.Serializable;
-import java.util.List;
+import java.util.Set;
 
 @Log
 @Data
@@ -27,5 +27,5 @@ public class UserRelationEntity implements Serializable {
 
     @Type(type = "jsonb")
     @Column(columnDefinition = "jsonb")
-    private List<String> relations;
+    private Set<String> relations;
 }

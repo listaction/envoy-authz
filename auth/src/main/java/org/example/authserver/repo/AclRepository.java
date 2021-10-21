@@ -20,6 +20,10 @@ public interface AclRepository {
     Set<Acl> findAllByPrincipalAndNsObjectIn(String principal, List<String> nsObjects);
     Set<Acl> findAllByPrincipal(String principal);
     Set<Acl> findAllByNsObjectIn(List<String> nsObjects);
+
     Set<String> findAllEndUsers();
 
+    Set<String> findAllNamespaces();
+
+    Set<String> findAllObjects();
 }
