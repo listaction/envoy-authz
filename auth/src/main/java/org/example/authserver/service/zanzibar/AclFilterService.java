@@ -6,6 +6,7 @@ import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.CheckResult;
+import org.example.authserver.service.UserRelationsCacheService;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
@@ -18,11 +19,13 @@ public class AclFilterService {
     private final Zanzibar zanzibar;
     private final MappingService mappingService;
     private final TokenService tokenService;
+    private final UserRelationsCacheService userRelationsCacheService;
 
-    public AclFilterService(Zanzibar zanzibar, MappingService mappingService, TokenService tokenService) {
+    public AclFilterService(Zanzibar zanzibar, MappingService mappingService, TokenService tokenService, UserRelationsCacheService userRelationsCacheService) {
         this.zanzibar = zanzibar;
         this.mappingService = mappingService;
         this.tokenService = tokenService;
+        this.userRelationsCacheService = userRelationsCacheService;
   }
 
     public CheckResult checkRequest(CheckRequest request) {
@@ -53,7 +56,7 @@ public class AclFilterService {
 
             boolean r = false;
             long time4 = System.currentTimeMillis();;
-            Set<String> relations = zanzibar.getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject(), cache, principalAclCache);
+            Set<String> relations = getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject(), cache, principalAclCache);
             long time5 = System.currentTimeMillis();;
             log.info("zanzibar.getRelations {} ms.", time5-time4);
             for (String role : mRoles) {
@@ -82,4 +85,11 @@ public class AclFilterService {
         return CheckResult.builder().mappingsPresent(true).result(true).tags(allowedTags).build();
     }
 
+    private Set<String> getRelations(String namespace, String object, String principal, Map<Tuple2<String, String>, Set<ZanzibarImpl.ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache) {
+        if (userRelationsCacheService.isEnabled()) {
+            return userRelationsCacheService.getRelations(principal);
+        }
+
+        return zanzibar.getRelations(namespace, object, principal, cache, principalAclCache);
+    }
 }
