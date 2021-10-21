@@ -66,6 +66,12 @@ public class AclPgRepository implements AclRepository {
                 .collect(Collectors.toSet());
     }
 
+    @Override
+    public Set<String> findAllEndUsers() {
+        return repository.findAllDistinctByUserNot("*").stream()
+                .map(AclEntity::getUser)
+                .collect(Collectors.toSet());
+    }
 
     @Override
     public Set<Acl> findAllByNamespaceAndObjectAndUser(String namespace, String object, String user) {

@@ -14,4 +14,5 @@ public interface AclSpringDataRepository extends CrudRepository<AclEntity, Strin
     Set<AclEntity> findAllByNsobjectAndUser(String nsobject, String user);
     Set<AclEntity> findAllByNsobjectInAndUser(List<String> nsobject, String user);
     Set<AclEntity> findAllByUser(String principal);
+    Set<AclEntity> findAllDistinctByUserNot(String principal);
 }

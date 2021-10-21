@@ -11,11 +11,7 @@ import org.example.authserver.repo.pgsql.UserRelationRepository;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -23,13 +19,14 @@ public class UserRelationsCacheService {
 
     @Getter
     private final boolean enabled;
-    private final Map<String, UserRelationEntity> cache = new ConcurrentHashMap<>();
     private final UserRelationCacheBuilder builder;
+    private final UserRelationRepository userTagRepository;
 
     public UserRelationsCacheService(AppProperties appProperties, AclRepository aclRepository, UserRelationRepository userTagRepository, Zanzibar zanzibar) {
         this.enabled = appProperties.getUserRelationsCache().isEnabled();
-        this.builder = new UserRelationCacheBuilder(appProperties.getUserRelationsCache(), aclRepository, userTagRepository, cache, zanzibar);
-        this.builder.build();
+        this.userTagRepository = userTagRepository;
+        this.builder = new UserRelationCacheBuilder(appProperties.getUserRelationsCache(), aclRepository, userTagRepository, zanzibar);
+        this.builder.firstTimeBuildAsync(); // async to release bean creation
     }
 
     public Set<String> getRelations(String user) {
@@ -37,11 +34,11 @@ public class UserRelationsCacheService {
             return Collections.emptySet();
         }
 
-        UserRelationEntity entity = cache.get(user);
-        if (entity == null) {
+        Optional<UserRelationEntity> entity = userTagRepository.findById(user);
+        if (entity.isEmpty()) {
             return Collections.emptySet();
         }
-        return new HashSet<>(entity.getRelations());
+        return new HashSet<>(entity.get().getRelations());
     }
 
     public void update(Acl acl) {
