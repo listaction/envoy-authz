@@ -10,6 +10,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -24,11 +25,12 @@ public class AclRelationConfigRepository {
 
     private final JedisPool jedis;
 
-    public AclRelationConfigRepository(JedisPool jedis) {
+    public AclRelationConfigRepository(@Nullable JedisPool jedis) {
         this.jedis = jedis;
     }
 
     public Set<AclRelationConfig> findAll(){
+        if (jedis == null) return null;
         Jedis conn = jedis.getResource();
         List<String> jsons = conn.lrange(ACL_REL_CONFIG_REDIS_KEY, 0, -1);
         conn.close();
@@ -40,6 +42,7 @@ public class AclRelationConfigRepository {
 
 
     public void save(AclRelationConfig config) {
+        if (jedis == null) return;
         String json = Utils.configToJson(config);
         Jedis conn = jedis.getResource();
         conn.lpush(ACL_REL_CONFIG_REDIS_KEY, json);
@@ -49,6 +52,7 @@ public class AclRelationConfigRepository {
     }
 
     public void publish() {
+        if (jedis == null) return;
         Jedis conn = jedis.getResource();
         conn.publish(ACL_REL_CONFIG_REDIS_KEY, UUID.randomUUID().toString());
         conn.close();
@@ -59,6 +63,7 @@ public class AclRelationConfigRepository {
     }
 
     public Flux<String> subscribe(){
+        if (jedis == null) return Flux.empty();
         return Flux.create(sink -> {
             Jedis conn = jedis.getResource();
             conn.subscribe(new AclRelationConfigListener(sink), ACL_REL_CONFIG_REDIS_KEY);
