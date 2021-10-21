@@ -171,7 +171,6 @@ class ZanzibarImplTest {
         acls.add(Acl.create("group:contactusers#viewer@user2")); // user2 has relation 'viewer' for group:contactuser
         acls.add(Acl.create("api:contact#enable@group:contactusers#viewer")); // access to 'contact' service allowed for every users from group:contactusers who has 'viewer' relation
 
-
         // user <-> expected result of check
         Map<String, Boolean> usersToTest = Map.of("user1", true, "user2", true, "user3", false);
         for (Map.Entry<String, Boolean> entry : usersToTest.entrySet()) {

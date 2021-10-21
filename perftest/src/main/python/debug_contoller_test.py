@@ -27,4 +27,5 @@ class AuthTest(HttpUser):
             "Authorization": "Bearer " + self.auth
         }
 
-        return self.client.get(f"/test?namespace={namespace}&object={object}&relation={relation}&principal={principal}", headers=headers)
+        params = {"namespace": namespace, "object": object, "relation": relation, "principal": principal}
+        return self.client.get("/test", headers=headers, params=params)
