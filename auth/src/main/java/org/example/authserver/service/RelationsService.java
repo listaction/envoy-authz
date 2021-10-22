@@ -26,7 +26,7 @@ public class RelationsService {
     public Set<String> getRelations(String namespace, String object, String principal, Map<Tuple2<String, String>, Set<ZanzibarImpl.ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache) {
         Optional<Set<String>> cachedRelations = userRelationsCacheService.getRelations(principal);
         if (cachedRelations.isPresent()) {
-            log.trace("No cache for user {}", principal);
+            log.trace("Return cached relations for user {}", principal);
             return cachedRelations.get();
         }
 

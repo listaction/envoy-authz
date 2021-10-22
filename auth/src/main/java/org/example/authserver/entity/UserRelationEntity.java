@@ -28,4 +28,9 @@ public class UserRelationEntity implements Serializable {
     @Type(type = "jsonb")
     @Column(columnDefinition = "jsonb")
     private Set<String> relations;
+
+    @Builder.Default
+    private Long created = System.currentTimeMillis();
+    @Builder.Default
+    private Long updated = System.currentTimeMillis();
 }

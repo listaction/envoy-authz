@@ -1,5 +1,6 @@
 package org.example.authserver.controller;
 
+import com.google.common.base.Stopwatch;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.Zanzibar;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RestController
@@ -23,7 +25,10 @@ public class DebugController {
     @GetMapping("/relations")
     public Set<String> getRelations(@RequestParam String namespace, @RequestParam String object, @RequestParam String principal){
         log.info("get relations: {}:{} @ {}", namespace, object, principal);
-        return zanzibar.getRelations(namespace, object, principal, new HashMap<>(), new HashMap<>());
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        Set<String> relations = zanzibar.getRelations(namespace, object, principal, new HashMap<>(), new HashMap<>());
+        log.info("get relations finished in {}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        return relations;
     }
 
     @GetMapping("/test")
