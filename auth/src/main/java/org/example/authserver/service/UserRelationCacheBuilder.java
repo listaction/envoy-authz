@@ -75,12 +75,14 @@ public class UserRelationCacheBuilder {
         }
 
         Set<String> namespaces = aclRepository.findAllNamespaces();
+        log.info("Found {} namespaces for building relations cache.", namespaces.size());
         if (namespaces.isEmpty()) {
             log.warn("Unable to find namespaces. Skip building all cache.");
             return false;
         }
 
         Set<String> objects = aclRepository.findAllObjects();
+        log.info("Found {} objects for building relations cache.", objects.size());
         if (objects.isEmpty()) {
             log.warn("Unable to find objects. Skip building all cache.");
             return false;
@@ -150,7 +152,7 @@ public class UserRelationCacheBuilder {
             }
         }
 
-        log.info("Found {} relations for user {}", relations.size(), user);
+        log.trace("Found {} relations for user {}", relations.size(), user);
 
         userRelationRepository.save(UserRelationEntity.builder()
                 .user(user)
