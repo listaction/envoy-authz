@@ -42,6 +42,18 @@ public class UserRelationsCacheService {
     }
 
     public void update(Acl acl) {
-        this.builder.update(acl.getUser());
+        update(acl.getUser());
+    }
+
+    public void update(String user) {
+        this.builder.update(user);
+    }
+
+    public boolean fullRebuildAsync() {
+        return this.builder.fullRebuildAsync();
+    }
+
+    public boolean updateAsync(String user) {
+        return this.builder.updateAsync(user);
     }
 }

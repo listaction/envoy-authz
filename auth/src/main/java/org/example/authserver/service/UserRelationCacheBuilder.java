@@ -13,12 +13,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @Slf4j
 public class UserRelationCacheBuilder {
+
+    private final static ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(2);
 
     private final UserRelationsConfig config;
     private final Zanzibar zanzibar;
@@ -26,12 +26,15 @@ public class UserRelationCacheBuilder {
     private final UserRelationRepository userRelationRepository;
 
     private final List<String> inProgressUsers = new CopyOnWriteArrayList<>();
+    private final List<String> scheduledUsers = new CopyOnWriteArrayList<>();
 
     public UserRelationCacheBuilder(UserRelationsConfig config, AclRepository aclRepository, UserRelationRepository userRelationRepository, Zanzibar zanzibar) {
         this.config = config;
         this.aclRepository = aclRepository;
         this.userRelationRepository = userRelationRepository;
         this.zanzibar = zanzibar;
+
+        EXECUTOR.scheduleAtFixedRate(this::scheduledUpdate, 0, config.getScheduledPeriodTime(), config.getScheduledPeriodTimeUnit());
     }
 
     public void firstTimeBuildAsync() {
@@ -96,13 +99,15 @@ public class UserRelationCacheBuilder {
         }
 
         if (inProgressUsers.contains(user)) {
-            log.warn("Building for user {} is already in progress.", user);
+            log.warn("Building for user {} is already in progress. Scheduled update for later.", user);
+            scheduledUsers.add(user);
             return;
         }
 
         inProgressUsers.add(user);
         buildUserRelations(user);
         inProgressUsers.remove(user);
+        scheduledUsers.remove(user);
     }
 
     private void buildUserRelations(String user) {
@@ -145,5 +150,34 @@ public class UserRelationCacheBuilder {
                 .build());
 
         log.trace("Finished building user relations cache for user {}, time: {}", user, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
+
+    private void scheduledUpdate() {
+        if (scheduledUsers.isEmpty()) {
+            return;
+        }
+
+        for (String user : new HashSet<>(scheduledUsers)) {
+            update(user);
+        }
+    }
+
+    public boolean fullRebuildAsync() {
+        if (!inProgressUsers.isEmpty()) {
+            log.warn("Build process is already in progress. Skip.");
+            return false;
+        }
+        EXECUTOR.execute(() -> {
+            userRelationRepository.deleteAll();
+            buildAll();
+        });
+        log.info("Scheduled full rebuild.");
+        return true;
+    }
+
+    public boolean updateAsync(String user) {
+        EXECUTOR.execute(() -> update(user));
+        log.info("Scheduled updated for user {}.", user);
+        return true;
     }
 }
