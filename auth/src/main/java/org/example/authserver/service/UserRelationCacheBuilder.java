@@ -37,28 +37,32 @@ public class UserRelationCacheBuilder {
         EXECUTOR.scheduleAtFixedRate(this::scheduledBuild, 0, config.getScheduledPeriodTime(), config.getScheduledPeriodTimeUnit());
     }
 
+    public boolean isInProgress() {
+        return !inProgressUsers.isEmpty();
+    }
+
     public void firstTimeBuildAsync() {
         Executors.newSingleThreadExecutor().submit(this::firstTimeBuild);
     }
 
-    public void firstTimeBuild() {
+    public boolean firstTimeBuild() {
         boolean isFirstTime = userRelationRepository.count() == 0;
         if (!isFirstTime) {
-            return;
+            return false;
         }
 
-        buildAll();
+        return buildAll();
     }
 
-    public void buildAll() {
+    public boolean buildAll() {
         if (!this.config.isEnabled()) {
             log.warn("User relations cache is not enabled.");
-            return;
+            return false;
         }
 
-        if (!inProgressUsers.isEmpty()) {
+        if (isInProgress()) {
             log.warn("Build process is already in progress. Skip.");
-            return;
+            return false;
         }
 
         Stopwatch started = Stopwatch.createStarted();
@@ -67,19 +71,19 @@ public class UserRelationCacheBuilder {
         Set<String> endUsers = aclRepository.findAllEndUsers();
         log.info("Found {} end users for building relations cache.", endUsers.size());
         if (endUsers.isEmpty()) {
-            return;
+            return false;
         }
 
         Set<String> namespaces = aclRepository.findAllNamespaces();
         if (namespaces.isEmpty()) {
             log.warn("Unable to find namespaces. Skip building all cache.");
-            return;
+            return false;
         }
 
         Set<String> objects = aclRepository.findAllObjects();
         if (objects.isEmpty()) {
             log.warn("Unable to find objects. Skip building all cache.");
-            return;
+            return false;
         }
 
         inProgressUsers.addAll(endUsers);
@@ -90,24 +94,28 @@ public class UserRelationCacheBuilder {
         inProgressUsers.clear();
 
         log.info("All user relations are built successfully. {}ms", started.elapsed(TimeUnit.MILLISECONDS));
+        return true;
     }
 
-    public void build(String user) {
+    public boolean build(String user) {
         if (!this.config.isEnabled() || !this.config.isUpdateOnAclChange()) {
             log.trace("User relations cache update is skipped. Enabled: {}, UpdateOnAclChange: {}", config.isEnabled(), config.isUpdateOnAclChange());
-            return;
+            return false;
         }
 
         if (inProgressUsers.contains(user)) {
             log.warn("Building for user {} is already in progress. Scheduled update for later.", user);
             scheduledUsers.add(user);
-            return;
+            return false;
         }
 
         inProgressUsers.add(user);
+
         buildUserRelations(user);
+
         inProgressUsers.remove(user);
         scheduledUsers.remove(user);
+        return true;
     }
 
     private void buildUserRelations(String user) {
@@ -126,7 +134,7 @@ public class UserRelationCacheBuilder {
         buildUserRelations(user, namespaces, objects);
     }
 
-    private void buildUserRelations(String user, Set<String> namespaces, Set<String> objects) {
+    public void buildUserRelations(String user, Set<String> namespaces, Set<String> objects) {
         if (StringUtils.isBlank(user) || "*".equals(user)) {
             log.trace("Skip building cache for user: {}", user);
             return;
@@ -163,21 +171,32 @@ public class UserRelationCacheBuilder {
     }
 
     public boolean fullRebuildAsync() {
-        if (!inProgressUsers.isEmpty()) {
+        if (isInProgress()) {
             log.warn("Build process is already in progress. Skip.");
             return false;
         }
+
         EXECUTOR.execute(() -> {
             userRelationRepository.deleteAll();
             buildAll();
         });
+
         log.info("Scheduled full rebuild.");
         return true;
     }
 
     public boolean buildAsync(String user) {
         EXECUTOR.execute(() -> build(user));
+
         log.info("Scheduled updated for user {}.", user);
         return true;
+    }
+
+    public boolean hasScheduled(String user) {
+        return scheduledUsers.contains(user);
+    }
+
+    public boolean hasInProgress(String user) {
+        return inProgressUsers.contains(user);
     }
 }
