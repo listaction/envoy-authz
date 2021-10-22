@@ -34,7 +34,7 @@ public class UserRelationCacheBuilder {
         this.userRelationRepository = userRelationRepository;
         this.zanzibar = zanzibar;
 
-        EXECUTOR.scheduleAtFixedRate(this::scheduledUpdate, 0, config.getScheduledPeriodTime(), config.getScheduledPeriodTimeUnit());
+        EXECUTOR.scheduleAtFixedRate(this::scheduledBuild, 0, config.getScheduledPeriodTime(), config.getScheduledPeriodTimeUnit());
     }
 
     public void firstTimeBuildAsync() {
@@ -92,7 +92,7 @@ public class UserRelationCacheBuilder {
         log.info("All user relations are built successfully. {}ms", started.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    public void update(String user) {
+    public void build(String user) {
         if (!this.config.isEnabled() || !this.config.isUpdateOnAclChange()) {
             log.trace("User relations cache update is skipped. Enabled: {}, UpdateOnAclChange: {}", config.isEnabled(), config.isUpdateOnAclChange());
             return;
@@ -152,13 +152,13 @@ public class UserRelationCacheBuilder {
         log.trace("Finished building user relations cache for user {}, time: {}", user, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    private void scheduledUpdate() {
+    private void scheduledBuild() {
         if (scheduledUsers.isEmpty()) {
             return;
         }
 
         for (String user : new HashSet<>(scheduledUsers)) {
-            update(user);
+            build(user);
         }
     }
 
@@ -175,8 +175,8 @@ public class UserRelationCacheBuilder {
         return true;
     }
 
-    public boolean updateAsync(String user) {
-        EXECUTOR.execute(() -> update(user));
+    public boolean buildAsync(String user) {
+        EXECUTOR.execute(() -> build(user));
         log.info("Scheduled updated for user {}.", user);
         return true;
     }

@@ -46,14 +46,14 @@ public class UserRelationsCacheService {
     }
 
     public void update(String user) {
-        this.builder.update(user);
+        this.builder.build(user);
     }
 
-    public boolean fullRebuildAsync() {
+    public boolean updateAllAsync() {
         return this.builder.fullRebuildAsync();
     }
 
     public boolean updateAsync(String user) {
-        return this.builder.updateAsync(user);
+        return this.builder.buildAsync(user);
     }
 }

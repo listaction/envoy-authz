@@ -21,7 +21,7 @@ public class CacheController {
     @GetMapping("/user-relations/full")
     public boolean fullRebuild() {
         log.info("Scheduling 'user-relations' cache full rebuild...");
-        return userRelationsCacheService.fullRebuildAsync();
+        return userRelationsCacheService.updateAllAsync();
     }
 
     @GetMapping("/user-relations/single")
