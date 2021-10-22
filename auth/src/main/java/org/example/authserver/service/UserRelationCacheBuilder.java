@@ -199,4 +199,8 @@ public class UserRelationCacheBuilder {
     public boolean hasInProgress(String user) {
         return inProgressUsers.contains(user);
     }
+
+    public boolean canUseCache(String user) {
+        return config.isEnabled() && !hasScheduled(user) && !hasInProgress(user);
+    }
 }

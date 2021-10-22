@@ -1,7 +1,6 @@
 package org.example.authserver.service;
 
 import authserver.acl.Acl;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.example.authserver.config.AppProperties;
@@ -17,28 +16,29 @@ import java.util.*;
 @Service
 public class UserRelationsCacheService {
 
-    @Getter
-    private final boolean enabled;
     private final UserRelationCacheBuilder builder;
     private final UserRelationRepository userRelationRepository;
 
     public UserRelationsCacheService(AppProperties appProperties, AclRepository aclRepository, UserRelationRepository userRelationRepository, Zanzibar zanzibar) {
-        this.enabled = appProperties.getUserRelationsCache().isEnabled();
         this.userRelationRepository = userRelationRepository;
         this.builder = new UserRelationCacheBuilder(appProperties.getUserRelationsCache(), aclRepository, userRelationRepository, zanzibar);
         this.builder.firstTimeBuildAsync(); // async to release bean creation
     }
 
-    public Set<String> getRelations(String user) {
+    public Optional<Set<String>> getRelations(String user) {
         if (StringUtils.isBlank(user)) {
-            return Collections.emptySet();
+            return Optional.empty();
+        }
+
+        if (!builder.canUseCache(user)) {
+            return Optional.empty();
         }
 
         Optional<UserRelationEntity> entity = userRelationRepository.findById(user);
         if (entity.isEmpty()) {
-            return Collections.emptySet();
+            return Optional.empty();
         }
-        return new HashSet<>(entity.get().getRelations());
+        return Optional.of(new HashSet<>(entity.get().getRelations()));
     }
 
     public void update(Acl acl) {

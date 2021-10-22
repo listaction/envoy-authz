@@ -131,6 +131,12 @@ public class UserRelationCacheBuilderTest {
         assertTrue(builder.buildAll());
     }
 
+    @Test
+    public void canUseCache_whenCacheIsDisabled_shouldReturnFalse() {
+        UserRelationCacheBuilder b = new UserRelationCacheBuilder(createConfig(false), aclRepository, userRelationRepository, zanzibar);
+        assertFalse(b.canUseCache("user1"));
+    }
+
     public static UserRelationsConfig createTrueConfig() {
         return createConfig(true);
     }
