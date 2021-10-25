@@ -42,7 +42,7 @@ public class UserRelationCacheBuilderTest {
         Mockito.doReturn(Sets.newHashSet("user1", "user2", "user3")).when(aclRepository).findAllEndUsers();
         Mockito.doReturn(Sets.newHashSet("ns1", "ns2", "ns3")).when(aclRepository).findAllNamespaces();
         Mockito.doReturn(Sets.newHashSet("obj1", "obj2", "obj3")).when(aclRepository).findAllObjects();
-        Mockito.doAnswer(new AnswersWithDelay(1, new Returns(new HashSet<>()))).when(zanzibar).getRelations(any(), any(), any(), any(), any());
+        Mockito.doAnswer(new AnswersWithDelay(1, new Returns(new HashSet<>()))).when(zanzibar).getRelations(any(), any(), any(), any());
 
         assertTrue(builder.fullRebuildAsync());
         Thread.sleep(15); // executors.execute() takes time
@@ -56,7 +56,7 @@ public class UserRelationCacheBuilderTest {
         Mockito.doReturn(Sets.newHashSet("user1", "user2", "user3")).when(aclRepository).findAllEndUsers();
         Mockito.doReturn(Sets.newHashSet("ns1", "ns2", "ns3")).when(aclRepository).findAllNamespaces();
         Mockito.doReturn(Sets.newHashSet("obj1", "obj2", "obj3")).when(aclRepository).findAllObjects();
-        Mockito.doAnswer(new AnswersWithDelay(1, new Returns(new HashSet<>()))).when(zanzibar).getRelations(any(), any(), any(), any(), any());
+        Mockito.doAnswer(new AnswersWithDelay(1, new Returns(new HashSet<>()))).when(zanzibar).getRelations(any(), any(), any(), any());
 
         assertTrue(builder.buildAsync("user1"));
         assertTrue(Tester.waitFor(() -> builder.isInProgress()));
@@ -141,7 +141,7 @@ public class UserRelationCacheBuilderTest {
         Mockito.doReturn(Sets.newHashSet("user1", "user2", "user3")).when(aclRepository).findAllEndUsers();
         Mockito.doReturn(Sets.newHashSet("ns1", "ns2", "ns3")).when(aclRepository).findAllNamespaces();
         Mockito.doReturn(Sets.newHashSet("obj1", "obj2", "obj3")).when(aclRepository).findAllObjects();
-        Mockito.doAnswer(new AnswersWithDelay(1, new Returns(new HashSet<>()))).when(zanzibar).getRelations(any(), any(), any(), any(), any());
+        Mockito.doAnswer(new AnswersWithDelay(1, new Returns(new HashSet<>()))).when(zanzibar).getRelations(any(), any(), any(), any());
 
         assertTrue(builder.buildAsync("user1"));
         Thread.sleep(15); // executors.execute() takes time

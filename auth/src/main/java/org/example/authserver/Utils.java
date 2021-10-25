@@ -12,6 +12,13 @@ public class Utils {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
+    private Utils() {
+    }
+
+    public static String createTag(String namespace, String object, String relation) {
+        return String.format("%s:%s#%s", namespace, object, relation);
+    }
+
     public static Acl jsonToAcl(String json){
         try {
             return mapper.readValue(json, Acl.class);

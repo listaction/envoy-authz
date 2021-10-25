@@ -7,6 +7,7 @@ import org.example.authserver.config.UserRelationsConfig;
 import org.example.authserver.entity.UserRelationEntity;
 import org.example.authserver.repo.AclRepository;
 import org.example.authserver.repo.pgsql.UserRelationRepository;
+import org.example.authserver.service.model.RequestCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Optional;
 
@@ -33,7 +33,6 @@ public class RelationsServiceTest {
     private AppProperties appProperties;
 
     private UserRelationCacheBuilder builder;
-    private UserRelationsCacheService cacheService;
     private RelationsService service;
 
     @BeforeEach
@@ -47,7 +46,7 @@ public class RelationsServiceTest {
         builder = new UserRelationCacheBuilder(config, aclRepository, userRelationRepository, zanzibar);
         builder.build("warm up"); // warm up executor
 
-        cacheService = new UserRelationsCacheService(builder, userRelationRepository);
+        UserRelationsCacheService cacheService = new UserRelationsCacheService(builder, userRelationRepository);
         service = new RelationsService(zanzibar, cacheService);
     }
 
@@ -60,11 +59,11 @@ public class RelationsServiceTest {
         assertTrue(builder.buildAsync("user1"));
         assertTrue(Tester.waitFor(() -> builder.isInProgress()));
 
-        service.getRelations("ns1", "obj1", "user1", new HashMap<>(), new HashMap<>());
+        service.getRelations("ns1", "obj1", "user1", new RequestCache());
 
         assertTrue(Tester.waitFor(() -> !builder.isInProgress()));
         // 2 -> 1 time during building cache + 1 time for fetching data
-        Mockito.verify(zanzibar, Mockito.times(2)).getRelations(any(), any(), any(), any(), any());
+        Mockito.verify(zanzibar, Mockito.times(2)).getRelations(any(), any(), any(), any());
     }
 
     @Test
@@ -79,9 +78,9 @@ public class RelationsServiceTest {
         assertTrue(Tester.waitFor(() -> !builder.isInProgress()));
         assertTrue(Tester.waitFor(() -> builder.canUseCache("user1")));
 
-        service.getRelations("ns1", "obj1", "user1", new HashMap<>(), new HashMap<>());
+        service.getRelations("ns1", "obj1", "user1", new RequestCache());
 
         // expected exactly 1 call for cache building and then service call should take cached data
-        Mockito.verify(zanzibar, Mockito.times(1)).getRelations(any(), any(), any(), any(), any());
+        Mockito.verify(zanzibar, Mockito.times(1)).getRelations(any(), any(), any(), any());
     }
 }

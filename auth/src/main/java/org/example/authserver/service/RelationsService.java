@@ -1,13 +1,10 @@
 package org.example.authserver.service;
 
-import authserver.acl.Acl;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.service.model.RequestCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
-import org.example.authserver.service.zanzibar.ZanzibarImpl;
 import org.springframework.stereotype.Service;
-import reactor.util.function.Tuple2;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,13 +20,13 @@ public class RelationsService {
         this.userRelationsCacheService = userRelationsCacheService;
     }
 
-    public Set<String> getRelations(String namespace, String object, String principal, Map<Tuple2<String, String>, Set<ZanzibarImpl.ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache) {
+    public Set<String> getRelations(String namespace, String object, String principal, RequestCache requestCache) {
         Optional<Set<String>> cachedRelations = userRelationsCacheService.getRelations(principal);
         if (cachedRelations.isPresent()) {
             log.trace("Return cached relations for user {}", principal);
             return cachedRelations.get();
         }
 
-        return zanzibar.getRelations(namespace, object, principal, cache, principalAclCache);
+        return zanzibar.getRelations(namespace, object, principal, requestCache);
     }
 }

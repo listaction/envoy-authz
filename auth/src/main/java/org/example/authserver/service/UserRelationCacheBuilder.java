@@ -7,9 +7,9 @@ import org.example.authserver.config.UserRelationsConfig;
 import org.example.authserver.entity.UserRelationEntity;
 import org.example.authserver.repo.AclRepository;
 import org.example.authserver.repo.pgsql.UserRelationRepository;
+import org.example.authserver.service.model.RequestCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -148,7 +148,7 @@ public class UserRelationCacheBuilder {
         Set<String> relations = new HashSet<>();
         for (String namespace : namespaces) {
             for (String object : objects) {
-                relations.addAll(zanzibar.getRelations(namespace, object, user, new HashMap<>(), new HashMap<>()));
+                relations.addAll(zanzibar.getRelations(namespace, object, user, new RequestCache()));
             }
         }
 
