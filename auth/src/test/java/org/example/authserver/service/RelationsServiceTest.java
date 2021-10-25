@@ -24,8 +24,6 @@ import static org.mockito.ArgumentMatchers.any;
 public class RelationsServiceTest {
 
     @Mock
-    private AclRepository aclRepository;
-    @Mock
     private UserRelationRepository userRelationRepository;
     @Mock
     private Zanzibar zanzibar;
@@ -34,6 +32,7 @@ public class RelationsServiceTest {
     @Mock
     private CacheService cacheService;
 
+    private AclRepository aclRepository;
     private UserRelationCacheBuilder builder;
     private RelationsService service;
 
@@ -45,6 +44,7 @@ public class RelationsServiceTest {
 
         Mockito.doReturn(config).when(appProperties).getUserRelationsCache();
 
+        aclRepository = Mockito.mock(AclRepository.class);
         builder = new UserRelationCacheBuilder(config, aclRepository, userRelationRepository, zanzibar, cacheService);
         builder.build("warm up"); // warm up executor
 
