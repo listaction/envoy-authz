@@ -19,14 +19,16 @@ public class UserRelationsCacheService {
 
     private final UserRelationCacheBuilder builder;
     private final UserRelationRepository userRelationRepository;
+    private final AclRepository aclRepository;
 
     @Autowired
-    public UserRelationsCacheService(AppProperties appProperties, AclRepository aclRepository, UserRelationRepository userRelationRepository, Zanzibar zanzibar) {
-        this(new UserRelationCacheBuilder(appProperties.getUserRelationsCache(), aclRepository, userRelationRepository, zanzibar), userRelationRepository);
+    public UserRelationsCacheService(AppProperties appProperties, AclRepository aclRepository, UserRelationRepository userRelationRepository, Zanzibar zanzibar, CacheService cacheService) {
+        this(new UserRelationCacheBuilder(appProperties.getUserRelationsCache(), aclRepository, userRelationRepository, zanzibar, cacheService), userRelationRepository, aclRepository);
     }
 
-    public UserRelationsCacheService(UserRelationCacheBuilder builder, UserRelationRepository userRelationRepository) {
+    public UserRelationsCacheService(UserRelationCacheBuilder builder, UserRelationRepository userRelationRepository, AclRepository aclRepository) {
         this.userRelationRepository = userRelationRepository;
+        this.aclRepository = aclRepository;
         this.builder = builder;
         this.builder.firstTimeBuildAsync(); // async to release bean creation
     }
@@ -40,11 +42,20 @@ public class UserRelationsCacheService {
             return Optional.empty();
         }
 
-        Optional<UserRelationEntity> entity = userRelationRepository.findById(user);
-        if (entity.isEmpty()) {
+        Optional<UserRelationEntity> entityOptional = userRelationRepository.findById(user);
+        if (entityOptional.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(new HashSet<>(entity.get().getRelations()));
+
+        UserRelationEntity entity = entityOptional.get();
+        long maxAclUpdated = aclRepository.findMaxAclUpdatedByPrincipal(user);
+        if (entity.getMaxAclUpdated() < maxAclUpdated) {
+            log.warn("Can't use user relations cache, entity updatedAt: {}, maxAclUpdated: {}", entity.getMaxAclUpdated(), maxAclUpdated);
+            update(user);
+            return Optional.empty();
+        }
+
+        return Optional.of(new HashSet<>(entity.getRelations()));
     }
 
     public void update(Acl acl) {

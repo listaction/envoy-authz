@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -42,15 +41,18 @@ public class CacheService {
         return configs;
     }
 
-    public void prepareHighCardinalityCache(RequestCache requestCache, String user) {
+    public RequestCache prepareHighCardinalityCache(String user) {
+        return prepareHighCardinalityCache(new RequestCache(), user);
+    }
+
+    public RequestCache prepareHighCardinalityCache(RequestCache requestCache, String user) {
         if (requestCache.getPrincipalHighCardinalityCache().containsKey(user) || "*".equals(user)) {
-            return;
+            return requestCache;
         }
 
         Set<Acl> acls = aclRepository.findAllByPrincipal(user);
         requestCache.getPrincipalAclCache().put(user, new HashSet<>(acls));
-
-        Set<String> highCardinalityRelations = acls.stream().map(Acl::getTag).collect(Collectors.toSet());
-        requestCache.getPrincipalHighCardinalityCache().put(user, highCardinalityRelations);
+        requestCache.getPrincipalHighCardinalityCache().put(user, Acl.getTags(acls));
+        return requestCache;
     }
 }

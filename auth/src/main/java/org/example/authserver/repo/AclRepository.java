@@ -26,4 +26,6 @@ public interface AclRepository {
     Set<String> findAllNamespaces();
 
     Set<String> findAllObjects();
+
+    long findMaxAclUpdatedByPrincipal(String principal);
 }

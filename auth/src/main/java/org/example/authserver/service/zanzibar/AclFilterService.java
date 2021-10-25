@@ -43,8 +43,7 @@ public class AclFilterService {
         }
 
         String user = claims.getSubject();
-        RequestCache requestCache = new RequestCache();
-        cacheService.prepareHighCardinalityCache(requestCache, user);
+        RequestCache requestCache = cacheService.prepareHighCardinalityCache(user);
 
         Set<String> allowedTags = new HashSet<>();
         for (Map<String, String> variables : mappings) {
@@ -62,6 +61,7 @@ public class AclFilterService {
             }
 
             Set<String> relations = requestCache.getPrincipalHighCardinalityCache().get(user);
+
             boolean r = false;
             if (HasTag(relations, mRoles, namespace, object)) {
                 r = true;

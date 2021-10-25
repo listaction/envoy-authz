@@ -11,7 +11,7 @@ public class Tester {
     }
 
     public static boolean waitFor(Supplier<Boolean> condition) throws InterruptedException {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1000; i++) {
             if (condition.get()) {
                 return true;
             }

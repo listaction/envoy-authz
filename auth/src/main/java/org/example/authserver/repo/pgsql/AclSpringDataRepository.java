@@ -16,7 +16,7 @@ public interface AclSpringDataRepository extends CrudRepository<AclEntity, Strin
     Set<AclEntity> findAllByNsobjectInAndUser(List<String> nsobject, String user);
     Set<AclEntity> findAllByUser(String principal);
 
-    @Query("SELECT DISTINCT a.user FROM acls a WHERE a <> '*'")
+    @Query("SELECT DISTINCT a.user FROM acls a WHERE a.user <> '*'")
     Set<String> findDistinctEndUsers();
 
     @Query("SELECT DISTINCT a.namespace FROM acls a")
@@ -24,4 +24,7 @@ public interface AclSpringDataRepository extends CrudRepository<AclEntity, Strin
 
     @Query("SELECT DISTINCT a.object FROM acls a")
     Set<String> findDistinctObjects();
+
+    @Query("SELECT max(a.updated) FROM acls a where a.user = ?1")
+    long findMaxAclUpdatedByPrincipal(String principal);
 }

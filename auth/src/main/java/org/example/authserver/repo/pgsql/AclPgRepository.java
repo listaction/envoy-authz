@@ -82,6 +82,11 @@ public class AclPgRepository implements AclRepository {
     }
 
     @Override
+    public long findMaxAclUpdatedByPrincipal(String principal) {
+        return repository.findMaxAclUpdatedByPrincipal(principal);
+    }
+
+    @Override
     public Set<Acl> findAllByNamespaceAndObjectAndUser(String namespace, String object, String user) {
         Set<AclEntity> usersetAcls = repository.findAllByNsobjectAndUser(String.format("%s:%s", namespace, object), "*");
         Set<AclEntity> userAcls = repository.findAllByNsobjectAndUser(String.format("%s:%s", namespace, object), user);
