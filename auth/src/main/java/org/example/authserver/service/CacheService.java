@@ -32,4 +32,13 @@ public class CacheService {
         return configs;
     }
 
+    public void prepareHighCardinalityCache(RequestCache requestCache, String user) {
+        if (requestCache.getPrincipalHighCardinalityCache().containsKey(user) || "*".equals(user)) {
+            return;
+        }
+
+        Set<Acl> acls = aclRepository.findAllByPrincipal(user);
+        Set<String> highCardinalityRelations = acls.stream().map(Acl::getTag).collect(Collectors.toSet());
+        requestCache.getPrincipalHighCardinalityCache().put(user, highCardinalityRelations);
+    }
 }
