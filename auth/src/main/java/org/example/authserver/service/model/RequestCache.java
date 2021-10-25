@@ -18,4 +18,5 @@ public class RequestCache {
 
     private Map<Tuple2<String, String>, Set<ZanzibarImpl.ExpandedAcl>> cache = new HashMap<>();
     private Map<String, Set<Acl>> principalAclCache = new HashMap<>();
+    private Map<String, Set<String>> principalHighCardinalityCache = new HashMap<>();
 }

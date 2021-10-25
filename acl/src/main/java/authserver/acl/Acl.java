@@ -51,6 +51,10 @@ public class Acl implements Cloneable, Serializable {
         return String.format("%s:%s", namespace, object);
     }
 
+    public String getTag() {
+        return String.format("%s:%s#%s", namespace, object, relation);
+    }
+
     private boolean isNotEmpty(String s){
         if (s == null) return false;
         if (s.length() == 0) return false;
