@@ -20,17 +20,15 @@ public class UserRelationsCacheService {
     private final UserRelationCacheBuilder builder;
     private final UserRelationRepository userRelationRepository;
     private final AclRepository aclRepository;
-    private final CacheService cacheService;
 
     @Autowired
     public UserRelationsCacheService(AppProperties appProperties, AclRepository aclRepository, UserRelationRepository userRelationRepository, Zanzibar zanzibar, CacheService cacheService) {
-        this(new UserRelationCacheBuilder(appProperties.getUserRelationsCache(), aclRepository, userRelationRepository, zanzibar, cacheService), userRelationRepository, aclRepository, cacheService);
+        this(new UserRelationCacheBuilder(appProperties.getUserRelationsCache(), aclRepository, userRelationRepository, zanzibar, cacheService), userRelationRepository, aclRepository);
     }
 
-    public UserRelationsCacheService(UserRelationCacheBuilder builder, UserRelationRepository userRelationRepository, AclRepository aclRepository, CacheService cacheService) {
+    public UserRelationsCacheService(UserRelationCacheBuilder builder, UserRelationRepository userRelationRepository, AclRepository aclRepository) {
         this.userRelationRepository = userRelationRepository;
         this.aclRepository = aclRepository;
-        this.cacheService = cacheService;
         this.builder = builder;
         this.builder.firstTimeBuildAsync(); // async to release bean creation
     }

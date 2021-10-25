@@ -48,7 +48,7 @@ public class RelationsServiceTest {
         builder = new UserRelationCacheBuilder(config, aclRepository, userRelationRepository, zanzibar, cacheService);
         builder.build("warm up"); // warm up executor
 
-        UserRelationsCacheService cacheService = new UserRelationsCacheService(builder, userRelationRepository, aclRepository, this.cacheService);
+        UserRelationsCacheService cacheService = new UserRelationsCacheService(builder, userRelationRepository, aclRepository);
         service = new RelationsService(zanzibar, cacheService);
     }
 
