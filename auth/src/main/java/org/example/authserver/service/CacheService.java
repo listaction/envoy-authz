@@ -48,6 +48,8 @@ public class CacheService {
         }
 
         Set<Acl> acls = aclRepository.findAllByPrincipal(user);
+        requestCache.getPrincipalAclCache().put(user, new HashSet<>(acls));
+
         Set<String> highCardinalityRelations = acls.stream().map(Acl::getTag).collect(Collectors.toSet());
         requestCache.getPrincipalHighCardinalityCache().put(user, highCardinalityRelations);
     }
