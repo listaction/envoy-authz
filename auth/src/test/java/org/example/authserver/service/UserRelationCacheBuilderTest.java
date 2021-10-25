@@ -27,13 +27,15 @@ public class UserRelationCacheBuilderTest {
     private UserRelationRepository userRelationRepository;
     @Mock
     private Zanzibar zanzibar;
+    @Mock
+    private CacheService cacheService;
 
     private UserRelationCacheBuilder builder;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        builder = new UserRelationCacheBuilder(Tester.createTrueUserRelationsConfigConfig(), aclRepository, userRelationRepository, zanzibar);
+        builder = new UserRelationCacheBuilder(Tester.createTrueUserRelationsConfigConfig(), aclRepository, userRelationRepository, zanzibar, cacheService);
         builder.build("warm up"); // warm up executor
     }
 
@@ -93,7 +95,7 @@ public class UserRelationCacheBuilderTest {
 
     @Test
     public void buildAll_whenCacheEnabledIsFalse_shouldReturnFalse() {
-        UserRelationCacheBuilder b = new UserRelationCacheBuilder(Tester.createUserRelationsConfig(false), aclRepository, userRelationRepository, zanzibar);
+        UserRelationCacheBuilder b = new UserRelationCacheBuilder(Tester.createUserRelationsConfig(false), aclRepository, userRelationRepository, zanzibar, cacheService);
         assertFalse(b.buildAll());
     }
 
@@ -132,7 +134,7 @@ public class UserRelationCacheBuilderTest {
 
     @Test
     public void canUseCache_whenCacheIsDisabled_shouldReturnFalse() {
-        UserRelationCacheBuilder b = new UserRelationCacheBuilder(Tester.createUserRelationsConfig(false), aclRepository, userRelationRepository, zanzibar);
+        UserRelationCacheBuilder b = new UserRelationCacheBuilder(Tester.createUserRelationsConfig(false), aclRepository, userRelationRepository, zanzibar, cacheService);
         assertFalse(b.canUseCache("user1"));
     }
 
@@ -148,5 +150,4 @@ public class UserRelationCacheBuilderTest {
 
         assertFalse(builder.canUseCache("user1"));
     }
-
 }

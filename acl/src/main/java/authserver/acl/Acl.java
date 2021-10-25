@@ -8,10 +8,12 @@ import lombok.extern.java.Log;
 
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Log
 @Data
@@ -49,6 +51,14 @@ public class Acl implements Cloneable, Serializable {
 
     public String getNsObject(){
         return String.format("%s:%s", namespace, object);
+    }
+
+    public String getTag() {
+        return String.format("%s:%s#%s", namespace, object, relation);
+    }
+
+    public static Set<String> getTags(Set<Acl> acls) {
+        return acls.stream().map(Acl::getTag).collect(Collectors.toSet());
     }
 
     private boolean isNotEmpty(String s){

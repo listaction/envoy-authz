@@ -1,5 +1,6 @@
 package org.example.authserver.service.zanzibar;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
@@ -10,6 +11,7 @@ import org.example.authserver.service.model.RequestCache;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -37,11 +39,16 @@ public class AclFilterService {
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
+        String user = claims.getSubject();
         RequestCache requestCache = new RequestCache();
+
         Set<String> allowedTags = new HashSet<>();
         for (Map<String, String> variables : mappings) {
             String mappingId = variables.get("aclId");
             String mappingRoles = variables.getOrDefault("roles", "");
+            String namespace = variables.get("namespace");
+            String object = variables.get("object");
+
             List<String> mRoles;
             if (!Strings.isNullOrEmpty(mappingRoles)) {
                 String[] tmp = mappingRoles.split(",");
@@ -50,20 +57,21 @@ public class AclFilterService {
                 return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
             }
 
+            Set<String> relations = requestCache.getPrincipalHighCardinalityCache().get(user);
+
             boolean r = false;
-            long time4 = System.currentTimeMillis();
-            Set<String> relations = relationsService.getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject(), requestCache);
-            long time5 = System.currentTimeMillis();
-            log.info("zanzibar.getRelations {} ms.", time5-time4);
-            for (String role : mRoles) {
-                String namespace = variables.get("namespace");
-                String object = variables.get("object");
-                log.trace("CHECKING: {}:{}#{}@{}", namespace, object, role, claims.getSubject());
-                String currentTag = String.format("%s:%s#%s", namespace, object, role);
-                boolean tagFound = relations.contains(currentTag);
-                if (tagFound) r = true;
-                allowedTags.addAll(relations);
+            if (HasTag(relations, mRoles, namespace, object)) {
+                r = true;
+            } else {
+                Stopwatch relationsStopwatch = Stopwatch.createStarted();
+                relations = relationsService.getRelations(namespace, object, user, requestCache);
+                log.info("zanzibar.getRelations {} ms.", relationsStopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+                if (HasTag(relations, mRoles, namespace, object)) {
+                    r = true;
+                }
             }
+
             if (!r) {
                 log.info("expected roles: {}:{} {}", variables.get("namespace"), variables.get("object"), mRoles);
                 log.info("roles available for {}: {}", claims.getSubject(), relations);
@@ -79,5 +87,17 @@ public class AclFilterService {
         log.info("checkRequest {} ms.", end - start);
         log.info("mappings size: {}.", mappings.size());
         return CheckResult.builder().mappingsPresent(true).result(true).tags(allowedTags).build();
+    }
+
+    private static boolean HasTag(Set<String> relations, List<String> roles, String namespace, String object) {
+        for (String role : roles) {
+            String currentTag = String.format("%s:%s#%s", namespace, object, role);
+            boolean tagFound = relations.contains(currentTag);
+            if (tagFound) {
+                log.trace("Found tag: {}", currentTag);
+                return true;
+            }
+        }
+        return false;
     }
 }

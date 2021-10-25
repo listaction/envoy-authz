@@ -24,15 +24,17 @@ public class UserRelationCacheBuilder {
     private final Zanzibar zanzibar;
     private final AclRepository aclRepository;
     private final UserRelationRepository userRelationRepository;
+    private final CacheService cacheService;
 
     private final List<String> inProgressUsers = new CopyOnWriteArrayList<>();
     private final List<String> scheduledUsers = new CopyOnWriteArrayList<>();
 
-    public UserRelationCacheBuilder(UserRelationsConfig config, AclRepository aclRepository, UserRelationRepository userRelationRepository, Zanzibar zanzibar) {
+    public UserRelationCacheBuilder(UserRelationsConfig config, AclRepository aclRepository, UserRelationRepository userRelationRepository, Zanzibar zanzibar, CacheService cacheService) {
         this.config = config;
         this.aclRepository = aclRepository;
         this.userRelationRepository = userRelationRepository;
         this.zanzibar = zanzibar;
+        this.cacheService = cacheService;
 
         EXECUTOR.scheduleAtFixedRate(this::scheduledBuild, 0, config.getScheduledPeriodTime(), config.getScheduledPeriodTimeUnit());
     }
@@ -142,24 +144,28 @@ public class UserRelationCacheBuilder {
             return;
         }
 
+        long maxAclUpdated = aclRepository.findMaxAclUpdatedByPrincipal(user);
+        RequestCache requestCache = cacheService.prepareHighCardinalityCache(user);
+
         Stopwatch stopwatch = Stopwatch.createStarted();
         log.trace("Building user relations cache for user {} ...", user);
 
         Set<String> relations = new HashSet<>();
         for (String namespace : namespaces) {
             for (String object : objects) {
-                relations.addAll(zanzibar.getRelations(namespace, object, user, new RequestCache()));
+                relations.addAll(zanzibar.getRelations(namespace, object, user, requestCache));
             }
         }
 
-        log.trace("Found {} relations for user {}", relations.size(), user);
+        log.debug("Found {} relations for user {}, maxUpdated: {}", relations.size(), user, maxAclUpdated);
 
         userRelationRepository.save(UserRelationEntity.builder()
                 .user(user)
                 .relations(relations)
+                .maxAclUpdated(maxAclUpdated)
                 .build());
 
-        log.trace("Finished building user relations cache for user {}, time: {}", user, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        log.debug("Finished building user relations cache for user {}, time: {}", user, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private void scheduledBuild() {

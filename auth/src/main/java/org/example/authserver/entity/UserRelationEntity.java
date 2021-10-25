@@ -33,4 +33,6 @@ public class UserRelationEntity implements Serializable {
     private Long created = System.currentTimeMillis();
     @Builder.Default
     private Long updated = System.currentTimeMillis();
+
+    private Long maxAclUpdated;
 }
