@@ -11,6 +11,7 @@ import org.example.authserver.entity.BodyMappingKey;
 import org.example.authserver.entity.HeaderMappingKey;
 import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.service.MappingCacheService;
+import org.example.authserver.service.model.Mapping;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
@@ -19,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,42 +39,43 @@ public class MappingService {
     /**
      * @return mapping variables, or {@code null} for no match
      */
-    public List<Map<String, String>> processRequest(CheckRequest request, Claims claims){
+    public List<Mapping> processRequest(CheckRequest request, Claims claims){
         Map<MappingEntity, Map<String, String>> mappings = findMappings(request);
         if (mappings == null) return null; // no match
 
-        List<Map<String, String>> result = new ArrayList<>();
+        List<Mapping> result = new ArrayList<>();
 
         String requestMethod = request.getAttributes().getRequest().getHttp().getMethod();
         Map<String, String> headersMap = request.getAttributes().getRequest().getHttp().getHeadersMap();
 
         for (Map.Entry<MappingEntity, Map<String, String>> entry : mappings.entrySet()) {
-            MappingEntity mapping = entry.getKey();
-            Map<String, String> variables = entry.getValue();
+            MappingEntity mappingEntity = entry.getKey();
 
-            variables.put("roles", String.join(",", mapping.getRoles()));
+            Mapping mapping = new Mapping();
+            mapping.getMap().putAll(entry.getValue());
+            mapping.getMap().put("roles", String.join(",", mappingEntity.getRoles()));
 
-            if (mapping.getBodyMapping() != null && "POST".equalsIgnoreCase(requestMethod) || "PUT".equals(requestMethod)) {
+            if (mappingEntity.getBodyMapping() != null && "POST".equalsIgnoreCase(requestMethod) || "PUT".equals(requestMethod)) {
                 String requestBody = request.getAttributes().getRequest().getHttp().getBody();
-                BodyMapping bodyMapping = mapping.getBodyMapping();
-                variables.putAll(parseRequestJsonBody(bodyMapping, requestBody));
+                BodyMapping bodyMapping = mappingEntity.getBodyMapping();
+                mapping.getMap().putAll(parseRequestJsonBody(bodyMapping, requestBody));
             }
 
-            if (mapping.getHeaderMapping() != null){
-                variables.putAll(parseHeaders(mapping.getHeaderMapping(), headersMap));
+            if (mappingEntity.getHeaderMapping() != null){
+                mapping.getMap().putAll(parseHeaders(mappingEntity.getHeaderMapping(), headersMap));
             }
 
             Matcher m = pattern.matcher(claims.getIssuer());
             if (m.matches() && m.groupCount() >= 2){
-                variables.put("tenant", m.group(2));
+                mapping.getMap().put("tenant", m.group(2));
             }
 
-            variables.put("userId", claims.getSubject());
-            variables.put("aclId", mapping.getId());
-            variables.forEach((key, value) -> log.trace("{} => {}", key, value));
+            mapping.getMap().put("userId", claims.getSubject());
+            mapping.getMap().put("aclId", mappingEntity.getId());
+            mapping.getMap().forEach((key, v) -> log.trace("{} => {}", key, v));
 
-            compositeAclStuff(mapping, variables);
-            result.add(variables);
+            compositeAclStuff(mappingEntity, mapping.getMap());
+            result.add(mapping);
         }
 
         return result;
