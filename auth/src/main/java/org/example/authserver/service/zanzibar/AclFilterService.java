@@ -34,15 +34,17 @@ public class AclFilterService {
         long start = System.currentTimeMillis();
         Claims claims = tokenService.getAllClaimsFromRequest(request);
         long time2 = System.currentTimeMillis();
+
         if (claims == null) return CheckResult.builder().jwtPresent(false).result(false).build();
 
+        String user = claims.getSubject();
         List<Mapping> mappings = mappingService.processRequest(request, claims);
         long time3 = System.currentTimeMillis();
         if (mappings == null || mappings.size() == 0) {
+            log.debug("Unable to find mapping for user {}.", user);
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
-        String user = claims.getSubject();
         RequestCache requestCache = cacheService.prepareHighCardinalityCache(user);
 
         Set<String> allowedTags = new HashSet<>();
