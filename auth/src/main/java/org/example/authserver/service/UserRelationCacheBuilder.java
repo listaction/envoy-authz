@@ -12,6 +12,7 @@ import org.example.authserver.service.zanzibar.Zanzibar;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -139,9 +140,19 @@ public class UserRelationCacheBuilder {
     }
 
     public void buildUserRelations(String user, Set<String> namespaces, Set<String> objects) {
+        Optional<UserRelationEntity> entityOptional = createUserRelations(user, namespaces, objects);
+        if (entityOptional.isEmpty()) {
+            log.trace("No user relations found, user: {}", user);
+            return;
+        }
+
+        userRelationRepository.save(entityOptional.get());
+    }
+
+    public Optional<UserRelationEntity> createUserRelations(String user, Set<String> namespaces, Set<String> objects) {
         if (StringUtils.isBlank(user) || "*".equals(user)) {
             log.trace("Skip building cache for user: {}", user);
-            return;
+            return Optional.empty();
         }
 
         long maxAclUpdated = aclRepository.findMaxAclUpdatedByPrincipal(user);
@@ -162,14 +173,13 @@ public class UserRelationCacheBuilder {
 
         log.trace("Found {} relations for user {}", relations.size(), user);
         log.trace("All rel count: {}, maxUpdated: {})", allRelationsSize, maxAclUpdated);
+        log.debug("Finished building user relations cache for user {}, time: {}", user, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        userRelationRepository.save(UserRelationEntity.builder()
+        return Optional.of(UserRelationEntity.builder()
                 .user(user)
                 .relations(relations)
                 .maxAclUpdated(maxAclUpdated)
                 .build());
-
-        log.debug("Finished building user relations cache for user {}, time: {}", user, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private void scheduledBuild() {
