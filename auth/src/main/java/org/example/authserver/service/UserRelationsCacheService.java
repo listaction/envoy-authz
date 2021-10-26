@@ -51,7 +51,6 @@ public class UserRelationsCacheService {
         long maxAclUpdated = aclRepository.findMaxAclUpdatedByPrincipal(user);
         if (entity.getMaxAclUpdated() < maxAclUpdated) {
             log.warn("Can't use user relations cache, entity updatedAt: {}, maxAclUpdated: {}", entity.getMaxAclUpdated(), maxAclUpdated);
-            update(user);
             return Optional.empty();
         }
 

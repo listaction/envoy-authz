@@ -169,7 +169,7 @@ public class UserRelationCacheBuilder {
                 .maxAclUpdated(maxAclUpdated)
                 .build());
 
-        log.trace("Finished building user relations cache for user {}, time: {}", user, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        log.debug("Finished building user relations cache for user {}, time: {}", user, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private void scheduledBuild() {
