@@ -45,7 +45,7 @@ public class AclFilterService {
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
-        RequestCache requestCache = cacheService.prepareHighCardinalityCache(user);
+        RequestCache requestCache = new RequestCache();// todo uncomment cacheService.prepareHighCardinalityCache(user);
 
         Set<String> allowedTags = new HashSet<>();
         for (Mapping mapping : mappings) {
@@ -58,12 +58,13 @@ public class AclFilterService {
                 return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
             }
 
-            Set<String> relations = requestCache.getPrincipalHighCardinalityCache().get(user);
+            Set<String> relations = new HashSet<>();// todo uncomment requestCache.getPrincipalHighCardinalityCache().get(user);
 
             boolean r = false;
-            if (HasTag(relations, roles, namespace, object)) {
-                r = true;
-            } else {
+            // todo uncomment
+//            if (HasTag(relations, roles, namespace, object)) {
+//                r = true;
+//            } else {
                 Stopwatch relationsStopwatch = Stopwatch.createStarted();
                 relations = relationsService.getRelations(namespace, object, user, requestCache);
                 log.info("zanzibar.getRelations {} ms.", relationsStopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -71,7 +72,7 @@ public class AclFilterService {
                 if (HasTag(relations, roles, namespace, object)) {
                     r = true;
                 }
-            }
+//todo            }
 
             if (!r) {
                 log.info("expected roles: {}:{} {}", namespace, object, roles);

@@ -156,7 +156,7 @@ public class UserRelationCacheBuilder {
         }
 
         long maxAclUpdated = aclRepository.findMaxAclUpdatedByPrincipal(user);
-        RequestCache requestCache = cacheService.prepareHighCardinalityCache(user);
+        RequestCache requestCache = new RequestCache(); // todo uncomment cacheService.prepareHighCardinalityCache(user);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
         log.trace("Building user relations cache for user {} ...", user);
