@@ -45,20 +45,27 @@ public class RelationsServiceTest {
         Mockito.doReturn(config).when(appProperties).getUserRelationsCache();
 
         aclRepository = Mockito.mock(AclRepository.class);
-        builder = new UserRelationCacheBuilder(config, aclRepository, userRelationRepository, zanzibar, cacheService);
-        builder.build("warm up"); // warm up executor
-
-        UserRelationsCacheService cacheService = new UserRelationsCacheService(builder, userRelationRepository, aclRepository);
-        service = new RelationsService(zanzibar, cacheService);
-    }
-
-    @Test
-    public void getRelations_whenCacheBuilderIsBuilding_shouldCallZanzibar() throws InterruptedException {
         Mockito.doReturn(Sets.newHashSet("user1")).when(aclRepository).findAllEndUsers();
         Mockito.doReturn(Sets.newHashSet("ns1")).when(aclRepository).findAllNamespaces();
         Mockito.doReturn(Sets.newHashSet("obj1")).when(aclRepository).findAllObjects();
         Mockito.doReturn(1L).when(aclRepository).findMaxAclUpdatedByPrincipal("user1");
 
+        builder = new UserRelationCacheBuilder(config, aclRepository, userRelationRepository, zanzibar, cacheService) {
+            @Override
+            public boolean firstTimeBuild() {
+                return false;
+            }
+        };
+        builder.build("warm up"); // warm up executor
+
+        UserRelationsCacheService cacheService = new UserRelationsCacheService(builder, userRelationRepository, aclRepository);
+        service = new RelationsService(zanzibar, cacheService);
+
+        Mockito.reset(zanzibar);
+    }
+
+    @Test
+    public void getRelations_whenCacheBuilderIsBuilding_shouldCallZanzibar() throws InterruptedException {
         assertTrue(builder.buildAsync("user1"));
         assertTrue(Tester.waitFor(() -> builder.isInProgress()));
 
@@ -71,14 +78,10 @@ public class RelationsServiceTest {
 
     @Test
     public void getRelations_whenCacheIsBuilt_shouldReturnCacheAndDontCallZanzibar() throws InterruptedException {
-        Mockito.doReturn(Sets.newHashSet("user1")).when(aclRepository).findAllEndUsers();
-        Mockito.doReturn(Sets.newHashSet("ns1")).when(aclRepository).findAllNamespaces();
-        Mockito.doReturn(Sets.newHashSet("obj1")).when(aclRepository).findAllObjects();
-        Mockito.doReturn(1L).when(aclRepository).findMaxAclUpdatedByPrincipal("user1");
         Mockito.doReturn(Optional.of(UserRelationEntity.builder().relations(new HashSet<>()).maxAclUpdated(1L).build())).when(userRelationRepository).findById("user1");
 
         assertTrue(builder.buildAsync("user1"));
-        assertTrue(Tester.waitFor(() -> builder.isInProgress()));
+        Tester.waitFor(() -> builder.isInProgress());
         assertTrue(Tester.waitFor(() -> !builder.isInProgress()));
         assertTrue(Tester.waitFor(() -> builder.canUseCache("user1")));
 
