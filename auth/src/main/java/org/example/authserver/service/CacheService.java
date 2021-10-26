@@ -46,7 +46,7 @@ public class CacheService {
     }
 
     public RequestCache prepareHighCardinalityCache(RequestCache requestCache, String user) {
-        if (requestCache.getPrincipalHighCardinalityCache().containsKey(user) || "*".equals(user)) {
+        if (requestCache.getPrincipalHighCardinalityCache().containsKey(user) || "*".equals(user) || true /*todo remove ! - for now we do it by intention to disable high cardinality feature */) {
             return requestCache;
         }
 

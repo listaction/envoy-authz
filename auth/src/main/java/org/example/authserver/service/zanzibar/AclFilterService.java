@@ -45,7 +45,7 @@ public class AclFilterService {
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
-        RequestCache requestCache = new RequestCache();// todo uncomment cacheService.prepareHighCardinalityCache(user);
+        RequestCache requestCache = cacheService.prepareHighCardinalityCache(user);
 
         Set<String> allowedTags = new HashSet<>();
         for (Mapping mapping : mappings) {
@@ -58,13 +58,12 @@ public class AclFilterService {
                 return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
             }
 
-            Set<String> relations = new HashSet<>();// todo uncomment requestCache.getPrincipalHighCardinalityCache().get(user);
+            Set<String> relations = requestCache.getPrincipalHighCardinalityCache().getOrDefault(user, new HashSet<>());
 
             boolean r = false;
-            // todo uncomment
-//            if (HasTag(relations, roles, namespace, object)) {
-//                r = true;
-//            } else {
+            if (HasTag(relations, roles, namespace, object)) {
+                r = true;
+            } else {
                 Stopwatch relationsStopwatch = Stopwatch.createStarted();
                 relations = relationsService.getRelations(namespace, object, user, requestCache);
                 log.info("zanzibar.getRelations {} ms.", relationsStopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -72,7 +71,7 @@ public class AclFilterService {
                 if (HasTag(relations, roles, namespace, object)) {
                     r = true;
                 }
-//todo            }
+            }
 
             if (!r) {
                 log.info("expected roles: {}:{} {}", namespace, object, roles);
@@ -92,6 +91,10 @@ public class AclFilterService {
     }
 
     private static boolean HasTag(Set<String> relations, Set<String> roles, String namespace, String object) {
+        if (relations == null || relations.isEmpty()) {
+            return false;
+        }
+
         for (String role : roles) {
             String currentTag = String.format("%s:%s#%s", namespace, object, role);
             boolean tagFound = relations.contains(currentTag);

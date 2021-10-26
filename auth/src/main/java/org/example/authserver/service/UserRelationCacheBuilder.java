@@ -156,7 +156,7 @@ public class UserRelationCacheBuilder {
         }
 
         long maxAclUpdated = aclRepository.findMaxAclUpdatedByPrincipal(user);
-        RequestCache requestCache = new RequestCache(); // todo uncomment cacheService.prepareHighCardinalityCache(user);
+        RequestCache requestCache = cacheService.prepareHighCardinalityCache(user);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
         log.trace("Building user relations cache for user {} ...", user);
@@ -169,7 +169,7 @@ public class UserRelationCacheBuilder {
         }
 
         int allRelationsSize = relations.size();
-        relations.removeAll(requestCache.getPrincipalHighCardinalityCache().get(user));
+        relations.removeAll(requestCache.getPrincipalHighCardinalityCache().getOrDefault(user, new HashSet<>()));
 
         log.trace("Found {} relations for user {}", relations.size(), user);
         log.trace("All rel count: {}, maxUpdated: {})", allRelationsSize, maxAclUpdated);

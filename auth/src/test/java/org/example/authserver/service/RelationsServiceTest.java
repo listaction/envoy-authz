@@ -49,6 +49,7 @@ public class RelationsServiceTest {
         Mockito.doReturn(Sets.newHashSet("ns1")).when(aclRepository).findAllNamespaces();
         Mockito.doReturn(Sets.newHashSet("obj1")).when(aclRepository).findAllObjects();
         Mockito.doReturn(1L).when(aclRepository).findMaxAclUpdatedByPrincipal("user1");
+        Mockito.doReturn(Tester.createTestCache()).when(cacheService).prepareHighCardinalityCache(any());
 
         builder = new UserRelationCacheBuilder(config, aclRepository, userRelationRepository, zanzibar, cacheService) {
             @Override

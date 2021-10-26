@@ -1,6 +1,8 @@
 package org.example.authserver;
 
+import org.assertj.core.util.Sets;
 import org.example.authserver.config.UserRelationsConfig;
+import org.example.authserver.service.model.RequestCache;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -31,5 +33,12 @@ public class Tester {
         config.setScheduledPeriodTime(1);
         config.setScheduledPeriodTimeUnit(TimeUnit.MINUTES);
         return config;
+    }
+
+    public static RequestCache createTestCache() {
+        RequestCache requestCache = new RequestCache();
+        requestCache.getPrincipalHighCardinalityCache().put("user1", Sets.newHashSet());
+        requestCache.getPrincipalHighCardinalityCache().put("warm up", Sets.newHashSet());
+        return requestCache;
     }
 }
