@@ -2,8 +2,10 @@ package org.example.authserver.service;
 
 import com.google.common.collect.Sets;
 import org.example.authserver.Tester;
+import org.example.authserver.entity.UserRelationEntity;
 import org.example.authserver.repo.AclRepository;
 import org.example.authserver.repo.pgsql.UserRelationRepository;
+import org.example.authserver.service.model.RequestCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,8 +17,7 @@ import org.mockito.internal.stubbing.answers.Returns;
 
 import java.util.HashSet;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 
 public class UserRelationCacheBuilderTest {
@@ -35,8 +36,29 @@ public class UserRelationCacheBuilderTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        Mockito.doReturn(Tester.createTestCache()).when(cacheService).prepareHighCardinalityCache(any());
+
         builder = new UserRelationCacheBuilder(Tester.createTrueUserRelationsConfigConfig(), aclRepository, userRelationRepository, zanzibar, cacheService);
         builder.build("warm up"); // warm up executor
+    }
+
+    @Test
+    public void createUserRelations_whenInvoked_shouldSaveOnlyLowCardinalityRelations() {
+        builder = new UserRelationCacheBuilder(Tester.createTrueUserRelationsConfigConfig(), aclRepository, userRelationRepository, zanzibar, cacheService);
+
+        RequestCache requestCache = new RequestCache();
+        requestCache.getPrincipalHighCardinalityCache().put("user1", Sets.newHashSet("test-application:ID-applicationinstance___8607b629-f1d6-4ab3-99b4-236ceac07371#Owner", "test:groups#TB"));
+
+        Mockito.doReturn(1L).when(aclRepository).findMaxAclUpdatedByPrincipal("user1");
+        Mockito.doReturn(requestCache).when(cacheService).prepareHighCardinalityCache(any());
+        Mockito.doReturn(Sets.newHashSet("test:coarse-access#TB", "test:groups#TB", "test-application:ID-applicationinstance___8607b629-f1d6-4ab3-99b4-236ceac07371#Owner")).when(zanzibar).getRelations(any(), any(), any(), any());
+
+        UserRelationEntity entity = builder.createUserRelations("user1", Sets.newHashSet("ns1", "ns2", "ns3"), Sets.newHashSet("obj1", "obj2", "obj3")).get();
+
+        assertEquals(1, entity.getRelations().size());
+        assertEquals("test:coarse-access#TB", entity.getRelations().iterator().next());
+        assertEquals("user1", entity.getUser());
     }
 
     @Test
