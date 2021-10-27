@@ -96,7 +96,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
 
             Set<String> result = zanzibar.getRelations("doc", "readme", principal, new RequestCache());
-            System.out.println(String.format("user %s => %s ", principal, result));
+            System.out.printf("user %s => %s %n", principal, result);
 
             // todo what do we assert here ?
         }
