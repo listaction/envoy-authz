@@ -1,73 +1,81 @@
 package org.example.authserver.service.zanzibar;
 
-import authserver.acl.Acl;
-import com.google.common.base.Strings;
+import com.google.common.base.Stopwatch;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.CheckResult;
+import org.example.authserver.service.CacheService;
+import org.example.authserver.service.RelationsService;
+import org.example.authserver.service.model.Mapping;
+import org.example.authserver.service.model.RequestCache;
 import org.springframework.stereotype.Service;
-import reactor.util.function.Tuple2;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 public class AclFilterService {
 
-    private final Zanzibar zanzibar;
     private final MappingService mappingService;
     private final TokenService tokenService;
+    private final RelationsService relationsService;
+    private final CacheService cacheService;
 
-    public AclFilterService(Zanzibar zanzibar, MappingService mappingService, TokenService tokenService) {
-        this.zanzibar = zanzibar;
+    public AclFilterService(RelationsService relationsService, MappingService mappingService, TokenService tokenService, CacheService cacheService) {
         this.mappingService = mappingService;
         this.tokenService = tokenService;
-  }
+        this.relationsService = relationsService;
+        this.cacheService = cacheService;
+    }
 
     public CheckResult checkRequest(CheckRequest request) {
         long start = System.currentTimeMillis();
         Claims claims = tokenService.getAllClaimsFromRequest(request);
-        long time2 = System.currentTimeMillis();;
+        long time2 = System.currentTimeMillis();
+
         if (claims == null) return CheckResult.builder().jwtPresent(false).result(false).build();
 
-        List<Map<String, String>> mappings = mappingService.processRequest(request, claims);
-        long time3 = System.currentTimeMillis();;
+        String user = claims.getSubject();
+        List<Mapping> mappings = mappingService.processRequest(request, claims);
+        long time3 = System.currentTimeMillis();
         if (mappings == null || mappings.size() == 0) {
+            log.debug("Unable to find mapping for user {}.", user);
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
-        Map<Tuple2<String, String>, Set<ZanzibarImpl.ExpandedAcl>> cache = new HashMap<>();
-        Map<String, Set<Acl>> principalAclCache = new HashMap<>();
+        RequestCache requestCache = cacheService.prepareHighCardinalityCache(user);
+
         Set<String> allowedTags = new HashSet<>();
-        for (Map<String, String> variables : mappings) {
-            String mappingId = variables.get("aclId");
-            String mappingRoles = variables.getOrDefault("roles", "");
-            List<String> mRoles;
-            if (!Strings.isNullOrEmpty(mappingRoles)) {
-                String[] tmp = mappingRoles.split(",");
-                mRoles = Arrays.asList(tmp);
-            } else {
+        for (Mapping mapping : mappings) {
+            String mappingId = mapping.get("aclId");
+            String namespace = mapping.get("namespace");
+            String object = mapping.get("object");
+
+            Set<String> roles = mapping.parseRoles();
+            if (roles.isEmpty()) {
                 return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
             }
 
+            Set<String> relations = requestCache.getPrincipalHighCardinalityCache().getOrDefault(user, new HashSet<>());
+
             boolean r = false;
-            long time4 = System.currentTimeMillis();;
-            Set<String> relations = zanzibar.getRelations(variables.get("namespace"), variables.get("object"), claims.getSubject(), cache, principalAclCache);
-            long time5 = System.currentTimeMillis();;
-            log.info("zanzibar.getRelations {} ms.", time5-time4);
-            for (String role : mRoles) {
-                String namespace = variables.get("namespace");
-                String object = variables.get("object");
-                log.trace("CHECKING: {}:{}#{}@{}", namespace, object, role, claims.getSubject());
-                String currentTag = String.format("%s:%s#%s", namespace, object, role);
-                boolean tagFound = relations.contains(currentTag);
-                if (tagFound) r = true;
-                allowedTags.addAll(relations);
+            if (HasTag(relations, roles, namespace, object)) {
+                r = true;
+            } else {
+                Stopwatch relationsStopwatch = Stopwatch.createStarted();
+                relations = relationsService.getRelations(namespace, object, user, requestCache);
+                log.info("zanzibar.getRelations {} ms.", relationsStopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+                if (HasTag(relations, roles, namespace, object)) {
+                    r = true;
+                }
             }
+
             if (!r) {
-                log.info("expected roles: {}:{} {}", variables.get("namespace"), variables.get("object"), mRoles);
-                log.info("roles available for {}: {}", claims.getSubject(), relations);
+                log.info("expected roles: {}:{} {}", namespace, object, roles);
+                log.info("roles available for {}: {}", user, relations);
                 long end = System.currentTimeMillis();
                 log.info("checkRequest {} ms.", end - start);
                 return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
@@ -75,11 +83,26 @@ public class AclFilterService {
         }
 
         long end = System.currentTimeMillis();
-        log.info("getAllClaimsFromRequest {} ms.", time2-start);
-        log.info("mappingService.processRequest {} ms.", time3-time2);
+        log.info("getAllClaimsFromRequest {} ms.", time2 - start);
+        log.info("mappingService.processRequest {} ms.", time3 - time2);
         log.info("checkRequest {} ms.", end - start);
         log.info("mappings size: {}.", mappings.size());
         return CheckResult.builder().mappingsPresent(true).result(true).tags(allowedTags).build();
     }
 
+    private static boolean HasTag(Set<String> relations, Set<String> roles, String namespace, String object) {
+        if (relations == null || relations.isEmpty()) {
+            return false;
+        }
+
+        for (String role : roles) {
+            String currentTag = String.format("%s:%s#%s", namespace, object, role);
+            boolean tagFound = relations.contains(currentTag);
+            if (tagFound) {
+                log.trace("Found tag: {}", currentTag);
+                return true;
+            }
+        }
+        return false;
+    }
 }

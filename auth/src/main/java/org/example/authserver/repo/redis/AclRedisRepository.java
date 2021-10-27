@@ -67,6 +67,26 @@ public class AclRedisRepository implements AclRepository {
     }
 
     @Override
+    public Set<String> findAllEndUsers() {
+        throw new RuntimeException("findAllByNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<String> findAllNamespaces() {
+        throw new RuntimeException("findAllByNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<String> findAllObjects() {
+        throw new RuntimeException("findAllByNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public long findMaxAclUpdatedByPrincipal(String principal) {
+        throw new RuntimeException("findMaxAclUpdatedByPrincipal_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
     public Set<Acl> findAllByNamespaceAndObjectAndUser(String namespace, String object, String user) {
         Set<Acl> acls = new HashSet<>();
         Jedis conn = jedis.getResource();

@@ -32,7 +32,6 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
         log.info("request: {} {}",
                 request.getAttributes().getRequest().getHttp().getMethod(),
                 request.getAttributes().getRequest().getHttp().getPath()
-
         );
         CheckResult result = aclFilterService.checkRequest(request);
 

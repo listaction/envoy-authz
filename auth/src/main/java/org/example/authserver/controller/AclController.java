@@ -5,6 +5,7 @@ import org.example.authserver.entity.AclsRequestDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.repo.AclRepository;
 import org.example.authserver.repo.SubscriptionRepository;
+import org.example.authserver.service.UserRelationsCacheService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -17,10 +18,12 @@ public class AclController {
 
     private final AclRepository repository;
     private final SubscriptionRepository subscriptionRepository;
+    private final UserRelationsCacheService userRelationCacheService;
 
-    public AclController(AclRepository repository, SubscriptionRepository subscriptionRepository) {
+    public AclController(AclRepository repository, SubscriptionRepository subscriptionRepository, UserRelationsCacheService userRelationCacheService) {
         this.repository = repository;
         this.subscriptionRepository = subscriptionRepository;
+        this.userRelationCacheService = userRelationCacheService;
     }
 
     @GetMapping("/list")
@@ -33,6 +36,7 @@ public class AclController {
         log.info("Created ACL: {}", acl);
         repository.save(acl);
         subscriptionRepository.publish(acl);
+        userRelationCacheService.update(acl);
     }
 
     @PostMapping("/create_multiple")

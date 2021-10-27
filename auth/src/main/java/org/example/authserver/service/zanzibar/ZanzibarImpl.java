@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.repo.AclRepository;
+import org.example.authserver.service.model.RequestCache;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -30,10 +31,10 @@ public class ZanzibarImpl implements Zanzibar {
 
     @Timed(value = "checkAcl", percentiles = {0.99, 0.95, 0.75})
     @Override
-    public CheckResult check(String namespace, String object, String relation, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache) {
+    public CheckResult check(String namespace, String object, String relation, String principal, RequestCache requestCache) {
         String tag = String.format("%s:%s#%s", namespace, object, relation);
         log.trace("expected tag: {}", tag);
-        Set<String> relations = getRelations(namespace, object, principal, cache, principalAclCache);
+        Set<String> relations = getRelations(namespace, object, principal, requestCache);
 
         log.trace("relations available: {}", relations);
         return CheckResult.builder()
@@ -44,8 +45,8 @@ public class ZanzibarImpl implements Zanzibar {
 
     @Override
     @Timed(value = "getRelation", percentiles = {0.99, 0.95, 0.75})
-    public Set<String> getRelations(String namespace, String object, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache) {
-        Set<ExpandedAcl> relations = expandMultiple(Set.of(Tuples.of(namespace, object)), principal, cache, principalAclCache);
+    public Set<String> getRelations(String namespace, String object, String principal, RequestCache requestCache) {
+        Set<ExpandedAcl> relations = expandMultiple(Set.of(Tuples.of(namespace, object)), principal, requestCache);
         Set<Tuple2<String, String>> lookups = lookup(relations, namespace, object, principal);
 
         Set<String> result = new HashSet<>();
@@ -114,8 +115,8 @@ public class ZanzibarImpl implements Zanzibar {
     }
 
     @Timed(value = "expandMultiple", percentiles = {0.99, 0.95, 0.75})
-    private Set<ExpandedAcl> expandMultiple(Set<Tuple2<String, String>> namespaceObjects, String principal, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache){
-        log.trace("calling expandMultiple [cache: {}] =>  {}", cache.size(), namespaceObjects);
+    private Set<ExpandedAcl> expandMultiple(Set<Tuple2<String, String>> namespaceObjects, String principal, RequestCache requestCache){
+        log.trace("calling expandMultiple [cache: {}] =>  {}", requestCache.getCache().size(), namespaceObjects);
         if (namespaceObjects.size() == 0){
             return new HashSet<>();
         }
@@ -125,13 +126,7 @@ public class ZanzibarImpl implements Zanzibar {
                 .collect(Collectors.toList());
 
         Set<Acl> acls = new HashSet<>();
-        if (principalAclCache.containsKey(principal)) {
-            acls.addAll(principalAclCache.get(principal));
-        } else {
-            Set<Acl> principalAcls = repository.findAllByPrincipal(principal);
-            acls.addAll(principalAcls);
-            principalAclCache.put(principal, principalAcls);
-        }
+        acls.addAll(requestCache.getPrincipalAclCache().getOrDefault(principal, new HashSet<>()));
         acls.addAll(repository.findAllByNsObjectIn(nsObjects));
 
         Set<ExpandedAcl> result = new HashSet<>(acls.size());
@@ -139,7 +134,7 @@ public class ZanzibarImpl implements Zanzibar {
             for (Tuple2<String, String> tuple : namespaceObjects){
                 String ns = String.format("%s:%s", tuple.getT1(), tuple.getT2());
                 if (acl.getNsObject().equalsIgnoreCase(ns)){
-                    Set<ExpandedAcl> tmp = expand(tuple.getT1(), tuple.getT2(), principal, acls, cache, principalAclCache);
+                    Set<ExpandedAcl> tmp = expand(tuple.getT1(), tuple.getT2(), principal, acls, requestCache);
                     result.addAll(tmp);
                 }
             }
@@ -148,10 +143,13 @@ public class ZanzibarImpl implements Zanzibar {
     }
 
     @Timed(value = "expandNoDbQuery", percentiles = {0.99, 0.95, 0.75})
-    private Set<ExpandedAcl> expand(String namespace, String object, String principal, Set<Acl> acls, Map<Tuple2<String, String>, Set<ExpandedAcl>> cache, Map<String, Set<Acl>> principalAclCache) {
+    private Set<ExpandedAcl> expand(String namespace, String object, String principal, Set<Acl> acls, RequestCache requestCache) {
+        Map<Tuple2<String, String>, Set<ExpandedAcl>> cache = requestCache.getCache();
+        Map<String, Set<Acl>> principalAclCache = requestCache.getPrincipalAclCache();
+
         if (cache.containsKey(Tuples.of(namespace, object))){
             Set<ExpandedAcl> setFromCache = cache.get(Tuples.of(namespace, object));
-            for (Acl acl : principalAclCache.getOrDefault(principal, new HashSet<>())){
+            for (Acl acl : principalAclCache.getOrDefault(principal, new HashSet<>())) {
                 ExpandedAcl expandedAcl = ExpandedAcl.builder()
                         .namespace(acl.getNamespace())
                         .object(acl.getObject())
@@ -187,7 +185,7 @@ public class ZanzibarImpl implements Zanzibar {
                         }
                     }
                 }
-                relations.addAll(expandMultiple(aclsToExpand, principal, cache, principalAclCache));
+                relations.addAll(expandMultiple(aclsToExpand, principal, requestCache));
             } else {
                 for (String rel : nested) {
                     ExpandedAcl expandedAcl = ExpandedAcl.builder()
@@ -219,14 +217,9 @@ public class ZanzibarImpl implements Zanzibar {
         repository.delete(acl);
     }
 
-    private String generateTag(String namespace, String object, String relation) {
-        return String.format("%s:%s#%s", namespace, object, relation);
-    }
-
     private String generateTag(String namespaceObject, String relation) {
         return String.format("%s#%s", namespaceObject, relation);
     }
-
 
     @Getter
     @Builder

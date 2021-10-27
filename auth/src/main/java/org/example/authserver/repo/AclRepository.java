@@ -1,11 +1,9 @@
 package org.example.authserver.repo;
 
 import authserver.acl.Acl;
-import org.example.authserver.entity.AclEntity;
 
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public interface AclRepository {
 
@@ -23,4 +21,11 @@ public interface AclRepository {
     Set<Acl> findAllByPrincipal(String principal);
     Set<Acl> findAllByNsObjectIn(List<String> nsObjects);
 
+    Set<String> findAllEndUsers();
+
+    Set<String> findAllNamespaces();
+
+    Set<String> findAllObjects();
+
+    long findMaxAclUpdatedByPrincipal(String principal);
 }

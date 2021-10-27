@@ -66,6 +66,25 @@ public class AclPgRepository implements AclRepository {
                 .collect(Collectors.toSet());
     }
 
+    @Override
+    public Set<String> findAllEndUsers() {
+        return repository.findDistinctEndUsers();
+    }
+
+    @Override
+    public Set<String> findAllNamespaces() {
+        return repository.findDistinctNamespaces();
+    }
+
+    @Override
+    public Set<String> findAllObjects() {
+        return repository.findDistinctObjects();
+    }
+
+    @Override
+    public long findMaxAclUpdatedByPrincipal(String principal) {
+        return repository.findMaxAclUpdatedByPrincipal(principal);
+    }
 
     @Override
     public Set<Acl> findAllByNamespaceAndObjectAndUser(String namespace, String object, String user) {
