@@ -118,6 +118,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("namespace"), eq("object"), eq(principal));
             Mockito.doReturn(acls).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("namespace:object")));
+            Mockito.doReturn(acls).when(aclRepository).findAllByNsObjectIn(eq(List.of("namespace:object")));
             Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
             Mockito.doReturn(Map.of("namespace:object", config)).when(cacheService).getConfigs();
 
@@ -159,7 +160,9 @@ class ZanzibarImplTest {
             aclRelationConfigService.update();
 
             Set<String> result = zanzibar.getRelations("contact", "uuid1", principal, new RequestCache());
-            System.out.println(String.format("user %s => %s ", principal, result));
+            System.out.printf("user %s => %s %n", principal, result);
+
+            // todo what do we assert here ?
 //            assert result.size() == 1;
 //            assert new ArrayList<>(result).get(0).equals(expected);
         }
@@ -309,6 +312,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("group"), eq("object"), anyString());
             Mockito.doReturn(acls).when(aclRepository).findAllByPrincipalAndNsObjectIn(anyString(), eq(List.of("group:object")));
+            Mockito.doReturn(acls).when(aclRepository).findAllByNsObjectIn(eq(List.of("group:object")));
 
             System.out.println("user: " + principal);
             // user1 should be excluded, user2 should pass
@@ -359,6 +363,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(acls).when(aclRepository).findAll();
             Mockito.doReturn(acls).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("group"), eq("object"), anyString());
             Mockito.doReturn(acls).when(aclRepository).findAllByPrincipalAndNsObjectIn(anyString(), eq(List.of("group:object")));
+            Mockito.doReturn(acls).when(aclRepository).findAllByNsObjectIn(eq(List.of("group:object")));
 
             System.out.println("user: " + principal);
             // user1 should pass, user2 should be excluded
