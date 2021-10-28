@@ -162,14 +162,16 @@ public class UserRelationCacheBuilderTest {
 
     @Test
     public void canUseCache_whenCacheBuildingIsInProgress_shouldReturnFalse() throws InterruptedException {
-        Mockito.doReturn(Sets.newHashSet("user1", "user2", "user3")).when(aclRepository).findAllEndUsers();
-        Mockito.doReturn(Sets.newHashSet("ns1", "ns2", "ns3")).when(aclRepository).findAllNamespaces();
-        Mockito.doReturn(Sets.newHashSet("obj1", "obj2", "obj3")).when(aclRepository).findAllObjects();
+        Mockito.doReturn(Sets.newHashSet("user1")).when(aclRepository).findAllEndUsers();
+        Mockito.doReturn(Sets.newHashSet("ns1")).when(aclRepository).findAllNamespaces();
+        Mockito.doReturn(Sets.newHashSet("obj1")).when(aclRepository).findAllObjects();
         Mockito.doAnswer(new AnswersWithDelay(1, new Returns(new HashSet<>()))).when(zanzibar).getRelations(any(), any(), any(), any());
 
         assertTrue(builder.buildAsync("user1"));
-        Thread.sleep(15); // executors.execute() takes time
-
+        assertTrue(Tester.waitFor(() -> builder.isInProgress()));
         assertFalse(builder.canUseCache("user1"));
+
+        assertTrue(Tester.waitFor(() -> !builder.isInProgress()));
+        assertTrue(builder.canUseCache("user1"));
     }
 }
