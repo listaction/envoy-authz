@@ -169,7 +169,7 @@ public class UserRelationCacheBuilder {
         }
 
         int allRelationsSize = relations.size();
-        relations.removeAll(requestCache.getPrincipalHighCardinalityCache().getOrDefault(user, new HashSet<>()));
+        //relations.removeAll(requestCache.getPrincipalHighCardinalityCache().getOrDefault(user, new HashSet<>()));
 
         log.trace("Found {} relations for user {}", relations.size(), user);
         log.trace("All rel count: {}, maxUpdated: {})", allRelationsSize, maxAclUpdated);
