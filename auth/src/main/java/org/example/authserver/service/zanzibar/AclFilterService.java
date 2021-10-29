@@ -70,6 +70,7 @@ public class AclFilterService {
 
                 if (HasTag(relations, roles, namespace, object)) {
                     r = true;
+                    allowedTags.addAll(relations);
                 }
             }
 
