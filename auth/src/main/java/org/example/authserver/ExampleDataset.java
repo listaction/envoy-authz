@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import javax.annotation.Nullable;
 import java.util.Set;
 
 import static org.example.authserver.config.Constants.ACL_REDIS_KEY;
@@ -28,13 +29,14 @@ public class ExampleDataset {
     private final AclRepository aclRepository;
     private final AclRelationConfigService relationConfigService;
 
-    public ExampleDataset(JedisPool jedis, AclRepository aclRepository, AclRelationConfigService relationConfigService) {
+    public ExampleDataset(@Nullable JedisPool jedis, AclRepository aclRepository, AclRelationConfigService relationConfigService) {
         this.jedis = jedis;
         this.aclRepository = aclRepository;
         this.relationConfigService = relationConfigService;
     }
 
     public void init() {
+        if (jedis == null) return;
         log.info("Initialize example dataset");
         Jedis conn = jedis.getResource();
         conn.del(ACL_REDIS_KEY);

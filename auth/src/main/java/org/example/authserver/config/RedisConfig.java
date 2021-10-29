@@ -3,6 +3,7 @@ package org.example.authserver.config;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import redis.clients.jedis.JedisPool;
@@ -13,6 +14,7 @@ import java.time.Duration;
 @Configuration
 public class RedisConfig {
     @Bean
+    @ConditionalOnProperty(value = "redis.enabled", havingValue = "true")
     public JedisPool jedisPool(@Value("${redis.hostname}") String redisHost,
                                @Value("${redis.port}") Integer redisPort,
                                @Value("${redis.ssl}") Boolean sslEnabled,
