@@ -1,6 +1,6 @@
 package org.example.authserver.service;
 
-import authserver.acl.Acl;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.example.authserver.config.AppProperties;
@@ -33,6 +33,7 @@ public class UserRelationsCacheService {
         //this.builder.firstTimeBuildAsync(); // async to release bean creation
     }
 
+    @Timed(value = "cache.getRelations", percentiles = {0.99, 0.95, 0.75})
     public Optional<Set<String>> getRelations(String user) {
         if (StringUtils.isBlank(user)) {
             return Optional.empty();
