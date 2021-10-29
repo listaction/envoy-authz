@@ -126,7 +126,13 @@ public class ZanzibarImpl implements Zanzibar {
                 .collect(Collectors.toList());
 
         Set<Acl> acls = new HashSet<>();
-        acls.addAll(requestCache.getPrincipalAclCache().getOrDefault(principal, new HashSet<>()));
+        if (requestCache.getPrincipalAclCache().containsKey(principal)) {
+            acls.addAll(requestCache.getPrincipalAclCache().get(principal));
+        } else {
+            Set<Acl> principalAcls = repository.findAllByPrincipal(principal);
+            acls.addAll(principalAcls);
+            requestCache.getPrincipalAclCache().put(principal, principalAcls);
+        }
         acls.addAll(repository.findAllByNsObjectIn(nsObjects));
 
         Set<ExpandedAcl> result = new HashSet<>(acls.size());

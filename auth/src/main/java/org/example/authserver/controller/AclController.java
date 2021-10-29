@@ -36,7 +36,7 @@ public class AclController {
         log.info("Created ACL: {}", acl);
         repository.save(acl);
         subscriptionRepository.publish(acl);
-        userRelationCacheService.update(acl);
+        userRelationCacheService.updateAsync(acl.getUser());
     }
 
     @PostMapping("/create_multiple")

@@ -57,10 +57,6 @@ public class UserRelationsCacheService {
         return Optional.of(new HashSet<>(entity.getRelations()));
     }
 
-    public void update(Acl acl) {
-        update(acl.getUser());
-    }
-
     public void update(String user) {
         this.builder.build(user);
     }
