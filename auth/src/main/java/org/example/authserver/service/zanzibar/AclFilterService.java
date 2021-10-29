@@ -45,7 +45,7 @@ public class AclFilterService {
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
-        RequestCache requestCache = cacheService.prepareHighCardinalityCache(user);
+        RequestCache requestCache = new RequestCache();
 
         Set<String> allowedTags = new HashSet<>();
         for (Mapping mapping : mappings) {
