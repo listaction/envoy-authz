@@ -3,12 +3,15 @@ package org.example.authserver.repo;
 import authserver.acl.Acl;
 import authserver.acl.AclRelationConfig;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
+
+import javax.annotation.Nullable;
 
 @Slf4j
 @Repository
@@ -19,12 +22,13 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
     private final JedisPool jedis;
 
-    public SubscriptionRepositoryImpl(JedisPool jedis) {
+    public SubscriptionRepositoryImpl(@Nullable JedisPool jedis) {
         this.jedis = jedis;
     }
 
     @Override
     public void publish(Acl acl) {
+        if (jedis == null) return;
         Jedis conn = jedis.getResource();
         conn.publish("pubsub_acl", acl.getId().toString());
         conn.close();
@@ -32,6 +36,7 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
     @Override
     public void publish(AclRelationConfig config) {
+        if (jedis == null) return;
         Jedis conn = jedis.getResource();
         conn.publish("pubsub_config", config.getId().toString());
         conn.close();
@@ -39,6 +44,7 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
     @Override
     public Flux<String> subscribeAcl() {
+        if (jedis == null) Flux.empty();
         return Flux.create(sink -> {
             Jedis conn = jedis.getResource();
             conn.subscribe(new AclListener(sink), PUBSUB_ACL);
@@ -47,6 +53,7 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
     @Override
     public Flux<String> subscribeConfig() {
+        if (jedis == null) Flux.empty();
         return Flux.create(sink -> {
             Jedis conn = jedis.getResource();
             conn.subscribe(new AclListener(sink), PUBSUB_CONFIG);

@@ -11,6 +11,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,11 +27,12 @@ public class AclRepository {
 
     private final JedisPool jedis;
 
-    public AclRepository(JedisPool jedis) {
+    public AclRepository(@Nullable JedisPool jedis) {
         this.jedis = jedis;
     }
 
     public Set<Acl> findAll(){
+        if (jedis == null) return null;
         Jedis conn = jedis.getResource();
         List<String> jsons = conn.lrange(ACL_REDIS_KEY, 0, -1);
         conn.close();
@@ -50,6 +52,7 @@ public class AclRepository {
     }
 
     public void save(Acl acl) {
+        if (jedis == null) return;
         String json = Utils.aclToJson(acl);
         Jedis conn = jedis.getResource();
         conn.lpush(ACL_REDIS_KEY, json);
@@ -57,6 +60,7 @@ public class AclRepository {
     }
 
     public void publish() {
+        if (jedis == null) return;
         Jedis conn = jedis.getResource();
         conn.publish(ACL_REDIS_KEY, UUID.randomUUID().toString());
         conn.close();

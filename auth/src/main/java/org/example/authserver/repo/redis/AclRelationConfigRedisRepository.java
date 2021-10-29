@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -28,7 +29,7 @@ public class AclRelationConfigRedisRepository implements AclRelationConfigReposi
     private final JedisPool jedis;
     private final SubscriptionRepository subscriptionRepository;
 
-    public AclRelationConfigRedisRepository(JedisPool jedis, SubscriptionRepository subscriptionRepository) {
+    public AclRelationConfigRedisRepository(@Nullable JedisPool jedis, SubscriptionRepository subscriptionRepository) {
         this.jedis = jedis;
         this.subscriptionRepository = subscriptionRepository;
     }
