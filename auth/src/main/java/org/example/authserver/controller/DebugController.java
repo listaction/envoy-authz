@@ -33,9 +33,11 @@ public class DebugController {
 
     @GetMapping("/test")
     public boolean test(@RequestParam String namespace, @RequestParam String object, @RequestParam String relation, @RequestParam String principal, HttpServletResponse response){
-        log.info("get relations: {}:{} @ {}", namespace, object, principal);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         CheckResult result = zanzibar.check(namespace, object, relation, principal, new RequestCache());
         response.addHeader("X-ALLOWED-TAGS", String.join(",", result.getTags()));
+        log.info("get relations: {}:{} @ {}, {}ms", namespace, object, principal, stopwatch.elapsed(TimeUnit.MILLISECONDS));
         return result.isResult();
     }
 }

@@ -13,12 +13,16 @@ class AuthTest(HttpUser):
 
     @task
     def testTask(self):
-        test_resp = self.test("relation", "object", "relation", "principal")
-        # if test_resp.status_code == 200:
-        #     print("[OK] Data: " + test_resp.text)
-        # else:
-        #     print("FAILED status: " + str(test_resp.status_code) + ", text: " + test_resp.text)
-        #     sys.exit(1)
+        # test_resp = self.test("test", "coarse-access", "TB", "0003d627-3a09-4891-84ff-8c624dcefa76")
+        # test_resp = self.test("test", "groups", "TB", "0003d627-3a09-4891-84ff-8c624dcefa76")
+        #
+        test_resp = self.test("test", "coarse-access", "TB", "89a13a86-d5c2-4701-9ac7-2d8402e1f1d3")
+        # test_resp = self.test("test", "groups", "TB", "89a13a86-d5c2-4701-9ac7-2d8402e1f1d3")
+        if test_resp.status_code == 200:
+            print("[OK] Data: " + test_resp.text)
+        else:
+            print("FAILED status: " + str(test_resp.status_code) + ", text: " + test_resp.text)
+            sys.exit(1)
 
     def test(self, namespace, object, relation, principal):
         headers = {
