@@ -5,7 +5,7 @@ import uuid
 from locust import HttpUser, task
 
 # Run as:
-# locust --headless --users 3 --spawn-rate 1 --host http://localhost:8183  -f .\debug_contoller_test.py
+# locust --headless --users 3 --spawn-rate 1 --host http://localhost:8183  -f .\add_acl.py
 class AuthTest(HttpUser):
     service_url = ""
     auth = ""
