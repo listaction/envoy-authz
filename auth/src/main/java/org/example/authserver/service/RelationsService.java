@@ -1,5 +1,6 @@
 package org.example.authserver.service;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.service.model.RequestCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
@@ -20,6 +21,7 @@ public class RelationsService {
         this.userRelationsCacheService = userRelationsCacheService;
     }
 
+    @Timed(value = "relation.get", percentiles = {0.99, 0.95, 0.75})
     public Set<String> getRelations(String namespace, String object, String principal, RequestCache requestCache) {
         Optional<Set<String>> cachedRelations = userRelationsCacheService.getRelations(principal);
         if (cachedRelations.isPresent()) {

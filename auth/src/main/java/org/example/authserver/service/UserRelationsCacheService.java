@@ -30,10 +30,10 @@ public class UserRelationsCacheService {
         this.userRelationRepository = userRelationRepository;
         this.aclRepository = aclRepository;
         this.builder = builder;
-        //this.builder.firstTimeBuildAsync(); // async to release bean creation
+        this.builder.firstTimeBuildAsync(); // async to release bean creation
     }
 
-    @Timed(value = "cache.getRelations", percentiles = {0.99, 0.95, 0.75})
+    @Timed(value = "relation.cache", percentiles = {0.99, 0.95, 0.75})
     public Optional<Set<String>> getRelations(String user) {
         if (StringUtils.isBlank(user)) {
             return Optional.empty();

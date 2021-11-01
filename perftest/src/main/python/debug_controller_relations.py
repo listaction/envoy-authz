@@ -2,7 +2,7 @@
 from locust import HttpUser, task
 
 # Run as:
-# locust --headless --users 3 --spawn-rate 1 --host http://localhost:8183/debug  -f .\debug_contoller_relations.py
+# locust --headless --users 3 --spawn-rate 1 --host http://localhost:8183  -f .\debug_controller_relations.py
 class AuthTest(HttpUser):
     service_url = ""
     auth = ""
@@ -12,7 +12,7 @@ class AuthTest(HttpUser):
 
     @task
     def testTask(self):
-        self.test("test", "coarse-access", "b9403f3b-44ab-47d0-baba-20f813a3e204")
+        self.test("test", "coarse-access", "aea87095-7278-4655-8184-0c746a060614")
 
     def test(self, namespace, object, principal):
         headers = {
@@ -22,4 +22,4 @@ class AuthTest(HttpUser):
         }
 
         params = {"namespace": namespace, "object": object, "principal": principal}
-        return self.client.get("/relations", headers=headers, params=params)
+        return self.client.get("/debug/relations", headers=headers, params=params)

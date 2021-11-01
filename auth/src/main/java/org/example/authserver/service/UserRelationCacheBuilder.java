@@ -140,7 +140,7 @@ public class UserRelationCacheBuilder {
         buildUserRelations(user, namespaces, objects);
     }
 
-    @Timed(value = "cache.buildUserRelations", percentiles = {0.99, 0.95, 0.75})
+    @Timed(value = "relation.cache.build", percentiles = {0.99, 0.95, 0.75})
     public void buildUserRelations(String user, Set<String> namespaces, Set<String> objects) {
         Optional<UserRelationEntity> entityOptional = createUserRelations(user, namespaces, objects);
         if (entityOptional.isEmpty()) {
