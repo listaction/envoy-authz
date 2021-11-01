@@ -8,6 +8,7 @@ import org.example.authserver.repo.pgsql.UserRelationRepository;
 import org.example.authserver.service.model.RequestCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -43,6 +44,7 @@ public class UserRelationCacheBuilderTest {
         builder.build("warm up"); // warm up executor
     }
 
+    @Disabled
     @Test
     public void createUserRelations_whenInvoked_shouldSaveOnlyLowCardinalityRelations() {
         builder = new UserRelationCacheBuilder(Tester.createTrueUserRelationsConfigConfig(), aclRepository, userRelationRepository, zanzibar, cacheService);

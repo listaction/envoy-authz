@@ -1,6 +1,7 @@
 package org.example.authserver.controller;
 
 import authserver.acl.Acl;
+import com.google.common.base.Stopwatch;
 import org.example.authserver.entity.AclsRequestDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.repo.AclRepository;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RestController
@@ -33,10 +35,12 @@ public class AclController {
 
     @PostMapping("/create")
     public void createAcl(@Valid @RequestBody Acl acl){
-        log.info("Created ACL: {}", acl);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        log.info("Creating ACL: {}", acl);
         repository.save(acl);
         subscriptionRepository.publish(acl);
         userRelationCacheService.updateAsync(acl.getUser());
+        log.info("Created ACL: {}, time {}ms", acl, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     @PostMapping("/create_multiple")
