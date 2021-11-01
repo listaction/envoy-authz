@@ -29,6 +29,11 @@ public class RelationsService {
             return cachedRelations.get();
         }
 
+        return getZanzibarRelations(namespace, object, principal, requestCache);
+    }
+
+    @Timed(value = "relation.zanzibar", percentiles = {0.99, 0.95, 0.75})
+    public Set<String> getZanzibarRelations(String namespace, String object, String principal, RequestCache requestCache) {
         return zanzibar.getRelations(namespace, object, principal, requestCache);
     }
 }
