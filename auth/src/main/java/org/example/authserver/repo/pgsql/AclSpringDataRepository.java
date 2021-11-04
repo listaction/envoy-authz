@@ -15,6 +15,7 @@ public interface AclSpringDataRepository extends CrudRepository<AclEntity, Strin
     Set<AclEntity> findAllByNsobjectAndUser(String nsobject, String user);
     Set<AclEntity> findAllByNsobjectInAndUser(List<String> nsobject, String user);
     Set<AclEntity> findAllByUser(String principal);
+    Set<AclEntity> findAllByUsersetNamespaceAndUsersetObjectAndUsersetRelationAndUser(String usersetNamespace, String usersetObject, String usersetRelation, String user);
 
     @Query("SELECT DISTINCT a.user FROM acls a WHERE a.user <> '*'")
     Set<String> findDistinctEndUsers();

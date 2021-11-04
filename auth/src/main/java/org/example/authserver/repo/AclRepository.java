@@ -1,6 +1,7 @@
 package org.example.authserver.repo;
 
 import authserver.acl.Acl;
+import reactor.util.function.Tuple2;
 
 import java.util.List;
 import java.util.Set;
@@ -26,6 +27,9 @@ public interface AclRepository {
     Set<String> findAllNamespaces();
 
     Set<String> findAllObjects();
+
+    Set<Acl> findAllForCache(String usersetNamespace, String usersetObject, String usersetRelation);
+
 
     long findMaxAclUpdatedByPrincipal(String principal);
 }

@@ -47,20 +47,20 @@ public class UserRelationCacheBuilderTest {
     @Disabled
     @Test
     public void createUserRelations_whenInvoked_shouldSaveOnlyLowCardinalityRelations() {
-        builder = new UserRelationCacheBuilder(Tester.createTrueUserRelationsConfigConfig(), aclRepository, userRelationRepository, zanzibar, cacheService);
-
-        RequestCache requestCache = new RequestCache();
-        requestCache.getPrincipalHighCardinalityCache().put("user1", Sets.newHashSet("test-application:ID-applicationinstance___8607b629-f1d6-4ab3-99b4-236ceac07371#Owner", "test:groups#TB"));
-
-        Mockito.doReturn(1L).when(aclRepository).findMaxAclUpdatedByPrincipal("user1");
-        Mockito.doReturn(requestCache).when(cacheService).prepareHighCardinalityCache(any());
-        Mockito.doReturn(Sets.newHashSet("test:coarse-access#TB", "test:groups#TB", "test-application:ID-applicationinstance___8607b629-f1d6-4ab3-99b4-236ceac07371#Owner")).when(zanzibar).getRelations(any(), any(), any(), any());
-
-        UserRelationEntity entity = builder.createUserRelations("user1", Sets.newHashSet("ns1", "ns2", "ns3"), Sets.newHashSet("obj1", "obj2", "obj3")).get();
-
-        assertEquals(1, entity.getRelations().size());
-        assertEquals("test:coarse-access#TB", entity.getRelations().iterator().next());
-        assertEquals("user1", entity.getUser());
+//        builder = new UserRelationCacheBuilder(Tester.createTrueUserRelationsConfigConfig(), aclRepository, userRelationRepository, zanzibar, cacheService);
+//
+//        RequestCache requestCache = new RequestCache();
+//        requestCache.getPrincipalHighCardinalityCache().put("user1", Sets.newHashSet("test-application:ID-applicationinstance___8607b629-f1d6-4ab3-99b4-236ceac07371#Owner", "test:groups#TB"));
+//
+//        Mockito.doReturn(1L).when(aclRepository).findMaxAclUpdatedByPrincipal("user1");
+//        Mockito.doReturn(requestCache).when(cacheService).prepareHighCardinalityCache(any());
+//        Mockito.doReturn(Sets.newHashSet("test:coarse-access#TB", "test:groups#TB", "test-application:ID-applicationinstance___8607b629-f1d6-4ab3-99b4-236ceac07371#Owner")).when(zanzibar).getRelations(any(), any(), any(), any());
+//
+//        UserRelationEntity entity = builder.createUserRelations("user1", Sets.newHashSet("ns1", "ns2", "ns3"), Sets.newHashSet("obj1", "obj2", "obj3")).get();
+//
+//        assertEquals(1, entity.getRelations().size());
+//        assertEquals("test:coarse-access#TB", entity.getRelations().iterator().next());
+//        assertEquals("user1", entity.getUser());
     }
 
     @Test
@@ -70,11 +70,11 @@ public class UserRelationCacheBuilderTest {
         Mockito.doReturn(Sets.newHashSet("obj1", "obj2", "obj3")).when(aclRepository).findAllObjects();
         Mockito.doAnswer(new AnswersWithDelay(1, new Returns(new HashSet<>()))).when(zanzibar).getRelations(any(), any(), any(), any());
 
-        assertTrue(builder.fullRebuildAsync());
+        assertTrue(builder.updateScheduledAsync());
         Thread.sleep(15); // executors.execute() takes time
 
-        assertFalse(builder.fullRebuildAsync());
-        assertFalse(builder.fullRebuildAsync());
+        assertFalse(builder.updateScheduledAsync());
+        assertFalse(builder.updateScheduledAsync());
     }
 
     @Test
@@ -95,32 +95,11 @@ public class UserRelationCacheBuilderTest {
         assertTrue(builder.hasScheduled("user1"));
     }
 
-    @Test
-    public void firstTimeBuild_whenInvokedFistTime_shouldBuildCache() {
-        Mockito.doReturn(Sets.newHashSet("user1")).when(aclRepository).findAllEndUsers();
-        Mockito.doReturn(Sets.newHashSet("ns1")).when(aclRepository).findAllNamespaces();
-        Mockito.doReturn(Sets.newHashSet("obj1")).when(aclRepository).findAllObjects();
-
-        Mockito.doReturn(0L).when(userRelationRepository).count();
-
-        assertTrue(builder.firstTimeBuild());
-    }
-
-    @Test
-    public void firstTimeBuild_whenInvokedForFilledCache_shouldSkipExecution() {
-        Mockito.doReturn(Sets.newHashSet("user1")).when(aclRepository).findAllEndUsers();
-        Mockito.doReturn(Sets.newHashSet("ns1")).when(aclRepository).findAllNamespaces();
-        Mockito.doReturn(Sets.newHashSet("obj1")).when(aclRepository).findAllObjects();
-
-        Mockito.doReturn(1L).when(userRelationRepository).count();
-
-        assertFalse(builder.firstTimeBuild());
-    }
 
     @Test
     public void buildAll_whenCacheEnabledIsFalse_shouldReturnFalse() {
         UserRelationCacheBuilder b = new UserRelationCacheBuilder(Tester.createUserRelationsConfig(false), aclRepository, userRelationRepository, zanzibar, cacheService);
-        assertFalse(b.buildAll());
+        assertFalse(b.buildScheduled());
     }
 
     @Test
@@ -128,7 +107,7 @@ public class UserRelationCacheBuilderTest {
         Mockito.doReturn(Sets.newHashSet("ns1")).when(aclRepository).findAllNamespaces();
         Mockito.doReturn(Sets.newHashSet("obj1")).when(aclRepository).findAllObjects();
 
-        assertFalse(builder.buildAll());
+        assertFalse(builder.buildScheduled());
     }
 
     @Test
@@ -136,7 +115,7 @@ public class UserRelationCacheBuilderTest {
         Mockito.doReturn(Sets.newHashSet("user1")).when(aclRepository).findAllEndUsers();
         Mockito.doReturn(Sets.newHashSet("obj1")).when(aclRepository).findAllObjects();
 
-        assertFalse(builder.buildAll());
+        assertFalse(builder.buildScheduled());
     }
 
     @Test
@@ -144,7 +123,7 @@ public class UserRelationCacheBuilderTest {
         Mockito.doReturn(Sets.newHashSet("user1")).when(aclRepository).findAllEndUsers();
         Mockito.doReturn(Sets.newHashSet("ns1")).when(aclRepository).findAllNamespaces();
 
-        assertFalse(builder.buildAll());
+        assertFalse(builder.buildScheduled());
     }
 
     @Test
@@ -153,7 +132,7 @@ public class UserRelationCacheBuilderTest {
         Mockito.doReturn(Sets.newHashSet("ns1")).when(aclRepository).findAllNamespaces();
         Mockito.doReturn(Sets.newHashSet("obj1")).when(aclRepository).findAllObjects();
 
-        assertTrue(builder.buildAll());
+        assertTrue(builder.buildScheduled());
     }
 
     @Test

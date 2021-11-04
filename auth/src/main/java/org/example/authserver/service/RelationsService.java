@@ -16,12 +16,12 @@ public class RelationsService {
 
     private final Zanzibar zanzibar;
     private final UserRelationsCacheService userRelationsCacheService;
-    private final MeterRegistry meterRegistry;
+    private final MeterService meterService;
 
-    public RelationsService(Zanzibar zanzibar, UserRelationsCacheService userRelationsCacheService, MeterRegistry meterRegistry) {
+    public RelationsService(Zanzibar zanzibar, UserRelationsCacheService userRelationsCacheService, MeterService meterService) {
         this.zanzibar = zanzibar;
         this.userRelationsCacheService = userRelationsCacheService;
-        this.meterRegistry = meterRegistry;
+        this.meterService = meterService;
     }
 
     @Timed(value = "relation.get", percentiles = {0.99, 0.95, 0.75})
@@ -29,9 +29,11 @@ public class RelationsService {
         Optional<Set<String>> cachedRelations = userRelationsCacheService.getRelations(principal);
         if (cachedRelations.isPresent()) {
             log.trace("Return cached relations for user {}", principal);
+            meterService.countHitsCache();
             return cachedRelations.get();
         }
 
-        return meterRegistry.timer("relation.zanzibar").record(() -> zanzibar.getRelations(namespace, object, principal, requestCache));
+        meterService.countHitsZanzibar();
+        return zanzibar.getRelations(namespace, object, principal, requestCache);
     }
 }

@@ -4,6 +4,7 @@ import com.google.common.base.Stopwatch;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.RelationsService;
+import org.example.authserver.service.UserRelationsCacheService;
 import org.example.authserver.service.model.RequestCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.web.bind.annotation.*;
@@ -17,10 +18,12 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/debug")
 public class DebugController {
 
+    private final UserRelationsCacheService userRelationCacheService;
     private final RelationsService relationsService;
     private final Zanzibar zanzibar;
 
-    public DebugController(RelationsService relationsService, Zanzibar zanzibar) {
+    public DebugController(UserRelationsCacheService userRelationCacheService, RelationsService relationsService, Zanzibar zanzibar) {
+        this.userRelationCacheService = userRelationCacheService;
         this.relationsService = relationsService;
         this.zanzibar = zanzibar;
     }
@@ -31,6 +34,7 @@ public class DebugController {
         Stopwatch stopwatch = Stopwatch.createStarted();
         Set<String> relations = relationsService.getRelations(namespace, object, principal, new RequestCache());
         log.info("get relations finished in {}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        userRelationCacheService.scheduleUpdate(principal);
         return relations;
     }
 

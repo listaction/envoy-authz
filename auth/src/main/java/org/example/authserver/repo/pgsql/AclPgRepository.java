@@ -82,6 +82,14 @@ public class AclPgRepository implements AclRepository {
     }
 
     @Override
+    public Set<Acl> findAllForCache(String usersetNamespace, String usersetObject, String usersetRelation) {
+        Set<AclEntity> usersetAcls = repository.findAllByUsersetNamespaceAndUsersetObjectAndUsersetRelationAndUser(usersetNamespace, usersetObject, usersetRelation, "*");
+        return usersetAcls.stream()
+                .map(AclEntity::toAcl)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
     public long findMaxAclUpdatedByPrincipal(String principal) {
         return repository.findMaxAclUpdatedByPrincipal(principal);
     }

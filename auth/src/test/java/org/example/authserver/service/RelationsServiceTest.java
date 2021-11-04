@@ -34,7 +34,7 @@ public class RelationsServiceTest {
     @Mock
     private CacheService cacheService;
     @Mock
-    private MeterRegistry meterRegistry;
+    private MeterService meterService;
 
     private AclRepository aclRepository;
     private UserRelationCacheBuilder builder;
@@ -55,16 +55,10 @@ public class RelationsServiceTest {
         Mockito.doReturn(1L).when(aclRepository).findMaxAclUpdatedByPrincipal("user1");
         Mockito.doReturn(Tester.createTestCache()).when(cacheService).prepareHighCardinalityCache(any());
 
-        builder = new UserRelationCacheBuilder(config, aclRepository, userRelationRepository, zanzibar, cacheService) {
-            @Override
-            public boolean firstTimeBuild() {
-                return false;
-            }
-        };
         builder.build("warm up"); // warm up executor
 
         UserRelationsCacheService cacheService = new UserRelationsCacheService(builder, userRelationRepository, aclRepository);
-        service = new RelationsService(zanzibar, cacheService, meterRegistry);
+        service = new RelationsService(zanzibar, cacheService, meterService);
 
         Mockito.reset(zanzibar);
     }

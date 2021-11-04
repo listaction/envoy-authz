@@ -1,6 +1,5 @@
 package org.example.authserver.service;
 
-import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.example.authserver.config.AppProperties;
@@ -11,7 +10,9 @@ import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -30,7 +31,6 @@ public class UserRelationsCacheService {
         this.userRelationRepository = userRelationRepository;
         this.aclRepository = aclRepository;
         this.builder = builder;
-        //this.builder.firstTimeBuildAsync(); // async to release bean creation
     }
 
     public Optional<Set<String>> getRelations(String user) {
@@ -57,15 +57,16 @@ public class UserRelationsCacheService {
         return Optional.of(new HashSet<>(entity.getRelations()));
     }
 
-    public void update(String user) {
-        this.builder.build(user);
-    }
-
-    public boolean updateAllAsync() {
-        return this.builder.fullRebuildAsync();
+    public boolean updateScheduledAsync() {
+        return this.builder.updateScheduledAsync();
     }
 
     public boolean updateAsync(String user) {
         return this.builder.buildAsync(user);
+    }
+
+    public boolean scheduleUpdate(String user){
+        if (user == null) return false;
+        return this.builder.scheduleUpdate(user);
     }
 }
