@@ -193,6 +193,7 @@ public class UserRelationCacheBuilder {
     }
 
     public boolean buildAsync(String user) {
+        if (user == null) return false;
         if (!inProgressUsers.contains(user)) {
             scheduler.execute(() -> build(user));
             log.info("Scheduled updated for user {}.", user);
