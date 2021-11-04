@@ -214,6 +214,7 @@ public class UserRelationCacheBuilder {
     }
 
     public boolean scheduleUpdate(String user) {
+        if (user == null) return false;
         if (!hasScheduled(user)){
             scheduledUsers.add(user);
         }
