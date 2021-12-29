@@ -11,12 +11,11 @@ import java.util.*;
 
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-public class RequestCache {
+public class LocalCache {
 
-    private Map<Tuple2<String, String>, Set<ZanzibarImpl.ExpandedAcl>> cache = new HashMap<>();
-    private Map<String, Set<Acl>> principalAclCache = new HashMap<>();
-    private Map<String, Set<String>> principalHighCardinalityCache = new HashMap<>();
+    private final Map<Tuple2<String, String>, Set<ZanzibarImpl.ExpandedAcl>> cache = new HashMap<>();
+    private final Map<String, Set<Acl>> principalAclCache = new HashMap<>();
+    private final Map<String, Set<String>> principalHighCardinalityCache = new HashMap<>();
 
     public Acl getMaxAcl(String user) {
         Set<Acl> acls = principalAclCache.get(user);

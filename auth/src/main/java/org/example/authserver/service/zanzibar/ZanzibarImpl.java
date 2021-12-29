@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.repo.AclRepository;
-import org.example.authserver.service.model.RequestCache;
+import org.example.authserver.service.model.LocalCache;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -31,7 +31,7 @@ public class ZanzibarImpl implements Zanzibar {
 
     @Timed(value = "checkAcl", percentiles = {0.99, 0.95, 0.75})
     @Override
-    public CheckResult check(String namespace, String object, String relation, String principal, RequestCache requestCache) {
+    public CheckResult check(String namespace, String object, String relation, String principal, LocalCache requestCache) {
         String tag = String.format("%s:%s#%s", namespace, object, relation);
         log.trace("expected tag: {}", tag);
         Set<String> relations = getRelations(namespace, object, principal, requestCache);
@@ -45,7 +45,7 @@ public class ZanzibarImpl implements Zanzibar {
 
     @Override
     @Timed(value = "getRelation", percentiles = {0.99, 0.95, 0.75})
-    public Set<String> getRelations(String namespace, String object, String principal, RequestCache requestCache) {
+    public Set<String> getRelations(String namespace, String object, String principal, LocalCache requestCache) {
         Set<ExpandedAcl> relations = expandMultiple(Set.of(Tuples.of(namespace, object)), principal, requestCache);
         Set<Tuple2<String, String>> lookups = lookup(relations, namespace, object, principal);
 
@@ -115,7 +115,7 @@ public class ZanzibarImpl implements Zanzibar {
     }
 
     @Timed(value = "expandMultiple", percentiles = {0.99, 0.95, 0.75})
-    private Set<ExpandedAcl> expandMultiple(Set<Tuple2<String, String>> namespaceObjects, String principal, RequestCache requestCache){
+    private Set<ExpandedAcl> expandMultiple(Set<Tuple2<String, String>> namespaceObjects, String principal, LocalCache requestCache){
         log.trace("calling expandMultiple [cache: {}] =>  {}", requestCache.getCache().size(), namespaceObjects);
         if (namespaceObjects.size() == 0){
             return new HashSet<>();
@@ -149,7 +149,7 @@ public class ZanzibarImpl implements Zanzibar {
     }
 
     @Timed(value = "expandNoDbQuery", percentiles = {0.99, 0.95, 0.75})
-    private Set<ExpandedAcl> expand(String namespace, String object, String principal, Set<Acl> acls, RequestCache requestCache) {
+    private Set<ExpandedAcl> expand(String namespace, String object, String principal, Set<Acl> acls, LocalCache requestCache) {
         Map<Tuple2<String, String>, Set<ExpandedAcl>> cache = requestCache.getCache();
         Map<String, Set<Acl>> principalAclCache = requestCache.getPrincipalAclCache();
 

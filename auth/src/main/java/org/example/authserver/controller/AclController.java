@@ -6,10 +6,11 @@ import org.example.authserver.entity.AclsRequestDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.repo.AclRepository;
 import org.example.authserver.repo.SubscriptionRepository;
-import org.example.authserver.service.UserRelationsCacheService;
+import org.example.authserver.service.CacheService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -20,12 +21,12 @@ public class AclController {
 
     private final AclRepository repository;
     private final SubscriptionRepository subscriptionRepository;
-    private final UserRelationsCacheService userRelationCacheService;
+    private final CacheService cacheService;
 
-    public AclController(AclRepository repository, SubscriptionRepository subscriptionRepository, UserRelationsCacheService userRelationCacheService) {
+    public AclController(AclRepository repository, SubscriptionRepository subscriptionRepository, CacheService cacheService) {
         this.repository = repository;
         this.subscriptionRepository = subscriptionRepository;
-        this.userRelationCacheService = userRelationCacheService;
+        this.cacheService = cacheService;
     }
 
     @GetMapping("/list")
@@ -35,21 +36,29 @@ public class AclController {
 
     @PostMapping("/create")
     public void createAcl(@Valid @RequestBody Acl acl){
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        log.info("Creating ACL: {}", acl);
-        repository.save(acl);
-        subscriptionRepository.publish(acl);
-        userRelationCacheService.updateAsync(acl.getUser());
-        log.info("Created ACL: {}, time {}ms", acl, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        cacheService.purgeCacheAsync(acl.getUser(), acl.getCreated());
+        createAcl_(acl);
     }
 
     @PostMapping("/create_multiple")
     public void createMultiAcl(@Valid @RequestBody AclsRequestDTO multiAcl){
+        Set<String> usersProcessed = new HashSet<>();
         for (Acl acl : multiAcl.getAcls()){
-            createAcl(acl);
+            if (!usersProcessed.contains(acl.getUser())){
+                cacheService.purgeCacheAsync(acl.getUser(), acl.getCreated());
+                usersProcessed.add(acl.getUser());
+            }
+            createAcl_(acl);
         }
     }
 
+    private void createAcl_(Acl acl){
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        log.info("Creating ACL: {}", acl);
+        repository.save(acl);
+        subscriptionRepository.publish(acl);
+        log.info("Created ACL: {}, time {}ms", acl, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
 
 //    @DeleteMapping("/delete/{id}")
 //    public void deleteAcl(@PathVariable String id){

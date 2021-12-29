@@ -4,8 +4,7 @@ import com.google.common.base.Stopwatch;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.RelationsService;
-import org.example.authserver.service.UserRelationsCacheService;
-import org.example.authserver.service.model.RequestCache;
+import org.example.authserver.service.model.LocalCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,12 +17,10 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/debug")
 public class DebugController {
 
-    private final UserRelationsCacheService userRelationCacheService;
     private final RelationsService relationsService;
     private final Zanzibar zanzibar;
 
-    public DebugController(UserRelationsCacheService userRelationCacheService, RelationsService relationsService, Zanzibar zanzibar) {
-        this.userRelationCacheService = userRelationCacheService;
+    public DebugController(RelationsService relationsService, Zanzibar zanzibar) {
         this.relationsService = relationsService;
         this.zanzibar = zanzibar;
     }
@@ -32,9 +29,8 @@ public class DebugController {
     public Set<String> getRelations(@RequestParam String namespace, @RequestParam String object, @RequestParam String principal){
         log.info("get relations: {}:{} @ {}", namespace, object, principal);
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Set<String> relations = relationsService.getRelations(namespace, object, principal, new RequestCache());
+        Set<String> relations = relationsService.getRelations(namespace, object, principal, new LocalCache());
         log.info("get relations finished in {}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        userRelationCacheService.scheduleUpdate(principal);
         return relations;
     }
 
@@ -42,7 +38,7 @@ public class DebugController {
     public boolean test(@RequestParam String namespace, @RequestParam String object, @RequestParam String relation, @RequestParam String principal, HttpServletResponse response){
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        CheckResult result = zanzibar.check(namespace, object, relation, principal, new RequestCache());
+        CheckResult result = zanzibar.check(namespace, object, relation, principal, new LocalCache());
         response.addHeader("X-ALLOWED-TAGS", String.join(",", result.getTags()));
         log.info("get relations: {}:{} @ {}, {}ms", namespace, object, principal, stopwatch.elapsed(TimeUnit.MILLISECONDS));
         return result.isResult();

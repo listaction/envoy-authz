@@ -31,5 +31,5 @@ public interface AclRepository {
     Set<Acl> findAllForCache(String usersetNamespace, String usersetObject, String usersetRelation);
 
 
-    long findMaxAclUpdatedByPrincipal(String principal);
+    Long findMaxAclUpdatedByPrincipal(String principal);
 }

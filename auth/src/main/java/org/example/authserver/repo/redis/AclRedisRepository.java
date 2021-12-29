@@ -87,7 +87,7 @@ public class AclRedisRepository implements AclRepository {
     }
 
     @Override
-    public long findMaxAclUpdatedByPrincipal(String principal) {
+    public Long findMaxAclUpdatedByPrincipal(String principal) {
         throw new RuntimeException("findMaxAclUpdatedByPrincipal_REDIS_IS_NOT_IMPLEMENTED_YET");
     }
 

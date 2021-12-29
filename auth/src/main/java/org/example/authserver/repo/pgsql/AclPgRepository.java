@@ -90,7 +90,7 @@ public class AclPgRepository implements AclRepository {
     }
 
     @Override
-    public long findMaxAclUpdatedByPrincipal(String principal) {
+    public Long findMaxAclUpdatedByPrincipal(String principal) {
         return repository.findMaxAclUpdatedByPrincipal(principal);
     }
 
