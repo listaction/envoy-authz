@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.entity.MappingEntityList;
 import org.example.authserver.repo.pgsql.MappingRepository;
+import org.example.authserver.service.zanzibar.MappingService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -17,8 +18,11 @@ public class MappingController {
 
     private final MappingRepository repository;
 
-    public MappingController(MappingRepository repository) {
+    private final MappingService mappingService;
+
+    public MappingController(MappingRepository repository, MappingService mappingService) {
         this.repository = repository;
+        this.mappingService = mappingService;
     }
 
     @GetMapping("/list")
@@ -57,6 +61,11 @@ public class MappingController {
     public void deleteMapping(@PathVariable String id){
         log.info("Delete Mapping: {}", id);
         repository.deleteById(id);
+    }
+
+    @GetMapping("/refresh-cache")
+    public void refreshCache(){
+        mappingService.refreshCache();
     }
 
 }

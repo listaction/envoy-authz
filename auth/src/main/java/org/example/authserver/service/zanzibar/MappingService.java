@@ -115,6 +115,10 @@ public class MappingService {
         return result;
     }
 
+    public void refreshCache() {
+        mappingCacheService.refreshCache();
+    }
+
     private Map<String, String> parseHeaders(List<HeaderMappingKey> headerMapping, Map<String, String> headersMap) {
         Map<String, String> variables = new HashMap<>();
         for (HeaderMappingKey h : headerMapping){

@@ -3,51 +3,77 @@ package org.example.authserver.service;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.repo.pgsql.MappingRepository;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class MappingCacheLoader {
 
-    private final static ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private static final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private final Map<String, MappingEntity> cache;
     private final MappingRepository mappingRepository;
+    private final Jedis jedis;
 
-    public MappingCacheLoader(MappingRepository mappingRepository, Map<String, MappingEntity> cache) {
+    private static final String REFRESH_PROCESSING_MARKER_KEY = "REFRESH_PROCESSING_MARKER";
+
+    private static final String REFRESH_PROCESSING_MARKER_ON = "true";
+
+    private static final String REFRESH_PROCESSING_MARKER_OFF = "false";
+
+    public MappingCacheLoader(MappingRepository mappingRepository, Map<String, MappingEntity> cache, JedisPool jedis) {
         this.mappingRepository = mappingRepository;
         this.cache = cache;
+        this.jedis = jedis.getResource();
     }
 
-    public void schedule(int t, TimeUnit timeUnit) {
-        executor.scheduleAtFixedRate(() -> {
+    public void schedule(int period, TimeUnit timeUnit) {
+        executor.scheduleAtFixedRate(this::refreshCache, 0, period, timeUnit);
+    }
+
+    public void refreshCache() {
+        if (isRefreshCacheRunning()) {
+            log.info("Refreshing mappings cache is running");
+
+            return;
+        }
+
+        try {
             log.info("Refreshing mappings cache");
-            refreshCache();
-        }, 0, t,  timeUnit);
+            markRefreshCacheRunning();
+
+            List<MappingEntity> mappings = mappingRepository.findAll();
+            Set<String> ids = mappings.stream().map(MappingEntity::getId).collect(Collectors.toSet());
+
+            cache.keySet().stream()
+                    .filter(key -> !ids.contains(key))
+                    .forEach(id -> {
+                        log.info("Removing mapping {} from cache", id);
+                        cache.remove(id);
+                    });
+
+            mappings.forEach(mappingEntity -> cache.put(mappingEntity.getId(), mappingEntity));
+        } finally {
+            unmarkRefreshCacheRunning();
+        }
     }
 
-    public List<MappingEntity> refreshCache(){
-        List<MappingEntity> mappings = mappingRepository.findAll();
-        // cleanup old mappings
-        for (String id : cache.keySet()){
-            boolean found = false;
-            for (MappingEntity entity : mappings){
-                if (entity.getId().equals(id)){
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                log.info("Removing mapping {} from cache", id);
-                cache.remove(id);
-            }
-        }
+    private boolean isRefreshCacheRunning() {
+        return REFRESH_PROCESSING_MARKER_ON.equals(jedis.get(REFRESH_PROCESSING_MARKER_KEY));
+    }
 
-        for (MappingEntity entity : mappings){
-            cache.put(entity.getId(), entity);
-        }
+    private void markRefreshCacheRunning() {
+        jedis.set(REFRESH_PROCESSING_MARKER_KEY, REFRESH_PROCESSING_MARKER_ON);
+    }
 
-        return mappings;
+    private void unmarkRefreshCacheRunning() {
+        jedis.set(REFRESH_PROCESSING_MARKER_KEY, REFRESH_PROCESSING_MARKER_OFF);
     }
 }
