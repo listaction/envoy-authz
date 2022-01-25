@@ -3,39 +3,66 @@ package org.example.authserver.service;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.repo.pgsql.MappingRepository;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static org.example.authserver.service.RedisService.*;
+
 @Slf4j
 public class MappingCacheLoader {
 
     private static final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private static final ScheduledExecutorService checkCacheRefreshExecutor = Executors.newSingleThreadScheduledExecutor();
+    private static final ScheduledExecutorService deleteCacheRefreshExecutor = Executors.newSingleThreadScheduledExecutor();
     private final Map<String, MappingEntity> cache;
     private final MappingRepository mappingRepository;
-    private final Jedis jedis;
+    private static final Integer REFRESH_CACHE_MARKER_TTL = 60 * 1000; // 60 seconds
+    private static final String REDIS_IDENTIFIER = UUID.randomUUID().toString();
+    private final RedisService redisService;
 
-    private static final String REFRESH_PROCESSING_MARKER_KEY = "REFRESH_PROCESSING_MARKER";
-
-    private static final String REFRESH_PROCESSING_MARKER_ON = "true";
-
-    private static final String REFRESH_PROCESSING_MARKER_OFF = "false";
-
-    public MappingCacheLoader(MappingRepository mappingRepository, Map<String, MappingEntity> cache, JedisPool jedis) {
+    public MappingCacheLoader(MappingRepository mappingRepository, Map<String, MappingEntity> cache, RedisService redisService) {
         this.mappingRepository = mappingRepository;
         this.cache = cache;
-        this.jedis = jedis.getResource();
+        this.redisService = redisService;
     }
 
     public void schedule(int period, TimeUnit timeUnit) {
         executor.scheduleAtFixedRate(this::refreshCache, 0, period, timeUnit);
+    }
+
+    public void scheduleCheckCacheRefresh(int period, TimeUnit timeUnit) {
+        checkCacheRefreshExecutor.scheduleAtFixedRate(this::checkAndRefreshCacheIfNeeded, 0, period, timeUnit);
+    }
+
+    public void scheduleDeleteCacheRefresh(int period, TimeUnit timeUnit) {
+        deleteCacheRefreshExecutor.scheduleAtFixedRate(this::checkAndDeleteNeedRefreshCacheMarker, 0, period, timeUnit);
+    }
+
+    public void checkAndRefreshCacheIfNeeded() {
+        try {
+            Long lastRefreshCacheRequestTime = getNeedRefreshCacheRequestTime();
+            Long lastRefreshCacheTime = getLastRefreshCacheTime();
+            boolean needToRefresh = lastRefreshCacheRequestTime != null &&
+                    !Objects.equals(lastRefreshCacheRequestTime, lastRefreshCacheTime);
+
+            log.info("checkAndRefreshCacheIfNeeded :: {}", needToRefresh);
+
+            if (needToRefresh) {
+                log.info("Refresh cache by request");
+                redisService.set(
+                        getRedisInstanceKey(TIME_OF_REFRESH_MAPPING_CACHE_BY_REQUEST_KEY),
+                        lastRefreshCacheRequestTime.toString()
+                );
+
+                refreshCache();
+            }
+        } catch (Exception ex) {
+            log.info(ex.getMessage(), ex);
+        }
     }
 
     public void refreshCache() {
@@ -65,15 +92,50 @@ public class MappingCacheLoader {
         }
     }
 
+    private void checkAndDeleteNeedRefreshCacheMarker() {
+        try {
+            Long lastRefreshCacheRequestTime = getNeedRefreshCacheRequestTime();
+            boolean needToDeleteMarker = lastRefreshCacheRequestTime != null &&
+                    (System.currentTimeMillis() - lastRefreshCacheRequestTime) > REFRESH_CACHE_MARKER_TTL;
+            log.info("checkAndDeleteNeedRefreshCacheMarker :: {}", needToDeleteMarker);
+
+            if (needToDeleteMarker) {
+                log.info("Auto remove need to refresh cache marker");
+                redisService.del(NEED_REFRESH_MAPPING_CACHE_MARKER_KEY);
+            }
+        } catch (Exception ex) {
+            log.info(ex.getMessage(), ex);
+        }
+    }
+
     private boolean isRefreshCacheRunning() {
-        return REFRESH_PROCESSING_MARKER_ON.equals(jedis.get(REFRESH_PROCESSING_MARKER_KEY));
+        String marker = redisService.get(REFRESH_PROCESSING_MARKER_KEY);
+
+        return marker != null && MARKER_ON.equals(marker);
+    }
+
+    private Long getNeedRefreshCacheRequestTime() {
+        String lastRefreshCacheRequestTime = redisService.get(NEED_REFRESH_MAPPING_CACHE_MARKER_KEY);
+
+        return lastRefreshCacheRequestTime != null ? Long.valueOf(lastRefreshCacheRequestTime) : null;
+    }
+
+    private Long getLastRefreshCacheTime() {
+        String lastRefreshCacheTime = redisService.get(getRedisInstanceKey(TIME_OF_REFRESH_MAPPING_CACHE_BY_REQUEST_KEY));
+
+        return lastRefreshCacheTime != null ? Long.valueOf(lastRefreshCacheTime) : null;
     }
 
     private void markRefreshCacheRunning() {
-        jedis.set(REFRESH_PROCESSING_MARKER_KEY, REFRESH_PROCESSING_MARKER_ON);
+        redisService.set(getRedisInstanceKey(REFRESH_PROCESSING_MARKER_KEY), MARKER_ON);
     }
 
     private void unmarkRefreshCacheRunning() {
-        jedis.set(REFRESH_PROCESSING_MARKER_KEY, REFRESH_PROCESSING_MARKER_OFF);
+        redisService.del(getRedisInstanceKey(REFRESH_PROCESSING_MARKER_KEY));
     }
+
+    private String getRedisInstanceKey(String key) {
+        return String.format("%s_%s", key, REDIS_IDENTIFIER);
+    }
+
 }

@@ -3,7 +3,6 @@ package org.example.authserver.service;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.repo.pgsql.MappingRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.JedisPool;
 
@@ -14,6 +13,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import static org.example.authserver.service.RedisService.NEED_REFRESH_MAPPING_CACHE_MARKER_KEY;
+
 @Slf4j
 @Service
 public class MappingCacheService {
@@ -21,9 +22,14 @@ public class MappingCacheService {
     private final Map<String, MappingEntity> cache = new ConcurrentHashMap<>();
     private final MappingCacheLoader mappingCacheLoader;
 
-    public MappingCacheService(@Nullable JedisPool jedis, MappingRepository mappingRepository) {
-        this.mappingCacheLoader = new MappingCacheLoader(mappingRepository, cache, jedis);
+    private final RedisService redisService;
+
+    public MappingCacheService(@Nullable JedisPool jedisPool, MappingRepository mappingRepository) {
+        this.redisService = new RedisService(jedisPool);
+        this.mappingCacheLoader = new MappingCacheLoader(mappingRepository, cache, this.redisService);
         this.mappingCacheLoader.schedule(10, TimeUnit.MINUTES);
+        this.mappingCacheLoader.scheduleCheckCacheRefresh(15, TimeUnit.SECONDS);
+        this.mappingCacheLoader.scheduleDeleteCacheRefresh(30, TimeUnit.SECONDS);
     }
 
     public List<MappingEntity> getAll() {
@@ -36,9 +42,9 @@ public class MappingCacheService {
         return new ArrayList<>(cache.values());
     }
 
-    public void refreshCache() {
-        log.trace("refresh mappings to cache: {}", cache.size());
-        mappingCacheLoader.refreshCache();
-    }
+    public void notifyAllToRefreshCache() {
+        log.info("Notify all to refresh cache request");
 
+        redisService.set(NEED_REFRESH_MAPPING_CACHE_MARKER_KEY, String.valueOf(System.currentTimeMillis()));
+    }
 }

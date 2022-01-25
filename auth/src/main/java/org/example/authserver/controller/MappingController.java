@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -26,28 +25,27 @@ public class MappingController {
     }
 
     @GetMapping("/list")
-    public List<MappingEntity> listAcl(){
-        return repository.findAll();
+    public List<MappingEntity> listAcl() {
+        return mappingService.findAll();
     }
 
     @PostMapping("/create")
-    public void addMapping(@Valid @RequestBody MappingEntity dto){
-        log.info("Created Mapping: {}", dto);
-        dto.setId(UUID.randomUUID().toString());
-        repository.save(dto);
+    public void addMapping(@Valid @RequestBody MappingEntity mappingEntity) {
+        log.info("Created Mapping: {}", mappingEntity);
+        mappingService.create(mappingEntity);
     }
 
     @PostMapping("/create-many")
-    public void addMappings(@Valid @RequestBody MappingEntityList dto){
-        for (MappingEntity entity : dto.getMappings()){
+    public void addMappings(@Valid @RequestBody MappingEntityList dto) {
+        for (MappingEntity entity : dto.getMappings()) {
             addMapping(entity);
         }
     }
 
     @DeleteMapping("/clear")
-    public void clearMappings(){
+    public void clearMappings() {
         log.info("Delete Mappings");
-        repository.deleteAll();
+        mappingService.deleteAll();
     }
 
 //    @DeleteMapping("/delete/{id}")
@@ -56,16 +54,15 @@ public class MappingController {
 //        repository.delete(id);
 //    }
 
-
     @DeleteMapping("/delete/{id}")
-    public void deleteMapping(@PathVariable String id){
+    public void deleteMapping(@PathVariable String id) {
         log.info("Delete Mapping: {}", id);
-        repository.deleteById(id);
+        mappingService.deleteById(id);
     }
 
     @GetMapping("/refresh-cache")
-    public void refreshCache(){
-        mappingService.refreshCache();
+    public void notifyAllToRefreshCache() {
+        mappingService.notifyAllToRefreshCache();
     }
 
 }
