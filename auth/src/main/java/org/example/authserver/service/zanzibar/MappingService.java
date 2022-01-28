@@ -10,16 +10,14 @@ import org.example.authserver.entity.BodyMapping;
 import org.example.authserver.entity.BodyMappingKey;
 import org.example.authserver.entity.HeaderMappingKey;
 import org.example.authserver.entity.MappingEntity;
+import org.example.authserver.repo.pgsql.MappingRepository;
 import org.example.authserver.service.MappingCacheService;
 import org.example.authserver.service.model.Mapping;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,8 +29,11 @@ public class MappingService {
 
     private final MappingCacheService mappingCacheService;
 
-    public MappingService(MappingCacheService mappingCacheService) {
+    private final MappingRepository mappingRepository;
+
+    public MappingService(MappingCacheService mappingCacheService, MappingRepository mappingRepository) {
         this.mappingCacheService = mappingCacheService;
+        this.mappingRepository = mappingRepository;
     }
 
 
@@ -113,6 +114,27 @@ public class MappingService {
         }
 
         return result;
+    }
+
+    public MappingEntity create(MappingEntity mappingEntity) {
+        mappingEntity.setId(UUID.randomUUID().toString());
+        return mappingRepository.save(mappingEntity);
+    }
+
+    public List<MappingEntity> findAll() {
+        return mappingRepository.findAll();
+    }
+
+    public void deleteAll() {
+        mappingRepository.deleteAll();
+    }
+
+    public void deleteById(String id) {
+        mappingRepository.deleteById(id);
+    }
+
+    public void notifyAllToRefreshCache() {
+        mappingCacheService.notifyAllToRefreshCache();
     }
 
     private Map<String, String> parseHeaders(List<HeaderMappingKey> headerMapping, Map<String, String> headersMap) {
