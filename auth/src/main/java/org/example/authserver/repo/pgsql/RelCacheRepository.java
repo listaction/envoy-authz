@@ -1,7 +1,6 @@
 package org.example.authserver.repo.pgsql;
 
 import org.example.authserver.entity.RelCache;
-import org.example.authserver.entity.UserRelationEntity;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

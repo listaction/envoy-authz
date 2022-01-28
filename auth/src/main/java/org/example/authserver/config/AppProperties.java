@@ -10,5 +10,4 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class AppProperties {
     private AppDatabase database;
     private boolean testMode;
-    private UserRelationsConfig userRelationsCache;
 }

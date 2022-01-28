@@ -24,6 +24,7 @@ public class RedisService {
     }
 
     public String get(String key) {
+        if (jedisPool == null) return null;
         Jedis jedis = jedisPool.getResource();
         String value = jedis.get(key);
         jedis.close();
@@ -32,12 +33,14 @@ public class RedisService {
     }
 
     public void set(String key, String value) {
+        if (jedisPool == null) return;
         Jedis jedis = jedisPool.getResource();
         jedis.set(key, value);
         jedis.close();
     }
 
     public void del(String key) {
+        if (jedisPool == null) return;
         Jedis jedis = jedisPool.getResource();
         jedis.del(key);
         jedis.close();
