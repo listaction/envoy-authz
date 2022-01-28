@@ -1,6 +1,5 @@
 package org.example.authserver.config;
 
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
