@@ -10,16 +10,14 @@ import org.example.authserver.entity.BodyMapping;
 import org.example.authserver.entity.BodyMappingKey;
 import org.example.authserver.entity.HeaderMappingKey;
 import org.example.authserver.entity.MappingEntity;
+import org.example.authserver.repo.pgsql.MappingRepository;
 import org.example.authserver.service.MappingCacheService;
 import org.example.authserver.service.model.Mapping;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,8 +29,11 @@ public class MappingService {
 
     private final MappingCacheService mappingCacheService;
 
-    public MappingService(MappingCacheService mappingCacheService) {
+    private final MappingRepository mappingRepository;
+
+    public MappingService(MappingCacheService mappingCacheService, MappingRepository mappingRepository) {
         this.mappingCacheService = mappingCacheService;
+        this.mappingRepository = mappingRepository;
     }
 
 
@@ -51,30 +52,29 @@ public class MappingService {
         for (Map.Entry<MappingEntity, Map<String, String>> entry : mappings.entrySet()) {
             MappingEntity mappingEntity = entry.getKey();
 
-            Mapping mapping = new Mapping();
-            mapping.getMap().putAll(entry.getValue());
-            mapping.getMap().put("roles", String.join(",", mappingEntity.getRoles()));
+            Mapping mapping = new Mapping(entry.getKey());
+            mapping.getVariableMap().putAll(entry.getValue());
 
             if (mappingEntity.getBodyMapping() != null && "POST".equalsIgnoreCase(requestMethod) || "PUT".equals(requestMethod)) {
                 String requestBody = request.getAttributes().getRequest().getHttp().getBody();
                 BodyMapping bodyMapping = mappingEntity.getBodyMapping();
-                mapping.getMap().putAll(parseRequestJsonBody(bodyMapping, requestBody));
+                mapping.getVariableMap().putAll(parseRequestJsonBody(bodyMapping, requestBody));
             }
 
             if (mappingEntity.getHeaderMapping() != null){
-                mapping.getMap().putAll(parseHeaders(mappingEntity.getHeaderMapping(), headersMap));
+                mapping.getVariableMap().putAll(parseHeaders(mappingEntity.getHeaderMapping(), headersMap));
             }
 
             Matcher m = pattern.matcher(claims.getIssuer());
             if (m.matches() && m.groupCount() >= 2){
-                mapping.getMap().put("tenant", m.group(2));
+                mapping.getVariableMap().put("tenant", m.group(2));
             }
 
-            mapping.getMap().put("userId", claims.getSubject());
-            mapping.getMap().put("aclId", mappingEntity.getId());
-            mapping.getMap().forEach((key, v) -> log.trace("{} => {}", key, v));
+            mapping.getVariableMap().put("userId", claims.getSubject());
+            mapping.getVariableMap().put("aclId", mappingEntity.getId());
+            mapping.getVariableMap().forEach((key, v) -> log.trace("{} => {}", key, v));
 
-            compositeAclStuff(mappingEntity, mapping.getMap());
+            compositeAclStuff(mappingEntity, mapping.getVariableMap());
             result.add(mapping);
         }
 
@@ -114,6 +114,27 @@ public class MappingService {
         }
 
         return result;
+    }
+
+    public MappingEntity create(MappingEntity mappingEntity) {
+        mappingEntity.setId(UUID.randomUUID().toString());
+        return mappingRepository.save(mappingEntity);
+    }
+
+    public List<MappingEntity> findAll() {
+        return mappingRepository.findAll();
+    }
+
+    public void deleteAll() {
+        mappingRepository.deleteAll();
+    }
+
+    public void deleteById(String id) {
+        mappingRepository.deleteById(id);
+    }
+
+    public void notifyAllToRefreshCache() {
+        mappingCacheService.notifyAllToRefreshCache();
     }
 
     private Map<String, String> parseHeaders(List<HeaderMappingKey> headerMapping, Map<String, String> headersMap) {

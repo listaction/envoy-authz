@@ -73,16 +73,21 @@ public class AclRedisRepository implements AclRepository {
 
     @Override
     public Set<String> findAllNamespaces() {
-        throw new RuntimeException("findAllByNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
+        throw new RuntimeException("findAllNamespaces_REDIS_IS_NOT_IMPLEMENTED_YET");
     }
 
     @Override
     public Set<String> findAllObjects() {
-        throw new RuntimeException("findAllByNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
+        throw new RuntimeException("findAllObjects_REDIS_IS_NOT_IMPLEMENTED_YET");
     }
 
     @Override
-    public long findMaxAclUpdatedByPrincipal(String principal) {
+    public Set<Acl> findAllForCache(String usersetNamespace, String usersetObject, String usersetRelation) {
+        throw new RuntimeException("findAllForCache_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Long findMaxAclUpdatedByPrincipal(String principal) {
         throw new RuntimeException("findMaxAclUpdatedByPrincipal_REDIS_IS_NOT_IMPLEMENTED_YET");
     }
 

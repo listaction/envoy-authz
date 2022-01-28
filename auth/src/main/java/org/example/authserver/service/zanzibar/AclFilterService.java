@@ -1,18 +1,18 @@
 package org.example.authserver.service.zanzibar;
 
-import com.google.common.base.Stopwatch;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.CacheService;
 import org.example.authserver.service.RelationsService;
+import org.example.authserver.service.model.LocalCache;
 import org.example.authserver.service.model.Mapping;
-import org.example.authserver.service.model.RequestCache;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -45,33 +45,37 @@ public class AclFilterService {
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
-        RequestCache requestCache = new RequestCache();
+        LocalCache localCache = new LocalCache();
+        Long maxAclUpdate = relationsService.getAclMaxUpdate(user);
 
         Set<String> allowedTags = new HashSet<>();
         for (Mapping mapping : mappings) {
-            String mappingId = mapping.get("aclId");
-            String namespace = mapping.get("namespace");
-            String object = mapping.get("object");
+            String mappingId = mapping.getVariable("aclId");
+            String namespace = mapping.getVariable("namespace");
+            String object = mapping.getVariable("object");
+            String path = mapping.getMappingEntity().getPath();
 
-            Set<String> roles = mapping.parseRoles();
+            Set<String> roles = new HashSet<>(mapping.getRoles());
             if (roles.isEmpty()) {
                 return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
             }
 
-            Set<String> relations = requestCache.getPrincipalHighCardinalityCache().getOrDefault(user, new HashSet<>());
-
+            long time4 = System.currentTimeMillis();
+            Set<String> relations = cacheService.getCachedRelations(user, namespace, object, path, maxAclUpdate);
             boolean r = false;
-            if (HasTag(relations, roles, namespace, object)) {
+            if (HasTag(relations, roles, namespace, object)){
                 r = true;
-            } else {
-                Stopwatch relationsStopwatch = Stopwatch.createStarted();
-                relations = relationsService.getRelations(namespace, object, user, requestCache);
-                log.info("zanzibar.getRelations {} ms.", relationsStopwatch.elapsed(TimeUnit.MILLISECONDS));
+                allowedTags.addAll(relations);
+                log.info("zanzibar.getRelations (cache) {} ms.", System.currentTimeMillis() - time4);
+            } else {  // no actual cache exists
+                relations = relationsService.getRelations(namespace, object, user, localCache);
+                log.info("zanzibar.getRelations {} ms.", System.currentTimeMillis() - time4);
 
                 if (HasTag(relations, roles, namespace, object)) {
                     r = true;
                     allowedTags.addAll(relations);
                 }
+                cacheService.persistCacheAsync(user, relations, path, maxAclUpdate);
             }
 
             if (!r) {
