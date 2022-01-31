@@ -66,6 +66,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(aclsDocReadme).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("doc:readme")));
             Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("group"), eq("document"), eq(principal));
             Mockito.doReturn(aclsGroupDocument).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("group:document")));
+            Mockito.doReturn(acls).when(aclRepository).findAllByNsObjectIn(eq(List.of("doc:readme")));
             Mockito.doReturn(Set.of(config)).when(configRepository).findAll();
             Mockito.doReturn(Map.of(config.getNamespace(), config)).when(cacheService).getConfigs();
             aclRelationConfigService.update();
@@ -194,6 +195,7 @@ class ZanzibarImplTest {
             Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("group:contactusers")));
             Mockito.doReturn(aclsApiContact).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("api"), eq("contact"), eq(principal));
             Mockito.doReturn(aclsApiContact).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("api:contact")));
+            Mockito.doReturn(acls).when(aclRepository).findAllByNsObjectIn(eq(List.of("api:contact")));
 
             Mockito.doReturn(Set.of(new AclRelationConfig())).when(configRepository).findAll();
 
@@ -262,6 +264,8 @@ class ZanzibarImplTest {
             Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of("group:contactusers")));
             Mockito.doReturn(aclsContact).when(aclRepository).findAllByNamespaceAndObjectAndUser(eq("contact"), eq(uuid), eq(principal));
             Mockito.doReturn(aclsContact).when(aclRepository).findAllByPrincipalAndNsObjectIn(eq(principal), eq(List.of(String.format("contact:%s", uuid))));
+            Mockito.doReturn(aclsContact).when(aclRepository).findAllByNsObjectIn(eq(List.of(String.format("contact:%s", uuid))));
+            Mockito.doReturn(aclsGroupContactusers).when(aclRepository).findAllByNsObjectIn(eq(List.of("group:contactusers")));
 
             System.out.println("user: " + principal);
             // user1 and user2 are have access. And user3 is not.
