@@ -49,6 +49,8 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
                 .setOkResponse(OkHttpResponse.newBuilder().addHeaders(headers).build())
                 .build();
 
+        log.info("response: {}", response);
+
         if (result.isMappingsPresent()) {
             log.info("request allowed: {}", result.isResult());
 
