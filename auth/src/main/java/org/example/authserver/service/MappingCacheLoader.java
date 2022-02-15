@@ -49,7 +49,7 @@ public class MappingCacheLoader {
             boolean needToRefresh = lastRefreshCacheRequestTime != null &&
                     !Objects.equals(lastRefreshCacheRequestTime, lastRefreshCacheTime);
 
-            log.info("checkAndRefreshCacheIfNeeded :: {}", needToRefresh);
+//            log.info("checkAndRefreshCacheIfNeeded :: {}", needToRefresh);
 
             if (needToRefresh) {
                 log.info("Refresh cache by request");
@@ -97,7 +97,7 @@ public class MappingCacheLoader {
             Long lastRefreshCacheRequestTime = getNeedRefreshCacheRequestTime();
             boolean needToDeleteMarker = lastRefreshCacheRequestTime != null &&
                     (System.currentTimeMillis() - lastRefreshCacheRequestTime) > REFRESH_CACHE_MARKER_TTL;
-            log.info("checkAndDeleteNeedRefreshCacheMarker :: {}", needToDeleteMarker);
+//            log.info("checkAndDeleteNeedRefreshCacheMarker :: {}", needToDeleteMarker);
 
             if (needToDeleteMarker) {
                 log.info("Auto remove need to refresh cache marker");

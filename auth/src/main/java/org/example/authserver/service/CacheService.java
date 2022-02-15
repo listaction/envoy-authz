@@ -60,7 +60,13 @@ public class CacheService {
         if (cache == null || cache.size() == 0) return new HashSet<>();
         meterService.countHitsCache();
         return cache.stream()
-                .map(m->Utils.createTag(m.getNsobject(), m.getRelation()))
+                .map(m->{
+                    Set<String> tags = new HashSet<>();
+                    tags.add(Utils.createTag(m.getNsobject(), m.getRelation()));
+                    tags.addAll(m.getNestedRelations());
+                    return tags;
+                })
+                .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
     }
 
@@ -85,6 +91,8 @@ public class CacheService {
     public void persistCache(String principal, Collection<String> relations, String path, Long rev){
         List<RelCache> cache = new ArrayList<>();
         for (String tag : relations){
+            Set<String> nestedTags = new HashSet<>(relations);
+            nestedTags.remove(tag); // remove current
             String compositeIdKey = getCompositeIdKey(principal, tag, path);
             String id = getKeyHash(compositeIdKey);
             Acl parsedTag = Utils.parseTag(tag);
@@ -95,6 +103,7 @@ public class CacheService {
                     .rev(rev)
                     .nsobject(Utils.createNsObject(parsedTag.getNamespace(), parsedTag.getObject()))
                     .relation(parsedTag.getRelation())
+                    .nestedRelations(nestedTags)
                     .usr(principal)
                     .path(path)
                     .build();
