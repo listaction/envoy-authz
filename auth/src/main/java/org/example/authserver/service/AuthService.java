@@ -100,22 +100,18 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
             String tenant = getTenant(claims);
             if (tenant != null) {
                 String key = String.format(SIGNOUT_REDIS_KEY, tenant, claims.get("jti").toString());
-                String expirationTimeValue = redisService.get(key);
+                String expirationTime = redisService.get(key);
 
-                if (expirationTimeValue != null) {
-                    // expirationTimeValue is in seconds
-                    long currentTimeInSeconds = System.currentTimeMillis() / 1000;
-                    if (Long.parseLong(expirationTimeValue) >= currentTimeInSeconds) {
-                        return CheckResponse.newBuilder()
-                                .setStatus(Status.newBuilder().setCode(UNAUTHORIZED))
-                                .setDeniedResponse(
-                                        DeniedHttpResponse.newBuilder()
-                                                .setStatus(HttpStatus.newBuilder()
-                                                        .setCode(StatusCode.Unauthorized)
-                                                        .build())
-                                                .build())
-                                .build();
-                    }
+                if (expirationTime != null) {
+                    return CheckResponse.newBuilder()
+                            .setStatus(Status.newBuilder().setCode(UNAUTHORIZED))
+                            .setDeniedResponse(
+                                    DeniedHttpResponse.newBuilder()
+                                            .setStatus(HttpStatus.newBuilder()
+                                                    .setCode(StatusCode.Unauthorized)
+                                                    .build())
+                                            .build())
+                            .build();
                 }
             }
         } catch (Exception ex) {
