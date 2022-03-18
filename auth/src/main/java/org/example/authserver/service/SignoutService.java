@@ -22,7 +22,7 @@ public class SignoutService {
             String key = String.format(SIGNOUT_REDIS_KEY, tenant, jti);
             redisService.set(key, "1", getSignoutKeyTtl(expirationTime));
         } catch (Exception exception) {
-            log.warn("Redis service is unavailable");
+            log.warn("Redis service is unavailable", exception);
         }
     }
 

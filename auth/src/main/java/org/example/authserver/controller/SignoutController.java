@@ -15,7 +15,7 @@ public class SignoutController {
         this.signoutService = signoutService;
     }
 
-    @GetMapping("/{tenant}/{jti}/{expirationTime}")
+    @PostMapping("/{tenant}/{jti}/{expirationTime}")
     private void signout(@PathVariable String tenant, @PathVariable String jti, @PathVariable long expirationTime) {
         signoutService.signout(tenant, jti, expirationTime);
     }
