@@ -100,9 +100,8 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
             String tenant = getTenant(claims);
             if (tenant != null) {
                 String key = String.format(SIGNOUT_REDIS_KEY, tenant, claims.get("jti").toString());
-                String expirationTime = redisService.get(key);
 
-                if (expirationTime != null) {
+                if (redisService.exists(key)) {
                     return CheckResponse.newBuilder()
                             .setStatus(Status.newBuilder().setCode(UNAUTHORIZED))
                             .setDeniedResponse(
