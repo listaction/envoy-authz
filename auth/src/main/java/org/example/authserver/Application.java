@@ -46,7 +46,7 @@ public class Application {
         cacheLoaderService.subscribe();
 
         Server server = ServerBuilder.forPort(grpcPort)
-                .addService(new AuthService(aclFilterService, appProperties, redisService, tokenService))
+                .addService(new AuthService(aclFilterService, redisService, tokenService))
                 .build();
 
         server.start();
