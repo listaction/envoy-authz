@@ -10,6 +10,7 @@ import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.config.AppProperties;
+import org.example.authserver.config.Constants;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.zanzibar.TokenService;
@@ -25,17 +26,11 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     private static final Integer UNAUTHORIZED = 16;
 
     private final AclFilterService aclFilterService;
-    private final AppProperties appProperties;
     private final RedisService redisService;
     private final TokenService tokenService;
 
-    private final static Pattern pattern = Pattern.compile("(.*)\\/realms\\/(.*)");
-
-    private static final String SIGNOUT_REDIS_KEY = "%s__%s";
-
-    public AuthService(AclFilterService aclFilterService, AppProperties appProperties, RedisService redisService, TokenService tokenService) {
+    public AuthService(AclFilterService aclFilterService, RedisService redisService, TokenService tokenService) {
         this.aclFilterService = aclFilterService;
-        this.appProperties = appProperties;
         this.redisService = redisService;
         this.tokenService = tokenService;
     }
@@ -98,34 +93,29 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     private CheckResponse validateTokenWithSignOutRequest(CheckRequest request) {
         try {
             Claims claims = tokenService.getAllClaimsFromRequest(request);
-
-            String tenant = getTenant(claims);
-            if (tenant != null) {
-                String key = String.format(SIGNOUT_REDIS_KEY, tenant, claims.get("jti").toString());
-
-                if (redisService.exists(key)) {
-                    return CheckResponse.newBuilder()
-                            .setStatus(Status.newBuilder().setCode(UNAUTHORIZED))
-                            .setDeniedResponse(
-                                    DeniedHttpResponse.newBuilder()
-                                            .setStatus(HttpStatus.newBuilder()
-                                                    .setCode(StatusCode.Unauthorized)
-                                                    .build())
-                                            .build())
-                            .build();
-                }
+            String key = null;
+            if (claims != null && claims.get("jti") != null) {
+                key = String.format(Constants.SIGNOUT_REDIS_KEY, claims.get("jti").toString());
             }
+
+            if (key == null) {
+                return null;
+            }
+
+            if (redisService.exists(key)) {
+                return CheckResponse.newBuilder()
+                        .setStatus(Status.newBuilder().setCode(UNAUTHORIZED))
+                        .setDeniedResponse(
+                                DeniedHttpResponse.newBuilder()
+                                        .setStatus(HttpStatus.newBuilder()
+                                                .setCode(StatusCode.Unauthorized)
+                                                .build())
+                                        .build())
+                        .build();
+            }
+
         } catch (Exception ex) {
             log.warn("Redis service is unavailable");
-        }
-
-        return null;
-    }
-
-    private String getTenant(Claims claims) {
-        Matcher matcher = pattern.matcher(claims.getIssuer());
-        if (matcher.matches() && matcher.groupCount() >= 2) {
-            return matcher.group(2);
         }
 
         return null;
