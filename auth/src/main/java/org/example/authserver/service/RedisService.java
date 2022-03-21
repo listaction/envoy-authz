@@ -39,10 +39,27 @@ public class RedisService {
         jedis.close();
     }
 
+    public void set(String key, String value, int ttl) {
+        if (jedisPool == null) return;
+        Jedis jedis = jedisPool.getResource();
+        jedis.set(key, value);
+        jedis.expire(key, ttl);
+        jedis.close();
+    }
+
     public void del(String key) {
         if (jedisPool == null) return;
         Jedis jedis = jedisPool.getResource();
         jedis.del(key);
         jedis.close();
+    }
+
+    public boolean exists(String key) {
+        if (jedisPool == null) return false;
+        Jedis jedis = jedisPool.getResource();
+        boolean exists = jedis.exists(key);
+        jedis.close();
+
+        return exists;
     }
 }
