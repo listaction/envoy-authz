@@ -55,7 +55,7 @@ public class MappingService {
             Mapping mapping = new Mapping(entry.getKey());
             mapping.getVariableMap().putAll(entry.getValue());
 
-            if (mappingEntity.getBodyMapping() != null && "POST".equalsIgnoreCase(requestMethod) || "PUT".equals(requestMethod)) {
+            if (mappingEntity.getBodyMapping() != null && ("POST".equalsIgnoreCase(requestMethod) || "PUT".equals(requestMethod))) {
                 String requestBody = request.getAttributes().getRequest().getHttp().getBody();
                 BodyMapping bodyMapping = mappingEntity.getBodyMapping();
                 mapping.getVariableMap().putAll(parseRequestJsonBody(bodyMapping, requestBody));
