@@ -16,7 +16,7 @@ public class SignoutController {
     }
 
     @PostMapping("/{tenant}/{jti}/{expirationTime}")
-    private void signout(@PathVariable String tenant, @PathVariable String jti, @PathVariable long expirationTime) {
+    public void signout(@PathVariable String tenant, @PathVariable String jti, @PathVariable long expirationTime) {
         signoutService.signout(tenant, jti, expirationTime);
     }
 }
