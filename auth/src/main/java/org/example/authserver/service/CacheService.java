@@ -63,7 +63,11 @@ public class CacheService {
                 .map(m->{
                     Set<String> tags = new HashSet<>();
                     tags.add(Utils.createTag(m.getNsobject(), m.getRelation()));
-                    tags.addAll(m.getNestedRelations());
+
+                    if (m.getNestedRelations() != null) {
+                        tags.addAll(m.getNestedRelations());
+                    }
+
                     return tags;
                 })
                 .flatMap(Collection::stream)
