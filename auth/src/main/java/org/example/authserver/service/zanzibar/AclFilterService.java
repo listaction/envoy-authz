@@ -61,7 +61,8 @@ public class AclFilterService {
             }
 
             long time4 = System.currentTimeMillis();
-            Set<String> relations = cacheService.getCachedRelations(user, namespace, object, path, maxAclUpdate);
+            Set<String> relations = new HashSet<>();
+            //cacheService.getCachedRelations(user, namespace, object, path, maxAclUpdate);
             boolean r = false;
             if (HasTag(relations, roles, namespace, object)){
                 r = true;
@@ -75,7 +76,7 @@ public class AclFilterService {
                     r = true;
                     allowedTags.addAll(relations);
                 }
-                cacheService.persistCacheAsync(user, relations, path, maxAclUpdate);
+                //cacheService.persistCacheAsync(user, relations, path, maxAclUpdate);
             }
 
             if (!r) {
