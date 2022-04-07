@@ -7,10 +7,13 @@ import lombok.NoArgsConstructor;
 import lombok.extern.java.Log;
 
 import java.io.Serializable;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Log
 @Data
@@ -46,6 +49,18 @@ public class Acl implements Cloneable, Serializable {
         return isNotEmpty(usersetNamespace) && isNotEmpty(usersetObject) && isNotEmpty(usersetRelation);
     }
 
+    public String getNsObject(){
+        return String.format("%s:%s", namespace, object);
+    }
+
+    public String getTag() {
+        return String.format("%s:%s#%s", namespace, object, relation);
+    }
+
+    public static Set<String> getTags(Set<Acl> acls) {
+        return acls.stream().map(Acl::getTag).collect(Collectors.toSet());
+    }
+
     private boolean isNotEmpty(String s){
         if (s == null) return false;
         if (s.length() == 0) return false;
@@ -58,6 +73,19 @@ public class Acl implements Cloneable, Serializable {
         } catch (CloneNotSupportedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Acl)) return false;
+        Acl acl = (Acl) o;
+        return namespace.equals(acl.namespace) && object.equals(acl.object) && relation.equals(acl.relation) && Objects.equals(user, acl.user) && Objects.equals(usersetNamespace, acl.usersetNamespace) && Objects.equals(usersetObject, acl.usersetObject) && Objects.equals(usersetRelation, acl.usersetRelation);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(namespace, object, relation, user, usersetNamespace, usersetObject, usersetRelation);
     }
 
     private static Acl parseAcl(String aclExpr) {

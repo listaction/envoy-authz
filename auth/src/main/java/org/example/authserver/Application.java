@@ -3,14 +3,20 @@ package org.example.authserver;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.config.AppProperties;
+import org.example.authserver.service.RedisService;
 import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.AuthService;
 import org.example.authserver.service.CacheLoaderService;
+import org.example.authserver.service.zanzibar.TokenService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import redis.clients.jedis.JedisPool;
 
+import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 
 @Slf4j
@@ -20,27 +26,31 @@ import javax.annotation.PostConstruct;
 public class Application {
 
     private final AclFilterService aclFilterService;
+    private final RedisService redisService;
     private final CacheLoaderService cacheLoaderService;
-    private final ExampleDataset exampleDataset;
+    private final AppProperties appProperties;
+    private final int grpcPort;
+    private final TokenService tokenService;
 
-    public Application(AclFilterService aclFilterService, CacheLoaderService cacheLoaderService, ExampleDataset exampleDataset) {
+    public Application(@Nullable JedisPool jedisPool, AclFilterService aclFilterService, CacheLoaderService cacheLoaderService, AppProperties appProperties, @Value("${grpc.port:8080}") int grpcPort, TokenService tokenService) {
         this.aclFilterService = aclFilterService;
+        this.redisService = new RedisService(jedisPool);
+        this.tokenService = tokenService;
         this.cacheLoaderService = cacheLoaderService;
-        this.exampleDataset = exampleDataset;
+        this.appProperties = appProperties;
+        this.grpcPort = grpcPort;
     }
 
     @PostConstruct
     public void start() throws Exception {
         cacheLoaderService.subscribe();
 
-        Server server = ServerBuilder.forPort(8080)
-                .addService(new AuthService(aclFilterService))
+        Server server = ServerBuilder.forPort(grpcPort)
+                .addService(new AuthService(aclFilterService, redisService, tokenService))
                 .build();
 
         server.start();
-        log.info("Started. Listen post: 8080");
-        exampleDataset.init();
-        //server.awaitTermination();
+        log.info("Started. Listen post: {}}", grpcPort);
     }
 
     public static void main(String[] args) {

@@ -11,10 +11,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +32,7 @@ public class AclRedisRepository implements AclRepository {
         this.jedis = jedis;
     }
 
+    @Override
     public Set<Acl> findAll(){
         Jedis conn = jedis.getResource();
         Map<String, String> jsons = conn.hgetAll(ACL_REDIS_KEY);
@@ -45,6 +43,7 @@ public class AclRedisRepository implements AclRepository {
                 .collect(Collectors.toSet());
     }
 
+    @Override
     public Acl findOneById(String id) {
         Jedis conn = jedis.getResource();
         Acl acl = findAcl(id, conn);
@@ -52,6 +51,47 @@ public class AclRedisRepository implements AclRepository {
         return acl;
     }
 
+    @Override
+    public Set<Acl> findAllByPrincipalAndNsObjectIn(String principal, List<String> nsObjects) {
+        throw new RuntimeException("findAllByPrincipalAndNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<Acl> findAllByPrincipal(String principal) {
+        throw new RuntimeException("findAllByPrincipal_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<Acl> findAllByNsObjectIn(List<String> nsObjects) {
+        throw new RuntimeException("findAllByNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<String> findAllEndUsers() {
+        throw new RuntimeException("findAllByNsObjectIn_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<String> findAllNamespaces() {
+        throw new RuntimeException("findAllNamespaces_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<String> findAllObjects() {
+        throw new RuntimeException("findAllObjects_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Set<Acl> findAllForCache(String usersetNamespace, String usersetObject, String usersetRelation) {
+        throw new RuntimeException("findAllForCache_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
+    public Long findMaxAclUpdatedByPrincipal(String principal) {
+        throw new RuntimeException("findMaxAclUpdatedByPrincipal_REDIS_IS_NOT_IMPLEMENTED_YET");
+    }
+
+    @Override
     public Set<Acl> findAllByNamespaceAndObjectAndUser(String namespace, String object, String user) {
         Set<Acl> acls = new HashSet<>();
         Jedis conn = jedis.getResource();

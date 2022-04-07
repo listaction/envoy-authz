@@ -146,6 +146,10 @@ public class AclRelationConfigService {
 
     public AclRelation getConfigRelation(String key, String relation) {
         AclRelationConfig config = getConfig(key);
+        if (config == null && key.contains(":")) {
+            String tmp[] = key.split(":");
+            config = getConfig(tmp[0]+":"+"*");
+        }
         if (config == null) return null;
         for (AclRelation rel : config.getRelations()){
             if (relation.equals(rel.getRelation())){
@@ -234,12 +238,13 @@ public class AclRelationConfigService {
 
 
     private ConcurrentSkipListSet<FlatRelationTree> tree2flatRelationTree(TreeNode<String> root, Tuple2<String, String> namespace) {
-        ConcurrentSkipListSet<FlatRelationTree> result = new ConcurrentSkipListSet<>(Comparator.comparingLong(FlatRelationTree::getLevel));
+        ConcurrentSkipListSet<FlatRelationTree> result = new ConcurrentSkipListSet<>(Comparator.comparingLong(FlatRelationTree::getLeft));
         for (TreeNode<String> node : root.getElementsIndex()) {
             if (node.equals(root)) continue; // ignore root
-            result.add(
-                    new FlatRelationTree(namespace.getT1(), namespace.getT2(), node.getData(), node.getLeft(), node.getRight(), node.getLevel())
-            );
+            FlatRelationTree frt = new FlatRelationTree(namespace.getT1(), namespace.getT2(), node.getData(), node.getLeft(), node.getRight(), node.getLevel());
+            log.info("{}", frt);
+            result.add(frt);
+
         }
         return result;
     }

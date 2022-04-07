@@ -6,30 +6,25 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.java.Log;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.cassandra.core.cql.Ordering;
-import org.springframework.data.cassandra.core.cql.PrimaryKeyType;
-import org.springframework.data.cassandra.core.mapping.Column;
-import org.springframework.data.cassandra.core.mapping.Indexed;
-import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn;
-import org.springframework.data.cassandra.core.mapping.Table;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
 import java.io.Serializable;
-import java.util.UUID;
 
 @Log
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(value = "acls")
+@Entity(name = "acls")
 public class AclEntity implements Serializable {
 
-    @PrimaryKeyColumn(type = PrimaryKeyType.PARTITIONED)
+    @Id
+    private String id;
     private String nsobject;
-    @PrimaryKeyColumn
+    @Column(name = "usr")
     private String user;
-    @PrimaryKeyColumn
     private String relation;
 
     private String namespace;

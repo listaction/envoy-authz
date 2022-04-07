@@ -1,78 +1,114 @@
 package org.example.authserver.service.zanzibar;
 
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
+import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.entity.CheckResult;
+import org.example.authserver.service.CacheService;
+import org.example.authserver.service.RelationsService;
+import org.example.authserver.service.model.LocalCache;
+import org.example.authserver.service.model.Mapping;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.pattern.PathPatternParser;
-import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
 public class AclFilterService {
 
-    private final Zanzibar zanzibar;
+    private final MappingService mappingService;
+    private final TokenService tokenService;
+    private final RelationsService relationsService;
+    private final CacheService cacheService;
 
-    public AclFilterService(Zanzibar zanzibar) {
-        this.zanzibar = zanzibar;
+    public AclFilterService(RelationsService relationsService, MappingService mappingService, TokenService tokenService, CacheService cacheService) {
+        this.mappingService = mappingService;
+        this.tokenService = tokenService;
+        this.relationsService = relationsService;
+        this.cacheService = cacheService;
     }
 
-    public boolean isAllowed(CheckRequest request){
-        String method;
-        String path;
-        String token;
-        String objectNamespace;
-        String serviceNamespace;
-        String servicePath;
-        Map<String, String> route;
-        try {
-            path = request.getAttributes().getRequest().getHttp().getPath();
-            objectNamespace = request.getAttributes().getContextExtensionsOrThrow("namespace_object");
-            serviceNamespace = request.getAttributes().getContextExtensionsOrThrow("namespace_service");
-            servicePath = request.getAttributes().getContextExtensionsOrThrow("service_path");
-            log.info("path: {}", path);
-            method = request.getAttributes().getRequest().getHttp().getMethod();
-            log.info("method: {}", method);
-            PathPatternParser parser = new PathPatternParser();
-            PathPatternRouteMatcher matcher = new PathPatternRouteMatcher(parser);
-            route  = matcher.matchAndExtract(servicePath, matcher.parseRoute(path));
-            log.info("route: {}", route);
-            Map<String, String> headers = request.getAttributes().getRequest().getHttp().getHeadersMap();
-            token = headers.get("authorization");
-        } catch (NullPointerException npe){
-            log.warn("Can't parse request's headers {}", request, npe);
-            return false;
-        }
-        if (token == null) return false;
-        if (route == null) route = new HashMap<>();
-        token = token.replace("Bearer ", "");
-        log.info("Token: {}", token);
+    public CheckResult checkRequest(CheckRequest request) {
+        long start = System.currentTimeMillis();
+        Claims claims = tokenService.getAllClaimsFromRequest(request);
+        long time2 = System.currentTimeMillis();
 
-        String relation;
-        switch (method.toLowerCase(Locale.getDefault())){
-            case "post":
-                relation = "owner";
-                break;
-            case "put":
-                relation = "editor";
-                break;
-            case "delete":
-                relation = "owner";
-                break;
-            default:
-                relation = "viewer";
+        if (claims == null) return CheckResult.builder().jwtPresent(false).result(false).build();
+
+        String user = claims.getSubject();
+        List<Mapping> mappings = mappingService.processRequest(request, claims);
+        long time3 = System.currentTimeMillis();
+        if (mappings == null || mappings.size() == 0) {
+            log.debug("Unable to find mapping for user {}.", user);
+            return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
-        log.info("[{}] CHECKING: {}:{}#{}@{}", method, objectNamespace, route.get("objectId"), relation, token);
+        LocalCache localCache = new LocalCache();
+        Long maxAclUpdate = relationsService.getAclMaxUpdate(user);
 
-        if (!zanzibar.check(serviceNamespace, objectNamespace, "enable", token)){
-            return false;
+        Set<String> allowedTags = new HashSet<>();
+        for (Mapping mapping : mappings) {
+            String mappingId = mapping.getVariable("aclId");
+            String namespace = mapping.getVariable("namespace");
+            String object = mapping.getVariable("object");
+            String path = mapping.getMappingEntity().getPath();
+
+            Set<String> roles = new HashSet<>(mapping.getRoles());
+            if (roles.isEmpty()) {
+                return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
+            }
+
+            long time4 = System.currentTimeMillis();
+            Set<String> relations = new HashSet<>();
+            //cacheService.getCachedRelations(user, namespace, object, path, maxAclUpdate);
+            boolean r = false;
+            if (HasTag(relations, roles, namespace, object)){
+                r = true;
+                allowedTags.addAll(relations);
+                log.info("zanzibar.getRelations (cache) {} ms.", System.currentTimeMillis() - time4);
+            } else {  // no actual cache exists
+                relations = relationsService.getRelations(namespace, object, user, localCache);
+                log.info("zanzibar.getRelations {} ms.", System.currentTimeMillis() - time4);
+
+                if (HasTag(relations, roles, namespace, object)) {
+                    r = true;
+                    allowedTags.addAll(relations);
+                }
+                //cacheService.persistCacheAsync(user, relations, path, maxAclUpdate);
+            }
+
+            if (!r) {
+                log.info("expected roles: {}:{} {}", namespace, object, roles);
+                log.info("roles available for {}: {}", user, relations);
+                long end = System.currentTimeMillis();
+                log.info("checkRequest {} ms.", end - start);
+                return CheckResult.builder().mappingsPresent(true).rejectedWithMappingId(mappingId).result(false).build();
+            }
         }
 
-        return zanzibar.check(objectNamespace, route.getOrDefault("objectId", "null"), relation, token);
+        long end = System.currentTimeMillis();
+        log.info("getAllClaimsFromRequest {} ms.", time2 - start);
+        log.info("mappingService.processRequest {} ms.", time3 - time2);
+        log.info("checkRequest {} ms.", end - start);
+        log.info("mappings size: {}.", mappings.size());
+        return CheckResult.builder().mappingsPresent(true).result(true).tags(allowedTags).build();
     }
 
+    private static boolean HasTag(Set<String> relations, Set<String> roles, String namespace, String object) {
+        if (relations == null || relations.isEmpty()) {
+            return false;
+        }
+
+        for (String role : roles) {
+            String currentTag = String.format("%s:%s#%s", namespace, object, role);
+            boolean tagFound = relations.contains(currentTag);
+            if (tagFound) {
+                log.trace("Found tag: {}", currentTag);
+                return true;
+            }
+        }
+        return false;
+    }
 }
