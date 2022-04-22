@@ -27,5 +27,5 @@ public interface AclSpringDataRepository extends CrudRepository<AclEntity, Strin
     Set<String> findDistinctObjects();
 
     @Query("SELECT max(a.updated) FROM acls a where a.user = ?1")
-    long findMaxAclUpdatedByPrincipal(String principal);
+    Long findMaxAclUpdatedByPrincipal(String principal);
 }
