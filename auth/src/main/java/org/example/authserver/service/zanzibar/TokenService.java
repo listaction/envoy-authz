@@ -26,15 +26,10 @@ public class TokenService {
     }
 
     public Claims getAllClaimsFromRequest(CheckRequest request) {
-        String token;
-        if (appProperties.isJwtParamEnabled()) {
+        String token = getTokenHeader(request);
+        if (token == null && appProperties.isJwtParamEnabled()) {
             token = getTokenParam(request);
-            if (token != null) {
-                return getAllClaimsFromToken(token);
-            }
         }
-
-        token = getTokenHeader(request);
         if (token == null) return null;
         return getAllClaimsFromToken(token);
     }
