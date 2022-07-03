@@ -36,18 +36,23 @@ public class MappingService {
         this.mappingRepository = mappingRepository;
     }
 
+    public List<Mapping> processRequest(CheckRequest request, Claims claims) {
+        String requestMethod = request.getAttributes().getRequest().getHttp().getMethod();
+        String path = removeQuery(request.getAttributes().getRequest().getHttp().getPath());
+        Map<String, String> headersMap = request.getAttributes().getRequest().getHttp().getHeadersMap();
+        String requestBody = request.getAttributes().getRequest().getHttp().getBody();
+
+        return processRequest(requestMethod, path, headersMap, requestBody, claims);
+    }
 
     /**
      * @return mapping variables, or {@code null} for no match
      */
-    public List<Mapping> processRequest(CheckRequest request, Claims claims) {
-        Map<MappingEntity, Map<String, String>> mappings = findMappings(request);
+    public List<Mapping> processRequest(String requestMethod, String path, Map<String, String> headersMap, String requestBody, Claims claims) {
+        Map<MappingEntity, Map<String, String>> mappings = findMappings(requestMethod, path);
         if (mappings == null) return null; // no match
 
         List<Mapping> result = new ArrayList<>();
-
-        String requestMethod = request.getAttributes().getRequest().getHttp().getMethod();
-        Map<String, String> headersMap = request.getAttributes().getRequest().getHttp().getHeadersMap();
 
         for (Map.Entry<MappingEntity, Map<String, String>> entry : mappings.entrySet()) {
             MappingEntity mappingEntity = entry.getKey();
@@ -56,7 +61,6 @@ public class MappingService {
             mapping.getVariableMap().putAll(entry.getValue());
 
             if (mappingEntity.getBodyMapping() != null && ("POST".equalsIgnoreCase(requestMethod) || "PUT".equalsIgnoreCase(requestMethod))) {
-                String requestBody = request.getAttributes().getRequest().getHttp().getBody();
                 BodyMapping bodyMapping = mappingEntity.getBodyMapping();
                 mapping.getVariableMap().putAll(parseRequestJsonBody(bodyMapping, requestBody));
             }
@@ -81,11 +85,10 @@ public class MappingService {
         return result;
     }
 
-    public Map<MappingEntity, Map<String, String>> findMappings(CheckRequest request) {
+    public Map<MappingEntity, Map<String, String>> findMappings(String requestMethod, String path) {
         List<MappingEntity> mappings = mappingCacheService.getAll();
         Map<MappingEntity, Map<String, String>> result = new HashMap<>();
 
-        String requestMethod = request.getAttributes().getRequest().getHttp().getMethod();
 
         for (MappingEntity currentMapping : mappings) {
             Map<String, String> route;
@@ -94,7 +97,6 @@ public class MappingService {
                 continue; // skip entries that don't match
             }
 
-            String path = removeQuery(request.getAttributes().getRequest().getHttp().getPath());
             PathPatternParser parser = new PathPatternParser();
             PathPatternRouteMatcher matcher = new PathPatternRouteMatcher(parser);
             route = matcher.matchAndExtract(currentMapping.getPath(), matcher.parseRoute(path));
