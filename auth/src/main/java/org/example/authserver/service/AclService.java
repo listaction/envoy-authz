@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.AclEntity;
 import org.example.authserver.repo.AclRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -101,6 +102,7 @@ public class AclService {
     repository.deleteById(id);
   }
 
+  @Transactional
   public void delete(
       String namespace,
       String object,
@@ -114,6 +116,7 @@ public class AclService {
             namespace, object, relation, user, usersetNamespace, usersetObject, usersetRelation);
   }
 
+  @Transactional
   public void delete(Acl acl) {
     delete(
         acl.getNamespace(),

@@ -16,11 +16,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import redis.clients.jedis.JedisPool;
 
 @Slf4j
 @EnableConfigurationProperties
 @ConfigurationPropertiesScan
+@EnableTransactionManagement
 @SpringBootApplication
 public class Application {
 
