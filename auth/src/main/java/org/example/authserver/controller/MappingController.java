@@ -3,7 +3,7 @@ package org.example.authserver.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.entity.MappingEntityList;
-import org.example.authserver.repo.pgsql.MappingRepository;
+import org.example.authserver.repo.MappingRepository;
 import org.example.authserver.service.zanzibar.MappingService;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,7 +25,7 @@ public class MappingController {
     }
 
     @GetMapping("/list")
-    public List<MappingEntity> listAcl() {
+    public List<MappingEntity> listMappings() {
         return mappingService.findAll();
     }
 
@@ -48,16 +48,10 @@ public class MappingController {
         mappingService.deleteAll();
     }
 
-//    @DeleteMapping("/delete/{id}")
-//    public void deleteAcl(@PathVariable String id){
-//        log.info("Delete Mapping: {}", id);
-//        repository.delete(id);
-//    }
-
     @DeleteMapping("/delete/{id}")
-    public void deleteMapping(@PathVariable String id) {
-        log.info("Delete Mapping: {}", id);
-        mappingService.deleteById(id);
+    public void deleteAcl(@PathVariable String id){
+        log.info("Delete Mapping by id: {}", id);
+        repository.deleteById(id);
     }
 
     @GetMapping("/refresh-cache")

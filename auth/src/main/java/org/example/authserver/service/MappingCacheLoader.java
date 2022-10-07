@@ -2,7 +2,7 @@ package org.example.authserver.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.MappingEntity;
-import org.example.authserver.repo.pgsql.MappingRepository;
+import org.example.authserver.repo.MappingRepository;
 
 import java.util.*;
 import java.util.concurrent.Executors;

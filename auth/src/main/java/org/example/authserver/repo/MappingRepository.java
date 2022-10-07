@@ -1,4 +1,4 @@
-package org.example.authserver.repo.pgsql;
+package org.example.authserver.repo;
 
 import org.example.authserver.entity.MappingEntity;
 import org.springframework.data.repository.CrudRepository;

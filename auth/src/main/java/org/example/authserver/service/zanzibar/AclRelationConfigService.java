@@ -3,6 +3,7 @@ package org.example.authserver.service.zanzibar;
 import authserver.acl.*;
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.entity.AclRelationConfigEntity;
 import org.example.authserver.repo.AclRelationConfigRepository;
 import org.example.authserver.repo.SubscriptionRepository;
 import org.example.authserver.service.CacheService;
@@ -33,15 +34,18 @@ public class AclRelationConfigService {
     }
 
     public Set<AclRelationConfig> findAll(){
-        return repository.findAll();
+        return repository.findAll().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toSet());
     }
 
     public AclRelationConfig findOneById(String id){
-        return repository.findOneById(id);
+        return repository.findById(id).map(this::mapToDto).orElse(null);
     }
 
     public void save(AclRelationConfig config) {
-        repository.save(config);
+        AclRelationConfigEntity entity = mapToEntity(config);
+        repository.save(entity);
         subscriptionRepository.publish(config);
     }
 
@@ -50,7 +54,7 @@ public class AclRelationConfigService {
     }
 
     public void delete(AclRelationConfig config){
-        repository.delete(config);
+        repository.deleteById(config.getId().toString());
     }
 
     public Flux<String> subscribe(){
@@ -321,4 +325,23 @@ public class AclRelationConfigService {
         return false;
     }
 
+    private AclRelationConfig mapToDto(AclRelationConfigEntity m) {
+        return AclRelationConfig.builder()
+                .id(UUID.fromString(m.getId()))
+                .namespace(m.getNamespace())
+                .relations(m.getConfig().getRelations())
+                .build();
+    }
+
+    private AclRelationConfigEntity mapToEntity(AclRelationConfig m) {
+        return AclRelationConfigEntity.builder()
+                .id(m.getId().toString())
+                .namespace(m.getNamespace())
+                .config(AclRelationConfig.builder()
+                        .id(m.getId())
+                        .namespace(m.getNamespace())
+                        .relations(m.getRelations())
+                        .build())
+                .build();
+    }
 }

@@ -5,13 +5,10 @@ import authserver.acl.Acl;
 import authserver.acl.AclRelationConfig;
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.codec.digest.MurmurHash3;
 import org.example.authserver.Utils;
 import org.example.authserver.entity.RelCache;
-import org.example.authserver.repo.AclRepository;
-import org.example.authserver.repo.pgsql.RelCacheRepository;
-import org.example.authserver.service.model.LocalCache;
+import org.example.authserver.repo.RelCacheRepository;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;

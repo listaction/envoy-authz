@@ -16,13 +16,11 @@ import java.util.stream.Collectors;
 public class CacheLoaderServiceImpl implements CacheLoaderService {
 
     private final CacheService cacheService;
-    private final AclRelationConfigRepository configRepository;
     private final AclRelationConfigService configService;
     private final SubscriptionRepository subscriptionRepository;
 
-    public CacheLoaderServiceImpl(CacheService cacheService, AclRelationConfigRepository configRepository, AclRelationConfigService configService, SubscriptionRepository subscriptionRepository) {
+    public CacheLoaderServiceImpl(CacheService cacheService, AclRelationConfigService configService, SubscriptionRepository subscriptionRepository) {
         this.cacheService = cacheService;
-        this.configRepository = configRepository;
         this.configService = configService;
         this.subscriptionRepository = subscriptionRepository;
     }
@@ -39,7 +37,7 @@ public class CacheLoaderServiceImpl implements CacheLoaderService {
 
     private void updateConfigs(String id) {
         log.info("updateConfigs [{}] started", id);
-        AclRelationConfig config = configRepository.findOneById(id);
+        AclRelationConfig config = configService.findOneById(id);
         cacheService.updateConfig(config);
         configService.update();
         log.info("updateConfigs [{}] finished", id);
@@ -47,7 +45,7 @@ public class CacheLoaderServiceImpl implements CacheLoaderService {
 
     public void updateAllConfigs() {
         log.info("updateAllConfigs started");
-        Map<String, AclRelationConfig> configMap = configRepository.findAll().stream()
+        Map<String, AclRelationConfig> configMap = configService.findAll().stream()
                 .collect(Collectors.toMap(AclRelationConfig::getNamespace, m->m));
         cacheService.updateConfigs(configMap);
         configService.update();

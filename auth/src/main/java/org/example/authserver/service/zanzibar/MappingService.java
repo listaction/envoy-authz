@@ -10,7 +10,7 @@ import org.example.authserver.entity.BodyMapping;
 import org.example.authserver.entity.BodyMappingKey;
 import org.example.authserver.entity.HeaderMappingKey;
 import org.example.authserver.entity.MappingEntity;
-import org.example.authserver.repo.pgsql.MappingRepository;
+import org.example.authserver.repo.MappingRepository;
 import org.example.authserver.service.MappingCacheService;
 import org.example.authserver.service.model.Mapping;
 import org.springframework.stereotype.Service;

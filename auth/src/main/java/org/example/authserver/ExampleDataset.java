@@ -7,7 +7,7 @@ import authserver.acl.AclRelationParent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.repo.AclRepository;
+import org.example.authserver.service.AclService;
 import org.example.authserver.service.zanzibar.AclRelationConfigService;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
@@ -26,10 +26,10 @@ public class ExampleDataset {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private final JedisPool jedis;
-    private final AclRepository aclRepository;
+    private final AclService aclRepository;
     private final AclRelationConfigService relationConfigService;
 
-    public ExampleDataset(@Nullable JedisPool jedis, AclRepository aclRepository, AclRelationConfigService relationConfigService) {
+    public ExampleDataset(@Nullable JedisPool jedis, AclService aclRepository, AclRelationConfigService relationConfigService) {
         this.jedis = jedis;
         this.aclRepository = aclRepository;
         this.relationConfigService = relationConfigService;

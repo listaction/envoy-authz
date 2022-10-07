@@ -8,7 +8,8 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.example.authserver.entity.CheckResult;
-import org.example.authserver.repo.AclRepository;
+
+import org.example.authserver.service.AclService;
 import org.example.authserver.service.model.LocalCache;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
@@ -21,10 +22,10 @@ import java.util.stream.Collectors;
 @Service
 public class ZanzibarImpl implements Zanzibar {
 
-    private final AclRepository repository;
+    private final AclService repository;
     private final AclRelationConfigService relationConfigService;
 
-    public ZanzibarImpl(AclRepository repository, AclRelationConfigService relationConfigService) {
+    public ZanzibarImpl(AclService repository, AclRelationConfigService relationConfigService) {
         this.repository = repository;
         this.relationConfigService = relationConfigService;
     }

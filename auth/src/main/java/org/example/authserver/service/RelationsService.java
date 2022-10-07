@@ -2,7 +2,7 @@ package org.example.authserver.service;
 
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.repo.AclRepository;
+
 import org.example.authserver.service.model.LocalCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.stereotype.Service;
@@ -14,17 +14,17 @@ import java.util.Set;
 public class RelationsService {
 
     private final Zanzibar zanzibar;
-    private final AclRepository aclRepository;
+    private final AclService aclService;
     private final MeterService meterService;
 
-    public RelationsService(Zanzibar zanzibar, AclRepository aclRepository, MeterService meterService) {
+    public RelationsService(Zanzibar zanzibar, AclService aclService, MeterService meterService) {
         this.zanzibar = zanzibar;
-        this.aclRepository = aclRepository;
+        this.aclService = aclService;
         this.meterService = meterService;
     }
 
     public Long getAclMaxUpdate(String principal){
-        return aclRepository.findMaxAclUpdatedByPrincipal(principal);
+        return aclService.findMaxAclUpdatedByPrincipal(principal);
     }
 
     @Timed(value = "relation.get", percentiles = {0.99, 0.95, 0.75})

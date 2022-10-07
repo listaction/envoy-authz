@@ -1,35 +1,35 @@
 package org.example.authserver.repo;
 
-import authserver.acl.Acl;
-import reactor.util.function.Tuple2;
+import org.example.authserver.entity.AclEntity;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Set;
 
-public interface AclRepository {
+@Repository
+public interface AclRepository extends CrudRepository<AclEntity, String> {
 
-    Set<Acl> findAll();
+    List<AclEntity> findAll();
+    Set<AclEntity> findAllByNsobjectAndUser(String nsobject, String user);
+    Set<AclEntity> findAllByNsobjectInAndUser(List<String> nsobject, String user);
 
-    Acl findOneById(String id);
+    Set<AclEntity> findAllByUser(String principal);
+    Set<AclEntity> findAllByUsersetNamespaceAndUsersetObjectAndUsersetRelationAndUser(String usersetNamespace, String usersetObject, String usersetRelation, String user);
 
-    Set<Acl> findAllByNamespaceAndObjectAndUser(String namespace, String object, String user);
+    @Query("SELECT DISTINCT a.user FROM acls a WHERE a.user <> '*'")
+    Set<String> findDistinctEndUsers();
 
-    void save(Acl acl);
+    @Query("SELECT DISTINCT a.namespace FROM acls a")
+    Set<String> findDistinctNamespaces();
 
-    void delete(Acl acl);
+    @Query("SELECT DISTINCT a.object FROM acls a")
+    Set<String> findDistinctObjects();
 
-    Set<Acl> findAllByPrincipalAndNsObjectIn(String principal, List<String> nsObjects);
-    Set<Acl> findAllByPrincipal(String principal);
-    Set<Acl> findAllByNsObjectIn(List<String> nsObjects);
-
-    Set<String> findAllEndUsers();
-
-    Set<String> findAllNamespaces();
-
-    Set<String> findAllObjects();
-
-    Set<Acl> findAllForCache(String usersetNamespace, String usersetObject, String usersetRelation);
-
-
+    @Query("SELECT max(a.updated) FROM acls a where a.user = ?1")
     Long findMaxAclUpdatedByPrincipal(String principal);
+    void deleteAllByNamespaceAndObjectAndRelationAndUserAndUsersetNamespaceAndUsersetObjectAndUsersetRelation(String namespace, String object, String rel, String user, String usNamespace, String usObject, String usRel);
 }
+
+

@@ -4,8 +4,9 @@ import authserver.acl.Acl;
 import com.google.common.base.Stopwatch;
 import org.example.authserver.entity.AclsRequestDTO;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.repo.AclRepository;
+
 import org.example.authserver.repo.SubscriptionRepository;
+import org.example.authserver.service.AclService;
 import org.example.authserver.service.CacheService;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,11 +20,11 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/acl")
 public class AclController {
 
-    private final AclRepository repository;
+    private final AclService repository;
     private final SubscriptionRepository subscriptionRepository;
     private final CacheService cacheService;
 
-    public AclController(AclRepository repository, SubscriptionRepository subscriptionRepository, CacheService cacheService) {
+    public AclController(AclService repository, SubscriptionRepository subscriptionRepository, CacheService cacheService) {
         this.repository = repository;
         this.subscriptionRepository = subscriptionRepository;
         this.cacheService = cacheService;
@@ -60,10 +61,10 @@ public class AclController {
         log.info("Created ACL: {}, time {}ms", acl, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-//    @DeleteMapping("/delete/{id}")
-//    public void deleteAcl(@PathVariable String id){
-//        log.info("Delete Mapping: {}", id);
-//        repository.delete(id);
-//    }
+    @PostMapping("/delete")
+    public void deleteAcl(@Valid @RequestBody Acl acl){
+        log.info("Delete acl: {}", acl);
+        repository.delete(acl);
+    }
 
 }
