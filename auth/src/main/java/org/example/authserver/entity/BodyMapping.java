@@ -1,11 +1,10 @@
 package org.example.authserver.entity;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 @Builder
 @Data
@@ -13,7 +12,6 @@ import java.util.List;
 @AllArgsConstructor
 public class BodyMapping {
 
-    private BodyMappingTypes type;
-    private List<BodyMappingKey> keys;
-
+  private BodyMappingTypes type;
+  private List<BodyMappingKey> keys;
 }

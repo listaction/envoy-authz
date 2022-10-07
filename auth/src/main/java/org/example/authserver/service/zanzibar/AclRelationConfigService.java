@@ -2,6 +2,10 @@ package org.example.authserver.service.zanzibar;
 
 import authserver.acl.*;
 import io.micrometer.core.annotation.Timed;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.AclRelationConfigEntity;
 import org.example.authserver.repo.AclRelationConfigRepository;
@@ -12,336 +16,361 @@ import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.stream.Collectors;
-
 @Slf4j
 @Service
 public class AclRelationConfigService {
 
-    private static final Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>> relations = new ConcurrentHashMap<>();
+  private static final Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>>
+      relations = new ConcurrentHashMap<>();
 
-    private final AclRelationConfigRepository repository;
-    private final CacheService cacheService;
-    private final SubscriptionRepository subscriptionRepository;
+  private final AclRelationConfigRepository repository;
+  private final CacheService cacheService;
+  private final SubscriptionRepository subscriptionRepository;
 
-    public AclRelationConfigService(AclRelationConfigRepository repository, CacheService cacheService, SubscriptionRepository subscriptionRepository) {
-        this.repository = repository;
-        this.cacheService = cacheService;
-        this.subscriptionRepository = subscriptionRepository;
+  public AclRelationConfigService(
+      AclRelationConfigRepository repository,
+      CacheService cacheService,
+      SubscriptionRepository subscriptionRepository) {
+    this.repository = repository;
+    this.cacheService = cacheService;
+    this.subscriptionRepository = subscriptionRepository;
+  }
+
+  public Set<AclRelationConfig> findAll() {
+    return repository.findAll().stream().map(this::mapToDto).collect(Collectors.toSet());
+  }
+
+  public AclRelationConfig findOneById(String id) {
+    return repository.findById(id).map(this::mapToDto).orElse(null);
+  }
+
+  public void save(AclRelationConfig config) {
+    AclRelationConfigEntity entity = mapToEntity(config);
+    repository.save(entity);
+    subscriptionRepository.publish(config);
+  }
+
+  public void publish(AclRelationConfig config) {
+    subscriptionRepository.publish(config);
+  }
+
+  public void delete(AclRelationConfig config) {
+    repository.deleteById(config.getId().toString());
+  }
+
+  public Flux<String> subscribe() {
+    return subscriptionRepository.subscribeConfig();
+  }
+
+  @Timed(
+      value = "relations.nested",
+      percentiles = {0.99, 0.95, 0.75})
+  public Set<String> nestedRelations(String namespace, String object, String relation) {
+    Tuple2<String, String> key = Tuples.of(namespace, object);
+
+    ConcurrentSkipListSet<FlatRelationTree> flatTreeList = relations.get(key);
+    if (flatTreeList == null) {
+      flatTreeList = relations.get(Tuples.of(namespace, "*"));
     }
 
-    public Set<AclRelationConfig> findAll(){
-        return repository.findAll().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toSet());
+    return nestedRelations(relation, flatTreeList);
+  }
+
+  public Set<String> nestedRelations(
+      String relation, ConcurrentSkipListSet<FlatRelationTree> flatTreeList) {
+    Set<String> result = new HashSet<>();
+    result.add(relation);
+
+    if (flatTreeList == null) return result;
+
+    // find current
+    FlatRelationTree current = null;
+    for (FlatRelationTree flatTree : flatTreeList) {
+      if (flatTree.getRelation().equals(relation)) {
+        current = flatTree;
+        break;
+      }
+    }
+    if (current == null) return result;
+
+    // find nested
+    for (FlatRelationTree flatTree : flatTreeList) {
+      if (flatTree.getLeft() > current.getLeft() && flatTree.getRight() < current.getRight()) {
+        result.add(flatTree.getRelation());
+      }
     }
 
-    public AclRelationConfig findOneById(String id){
-        return repository.findById(id).map(this::mapToDto).orElse(null);
+    return result;
+  }
+
+  @Timed(
+      value = "relations.root",
+      percentiles = {0.99, 0.95, 0.75})
+  public Set<String> rootRelations(String namespace, String object, String relation) {
+    Set<String> result = new HashSet<>();
+    result.add(relation);
+
+    Tuple2<String, String> key = Tuples.of(namespace, object);
+
+    ConcurrentSkipListSet<FlatRelationTree> flatTreeList = relations.get(key);
+    if (flatTreeList == null) {
+      flatTreeList = relations.get(Tuples.of(namespace, "*"));
+    }
+    if (flatTreeList == null) return result;
+
+    // find current
+    FlatRelationTree current = null;
+    for (FlatRelationTree flatTree : flatTreeList) {
+      if (flatTree.getRelation().equals(relation)) {
+        current = flatTree;
+        break;
+      }
+    }
+    if (current == null) return result;
+
+    final int currentLevel = current.getLevel();
+
+    ConcurrentSkipListSet<FlatRelationTree> copyFlatTreeList =
+        new ConcurrentSkipListSet<>(flatTreeList);
+    copyFlatTreeList.removeIf(f -> f.getLevel() > currentLevel);
+
+    for (FlatRelationTree record : copyFlatTreeList) {
+      if (record.equals(current)) continue;
+      Set<String> nested = nestedRelations(relation, copyFlatTreeList);
+      if (nested.contains(relation)) {
+        result.add(record.getRelation());
+      }
     }
 
-    public void save(AclRelationConfig config) {
-        AclRelationConfigEntity entity = mapToEntity(config);
-        repository.save(entity);
-        subscriptionRepository.publish(config);
+    return result;
+  }
+
+  public void update() {
+    Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>> map = getRelationMap();
+    relations.keySet().removeIf(key -> !relations.containsKey(key));
+    relations.putAll(map);
+  }
+
+  public AclRelationConfig getConfig(String key) {
+    return cacheService.getConfigs().get(key);
+  }
+
+  public AclRelation getConfigRelation(String key, String relation) {
+    AclRelationConfig config = getConfig(key);
+    if (config == null && key.contains(":")) {
+      String tmp[] = key.split(":");
+      config = getConfig(tmp[0] + ":" + "*");
     }
-
-    public void publish(AclRelationConfig config){
-        subscriptionRepository.publish(config);
+    if (config == null) return null;
+    for (AclRelation rel : config.getRelations()) {
+      if (relation.equals(rel.getRelation())) {
+        return rel;
+      }
     }
+    return null;
+  }
 
-    public void delete(AclRelationConfig config){
-        repository.deleteById(config.getId().toString());
-    }
+  public List<FlatRelation> getFlatRelationListFromConfigs() {
+    return getFlatRelationListFromConfigs(new HashSet<>(cacheService.getConfigs().values()));
+  }
 
-    public Flux<String> subscribe(){
-        return subscriptionRepository.subscribeConfig();
-    }
-
-    @Timed(value = "relations.nested", percentiles = {0.99, 0.95, 0.75})
-    public Set<String> nestedRelations(String namespace, String object, String relation) {
-        Tuple2<String, String> key = Tuples.of(namespace, object);
-
-        ConcurrentSkipListSet<FlatRelationTree> flatTreeList = relations.get(key);
-        if (flatTreeList == null) {
-            flatTreeList = relations.get(Tuples.of(namespace, "*"));
-        }
-
-        return nestedRelations(relation, flatTreeList);
-    }
-
-    public Set<String> nestedRelations(String relation, ConcurrentSkipListSet<FlatRelationTree> flatTreeList) {
-        Set<String> result = new HashSet<>();
-        result.add(relation);
-
-        if (flatTreeList == null) return result;
-
-        // find current
-        FlatRelationTree current = null;
-        for (FlatRelationTree flatTree : flatTreeList) {
-            if (flatTree.getRelation().equals(relation)) {
-                current = flatTree;
-                break;
+  private List<FlatRelation> getFlatRelationListFromConfigs(Set<AclRelationConfig> configs) {
+    List<FlatRelation> relationList = new ArrayList<>();
+    for (AclRelationConfig config : configs) {
+      for (AclRelation relation : config.getRelations()) {
+        relationList.add(new FlatRelation(config.getNamespace(), relation.getRelation(), null));
+        if (relation.getParents() != null) {
+          for (AclRelationParent parent : relation.getParents()) {
+            relationList.add(
+                new FlatRelation(
+                    config.getNamespace(), relation.getRelation(), parent.getRelation()));
+            if (parent.getParents() != null) {
+              getConfigNestedRelations(
+                  config, parent.getParents(), relationList, parent.getRelation());
             }
+          }
         }
-        if (current == null) return result;
-
-        // find nested
-        for (FlatRelationTree flatTree : flatTreeList) {
-            if (flatTree.getLeft() > current.getLeft() && flatTree.getRight() < current.getRight()) {
-                result.add(flatTree.getRelation());
-            }
-        }
-
-        return result;
+      }
     }
 
-    @Timed(value = "relations.root", percentiles = {0.99, 0.95, 0.75})
-    public Set<String> rootRelations(String namespace, String object, String relation) {
-        Set<String> result = new HashSet<>();
-        result.add(relation);
+    return relationList;
+  }
 
-        Tuple2<String, String> key = Tuples.of(namespace, object);
+  private Set<String> getConfigNestedRelations(
+      AclRelationConfig config,
+      Set<AclRelationParent> parents,
+      List<FlatRelation> relationList,
+      String parentRelation) {
+    if (parents == null) return new HashSet<>();
+    Set<String> result = new HashSet<>();
+    for (AclRelationParent parent : parents) {
+      String p = String.format("%s#%s", config.getNamespace(), parent.getRelation());
+      result.add(p);
 
-        ConcurrentSkipListSet<FlatRelationTree> flatTreeList = relations.get(key);
-        if (flatTreeList == null) {
-            flatTreeList = relations.get(Tuples.of(namespace, "*"));
-        }
-        if (flatTreeList == null) return result;
+      relationList.add(
+          new FlatRelation(config.getNamespace(), parentRelation, parent.getRelation()));
 
-        // find current
-        FlatRelationTree current = null;
-        for (FlatRelationTree flatTree : flatTreeList) {
-            if (flatTree.getRelation().equals(relation)) {
-                current = flatTree;
-                break;
-            }
-        }
-        if (current == null) return result;
-
-        final int currentLevel = current.getLevel();
-
-        ConcurrentSkipListSet<FlatRelationTree> copyFlatTreeList = new ConcurrentSkipListSet<>(flatTreeList);
-        copyFlatTreeList.removeIf(f -> f.getLevel() > currentLevel);
-
-        for (FlatRelationTree record : copyFlatTreeList) {
-            if (record.equals(current)) continue;
-            Set<String> nested = nestedRelations(relation, copyFlatTreeList);
-            if (nested.contains(relation)) {
-                result.add(record.getRelation());
-            }
-        }
-
-        return result;
+      result.addAll(
+          getConfigNestedRelations(
+              config, parent.getParents(), relationList, parent.getRelation()));
     }
 
-    public void update() {
-        Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>> map = getRelationMap();
-        relations.keySet().removeIf(key -> !relations.containsKey(key));
-        relations.putAll(map);
+    return result;
+  }
+
+  private Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>> getRelationMap() {
+    List<FlatRelation> relationList = getFlatRelationListFromConfigs();
+    return getRelationMap(relationList);
+  }
+
+  private Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>> getRelationMap(
+      List<FlatRelation> relationList) {
+    Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>> result = new HashMap<>();
+
+    // namespace tuple {namespace, object} <-> list
+    Map<Tuple2<String, String>, List<FlatRelation>> groupedFlatRelations =
+        relationList.stream()
+            .collect(Collectors.groupingBy(m -> Tuples.of(m.getNamespace(), m.getObject())));
+
+    for (Map.Entry<Tuple2<String, String>, List<FlatRelation>> entry :
+        groupedFlatRelations.entrySet()) {
+      Tuple2<String, String> key = entry.getKey();
+      List<FlatRelation> flatRelations = entry.getValue();
+      TreeNode<String> root = flat2tree(flatRelations);
+      result.put(key, tree2flatRelationTree(root, key));
     }
 
-    public AclRelationConfig getConfig(String key){
-        return cacheService.getConfigs().get(key);
+    return result;
+  }
+
+  public Map<Tuple2<String, String>, Set<String>> getRelationSetFromAcls(Set<Acl> acls) {
+    Map<Tuple2<String, String>, Set<String>> relations = new HashMap<>();
+    for (Acl acl : acls) {
+      Tuple2<String, String> ns = Tuples.of(acl.getNamespace(), acl.getObject());
+      Set<String> r = relations.getOrDefault(ns, new HashSet<>());
+      r.add(acl.getRelation());
+      relations.put(ns, r);
+      if (acl.hasUserset()) {
+        Tuple2<String, String> ns1 = Tuples.of(acl.getUsersetNamespace(), acl.getUsersetObject());
+        Set<String> r1 = relations.getOrDefault(ns, new HashSet<>());
+        r1.add(acl.getUsersetRelation());
+        relations.put(ns1, r1);
+      }
+    }
+    return relations;
+  }
+
+  private ConcurrentSkipListSet<FlatRelationTree> tree2flatRelationTree(
+      TreeNode<String> root, Tuple2<String, String> namespace) {
+    ConcurrentSkipListSet<FlatRelationTree> result =
+        new ConcurrentSkipListSet<>(Comparator.comparingLong(FlatRelationTree::getLeft));
+    for (TreeNode<String> node : root.getElementsIndex()) {
+      if (node.equals(root)) continue; // ignore root
+      FlatRelationTree frt =
+          new FlatRelationTree(
+              namespace.getT1(),
+              namespace.getT2(),
+              node.getData(),
+              node.getLeft(),
+              node.getRight(),
+              node.getLevel());
+      log.info("{}", frt);
+      result.add(frt);
+    }
+    return result;
+  }
+
+  private TreeNode<String> flat2tree(List<FlatRelation> flatRelations) {
+    TreeNode<String> root = new TreeNode<>("root");
+
+    // relation <-> set
+    Map<String, Set<FlatRelation>> groupedByRelation =
+        flatRelations.stream()
+            .collect(Collectors.groupingBy(FlatRelation::getRelation, Collectors.toSet()));
+
+    Set<FlatRelation> clearedRelations = new HashSet<>();
+    for (Map.Entry<String, Set<FlatRelation>> entry : groupedByRelation.entrySet()) {
+      boolean existsNonNullParent = isExistsRelationWhereParentIsNotNull(entry.getValue());
+      if (existsNonNullParent) {
+        entry.getValue().removeIf(r -> r.getParent() == null);
+      }
+      clearedRelations.addAll(entry.getValue());
     }
 
-    public AclRelation getConfigRelation(String key, String relation) {
-        AclRelationConfig config = getConfig(key);
-        if (config == null && key.contains(":")) {
-            String tmp[] = key.split(":");
-            config = getConfig(tmp[0]+":"+"*");
-        }
-        if (config == null) return null;
-        for (AclRelation rel : config.getRelations()){
-            if (relation.equals(rel.getRelation())){
-                return rel;
-            }
-        }
-        return null;
+    Map<String, TreeNode<String>> nodes = new HashMap<>();
+
+    Queue<FlatRelation> q = new LinkedList<>(clearedRelations);
+    while (!q.isEmpty()) {
+      FlatRelation relation = q.poll();
+      if (relation.getParent() == null) {
+        TreeNode<String> node = root.addChild(relation.getRelation()); // add to root
+        nodes.put(relation.getRelation(), node);
+        continue;
+      }
+
+      TreeNode<String> parentNode = nodes.get(relation.getParent());
+      if (parentNode == null) {
+        q.add(relation);
+        continue;
+      }
+
+      TreeNode<String> node = parentNode.addChild(relation.getRelation()); // add to parent
+      nodes.put(relation.getRelation(), node);
     }
 
-    public List<FlatRelation> getFlatRelationListFromConfigs() {
-        return getFlatRelationListFromConfigs(new HashSet<>(cacheService.getConfigs().values()));
+    recalculateLeftRight(root);
+
+    return root;
+  }
+
+  private void recalculateLeftRight(TreeNode<String> root) {
+    processNode(root, 0);
+  }
+
+  private Tuple2<Integer, Integer> processNode(TreeNode<String> parent, int initialId) {
+    int left = initialId + 1;
+    int right = initialId + 1;
+    Iterator<TreeNode<String>> it = parent.getChildren().iterator();
+    while (it.hasNext()) {
+      TreeNode<String> child = it.next();
+      child.setLeft(left);
+      Tuple2<Integer, Integer> tuple = processNode(child, left);
+      right = tuple.getT2();
+      child.setRight(right);
+
+      if (it.hasNext()) {
+        left = right + 1;
+      }
+    }
+    return Tuples.of(left, right + 1);
+  }
+
+  private boolean isExistsRelationWhereParentIsNotNull(Set<FlatRelation> relations) {
+    for (FlatRelation relation : relations) {
+      if (relation.getParent() != null) return true;
     }
 
-    private List<FlatRelation> getFlatRelationListFromConfigs(Set<AclRelationConfig> configs) {
-        List<FlatRelation> relationList = new ArrayList<>();
-        for (AclRelationConfig config : configs) {
-            for (AclRelation relation : config.getRelations()) {
-                relationList.add(new FlatRelation(config.getNamespace(), relation.getRelation(), null));
-                if (relation.getParents() != null) {
-                    for (AclRelationParent parent : relation.getParents()) {
-                        relationList.add(new FlatRelation(config.getNamespace(), relation.getRelation(), parent.getRelation()));
-                        if (parent.getParents() != null) {
-                            getConfigNestedRelations(config, parent.getParents(), relationList, parent.getRelation());
-                        }
-                    }
-                }
-            }
-        }
+    return false;
+  }
 
-        return relationList;
-    }
+  private AclRelationConfig mapToDto(AclRelationConfigEntity m) {
+    return AclRelationConfig.builder()
+        .id(UUID.fromString(m.getId()))
+        .namespace(m.getNamespace())
+        .relations(m.getConfig().getRelations())
+        .build();
+  }
 
-    private Set<String> getConfigNestedRelations(AclRelationConfig config, Set<AclRelationParent> parents, List<FlatRelation> relationList, String parentRelation) {
-        if (parents == null) return new HashSet<>();
-        Set<String> result = new HashSet<>();
-        for (AclRelationParent parent : parents) {
-            String p = String.format("%s#%s", config.getNamespace(), parent.getRelation());
-            result.add(p);
-
-            relationList.add(new FlatRelation(config.getNamespace(), parentRelation, parent.getRelation()));
-
-            result.addAll(getConfigNestedRelations(config, parent.getParents(), relationList, parent.getRelation()));
-        }
-
-        return result;
-    }
-
-    private Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>> getRelationMap() {
-        List<FlatRelation> relationList = getFlatRelationListFromConfigs();
-        return getRelationMap(relationList);
-    }
-
-    private Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>> getRelationMap(List<FlatRelation> relationList) {
-        Map<Tuple2<String, String>, ConcurrentSkipListSet<FlatRelationTree>> result = new HashMap<>();
-
-        // namespace tuple {namespace, object} <-> list
-        Map<Tuple2<String, String>, List<FlatRelation>> groupedFlatRelations = relationList.stream()
-                .collect(Collectors.groupingBy(m -> Tuples.of(m.getNamespace(), m.getObject())));
-
-        for (Map.Entry<Tuple2<String, String>, List<FlatRelation>> entry : groupedFlatRelations.entrySet()) {
-            Tuple2<String, String> key = entry.getKey();
-            List<FlatRelation> flatRelations = entry.getValue();
-            TreeNode<String> root = flat2tree(flatRelations);
-            result.put(key, tree2flatRelationTree(root, key));
-        }
-
-        return result;
-    }
-
-    public Map<Tuple2<String, String>, Set<String>> getRelationSetFromAcls(Set<Acl> acls) {
-        Map<Tuple2<String, String>, Set<String>> relations = new HashMap<>();
-        for (Acl acl : acls) {
-            Tuple2<String, String> ns = Tuples.of(acl.getNamespace(), acl.getObject());
-            Set<String> r = relations.getOrDefault(ns, new HashSet<>());
-            r.add(acl.getRelation());
-            relations.put(ns, r);
-            if (acl.hasUserset()) {
-                Tuple2<String, String> ns1 = Tuples.of(acl.getUsersetNamespace(), acl.getUsersetObject());
-                Set<String> r1 = relations.getOrDefault(ns, new HashSet<>());
-                r1.add(acl.getUsersetRelation());
-                relations.put(ns1, r1);
-            }
-        }
-        return relations;
-    }
-
-
-    private ConcurrentSkipListSet<FlatRelationTree> tree2flatRelationTree(TreeNode<String> root, Tuple2<String, String> namespace) {
-        ConcurrentSkipListSet<FlatRelationTree> result = new ConcurrentSkipListSet<>(Comparator.comparingLong(FlatRelationTree::getLeft));
-        for (TreeNode<String> node : root.getElementsIndex()) {
-            if (node.equals(root)) continue; // ignore root
-            FlatRelationTree frt = new FlatRelationTree(namespace.getT1(), namespace.getT2(), node.getData(), node.getLeft(), node.getRight(), node.getLevel());
-            log.info("{}", frt);
-            result.add(frt);
-
-        }
-        return result;
-    }
-
-    private TreeNode<String> flat2tree(List<FlatRelation> flatRelations) {
-        TreeNode<String> root = new TreeNode<>("root");
-
-        // relation <-> set
-        Map<String, Set<FlatRelation>> groupedByRelation = flatRelations.stream()
-                .collect(Collectors.groupingBy(FlatRelation::getRelation, Collectors.toSet()));
-
-        Set<FlatRelation> clearedRelations = new HashSet<>();
-        for (Map.Entry<String, Set<FlatRelation>> entry : groupedByRelation.entrySet()) {
-            boolean existsNonNullParent = isExistsRelationWhereParentIsNotNull(entry.getValue());
-            if (existsNonNullParent) {
-                entry.getValue().removeIf(r -> r.getParent() == null);
-            }
-            clearedRelations.addAll(entry.getValue());
-        }
-
-        Map<String, TreeNode<String>> nodes = new HashMap<>();
-
-        Queue<FlatRelation> q = new LinkedList<>(clearedRelations);
-        while (!q.isEmpty()) {
-            FlatRelation relation = q.poll();
-            if (relation.getParent() == null) {
-                TreeNode<String> node = root.addChild(relation.getRelation()); // add to root
-                nodes.put(relation.getRelation(), node);
-                continue;
-            }
-
-            TreeNode<String> parentNode = nodes.get(relation.getParent());
-            if (parentNode == null) {
-                q.add(relation);
-                continue;
-            }
-
-            TreeNode<String> node = parentNode.addChild(relation.getRelation()); // add to parent
-            nodes.put(relation.getRelation(), node);
-        }
-
-        recalculateLeftRight(root);
-
-        return root;
-    }
-
-    private void recalculateLeftRight(TreeNode<String> root) {
-        processNode(root, 0);
-    }
-
-    private Tuple2<Integer, Integer> processNode(TreeNode<String> parent, int initialId) {
-        int left = initialId + 1;
-        int right = initialId + 1;
-        Iterator<TreeNode<String>> it = parent.getChildren().iterator();
-        while (it.hasNext()) {
-            TreeNode<String> child = it.next();
-            child.setLeft(left);
-            Tuple2<Integer, Integer> tuple = processNode(child, left);
-            right = tuple.getT2();
-            child.setRight(right);
-
-            if (it.hasNext()) {
-                left = right + 1;
-            }
-        }
-        return Tuples.of(left, right + 1);
-    }
-
-    private boolean isExistsRelationWhereParentIsNotNull(Set<FlatRelation> relations) {
-        for (FlatRelation relation : relations) {
-            if (relation.getParent() != null) return true;
-        }
-
-        return false;
-    }
-
-    private AclRelationConfig mapToDto(AclRelationConfigEntity m) {
-        return AclRelationConfig.builder()
-                .id(UUID.fromString(m.getId()))
+  private AclRelationConfigEntity mapToEntity(AclRelationConfig m) {
+    return AclRelationConfigEntity.builder()
+        .id(m.getId().toString())
+        .namespace(m.getNamespace())
+        .config(
+            AclRelationConfig.builder()
+                .id(m.getId())
                 .namespace(m.getNamespace())
-                .relations(m.getConfig().getRelations())
-                .build();
-    }
-
-    private AclRelationConfigEntity mapToEntity(AclRelationConfig m) {
-        return AclRelationConfigEntity.builder()
-                .id(m.getId().toString())
-                .namespace(m.getNamespace())
-                .config(AclRelationConfig.builder()
-                        .id(m.getId())
-                        .namespace(m.getNamespace())
-                        .relations(m.getRelations())
-                        .build())
-                .build();
-    }
+                .relations(m.getRelations())
+                .build())
+        .build();
+  }
 }

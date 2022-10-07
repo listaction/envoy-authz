@@ -1,16 +1,15 @@
 package org.example.authserver.entity;
 
 import authserver.acl.Acl;
+import java.io.Serializable;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.java.Log;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import java.io.Serializable;
 
 @Log
 @Data
@@ -20,35 +19,33 @@ import java.io.Serializable;
 @Entity(name = "acls")
 public class AclEntity implements Serializable {
 
-    @Id
-    private String id;
-    private String nsobject;
-    @Column(name = "usr")
-    private String user;
-    private String relation;
+  @Id private String id;
+  private String nsobject;
 
-    private String namespace;
-    private String object;
+  @Column(name = "usr")
+  private String user;
 
-    private String usersetNamespace;
-    private String usersetObject;
-    private String usersetRelation;
+  private String relation;
 
-    @Builder.Default
-    private Long created = System.currentTimeMillis();
-    @Builder.Default
-    private Long updated = System.currentTimeMillis();
+  private String namespace;
+  private String object;
 
-    public Acl toAcl() {
-        return Acl.builder()
-                .namespace(namespace)
-                .object(object)
-                .relation(relation)
-                .user(user)
-                .usersetNamespace(usersetNamespace)
-                .usersetObject(usersetObject)
-                .usersetRelation(usersetRelation)
-                .build();
-    }
+  private String usersetNamespace;
+  private String usersetObject;
+  private String usersetRelation;
 
+  @Builder.Default private Long created = System.currentTimeMillis();
+  @Builder.Default private Long updated = System.currentTimeMillis();
+
+  public Acl toAcl() {
+    return Acl.builder()
+        .namespace(namespace)
+        .object(object)
+        .relation(relation)
+        .user(user)
+        .usersetNamespace(usersetNamespace)
+        .usersetObject(usersetObject)
+        .usersetRelation(usersetRelation)
+        .build();
+  }
 }
