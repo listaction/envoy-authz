@@ -50,7 +50,7 @@ public class ExampleDataset {
     aclRepository.save(
         Acl.create(
             "api:acl#enable@acl_admin")); // contact_service's user who calls acl service to create
-                                          // acls for a new contacts
+    // acls for a new contacts
 
     // acls for service level
     aclRepository.save(Acl.create("api:contact#enable@group:contactusers#member")); // group

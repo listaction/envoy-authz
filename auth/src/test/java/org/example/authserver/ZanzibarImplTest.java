@@ -211,20 +211,16 @@ class ZanzibarImplTest {
   @Test
   void checkContactUsersTest() {
     Set<Acl> acls = new HashSet<>();
-    acls.add(
-        Acl.create(
-            "group:contactusers#viewer@user1")); // user1 has relation 'viewer' for
-                                                 // group:contactuser
-    acls.add(
-        Acl.create(
-            "group:contactusers#viewer@user2")); // user2 has relation 'viewer' for
-                                                 // group:contactuser
+    acls.add(Acl.create("group:contactusers#viewer@user1")); // user1 has relation 'viewer' for
+    // group:contactuser
+    acls.add(Acl.create("group:contactusers#viewer@user2")); // user2 has relation 'viewer' for
+    // group:contactuser
     acls.add(
         Acl.create(
             "api:contact#enable@group:contactusers#viewer")); // access to 'contact' service allowed
-                                                              // for every users from
-                                                              // group:contactusers who has 'viewer'
-                                                              // relation
+    // for every users from
+    // group:contactusers who has 'viewer'
+    // relation
 
     // user <-> expected result of check
     Map<String, Boolean> usersToTest = Map.of("user1", true, "user2", true, "user3", false);
@@ -270,14 +266,10 @@ class ZanzibarImplTest {
   @Test
   void wildcardRelationsTest() {
     Set<Acl> acls = new HashSet<>();
-    acls.add(
-        Acl.create(
-            "group:contactusers#member@user1")); // user1 has relation 'member' for
-                                                 // group:contactuser
-    acls.add(
-        Acl.create(
-            "group:contactusers#member@user2")); // user2 has relation 'member' for
-                                                 // group:contactuser
+    acls.add(Acl.create("group:contactusers#member@user1")); // user1 has relation 'member' for
+    // group:contactuser
+    acls.add(Acl.create("group:contactusers#member@user2")); // user2 has relation 'member' for
+    // group:contactuser
 
     AclRelationConfig relationConfigContact = new AclRelationConfig();
     relationConfigContact.setNamespace("contact:*");
