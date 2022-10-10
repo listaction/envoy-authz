@@ -9,14 +9,15 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/signout")
 public class SignoutController {
 
-    private final SignoutService signoutService;
+  private final SignoutService signoutService;
 
-    public SignoutController(SignoutService signoutService) {
-        this.signoutService = signoutService;
-    }
+  public SignoutController(SignoutService signoutService) {
+    this.signoutService = signoutService;
+  }
 
-    @PostMapping("/{tenant}/{jti}/{expirationTime}")
-    public void signout(@PathVariable String tenant, @PathVariable String jti, @PathVariable long expirationTime) {
-        signoutService.signout(tenant, jti, expirationTime);
-    }
+  @PostMapping("/{tenant}/{jti}/{expirationTime}")
+  public void signout(
+      @PathVariable String tenant, @PathVariable String jti, @PathVariable long expirationTime) {
+    signoutService.signout(tenant, jti, expirationTime);
+  }
 }

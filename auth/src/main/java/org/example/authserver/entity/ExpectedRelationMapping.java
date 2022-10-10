@@ -11,10 +11,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ExpectedRelationMapping {
 
-    private String defaultMapping;
-    private String post;
-    private String get;
-    private String put;
-    private String delete;
-
+  private String defaultMapping;
+  private String post;
+  private String get;
+  private String put;
+  private String delete;
 }

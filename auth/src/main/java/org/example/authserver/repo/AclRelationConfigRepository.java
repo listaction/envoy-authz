@@ -1,17 +1,13 @@
 package org.example.authserver.repo;
 
-import authserver.acl.AclRelationConfig;
+import java.util.List;
+import org.example.authserver.entity.AclRelationConfigEntity;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
-import java.util.Set;
+@Repository
+public interface AclRelationConfigRepository
+    extends CrudRepository<AclRelationConfigEntity, String> {
 
-public interface AclRelationConfigRepository {
-
-    Set<AclRelationConfig> findAll();
-
-    AclRelationConfig findOneById(String id);
-
-    void save(AclRelationConfig config);
-
-    void delete(AclRelationConfig config);
-
+  List<AclRelationConfigEntity> findAll();
 }

@@ -8,8 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Getter
 @Setter
 public class AppProperties {
-    private AppDatabase database;
-    private boolean testMode;
-    private String jwtParam;
-    private boolean jwtParamEnabled;
+  private boolean testMode;
+  private String jwtParam;
+  private boolean jwtParamEnabled;
 }

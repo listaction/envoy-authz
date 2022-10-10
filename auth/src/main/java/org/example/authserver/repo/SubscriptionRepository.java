@@ -6,12 +6,11 @@ import reactor.core.publisher.Flux;
 
 public interface SubscriptionRepository {
 
-    void publish(Acl acl);
+  void publish(Acl acl);
 
-    void publish(AclRelationConfig config);
+  void publish(AclRelationConfig config);
 
-    Flux<String> subscribeAcl();
+  Flux<String> subscribeAcl();
 
-    Flux<String> subscribeConfig();
-
+  Flux<String> subscribeConfig();
 }

@@ -1,14 +1,13 @@
 package org.example.authserver.entity;
 
 import authserver.acl.Acl;
+import java.util.List;
+import javax.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.java.Log;
-
-import javax.validation.constraints.NotNull;
-import java.util.List;
 
 @Log
 @Data
@@ -17,7 +16,5 @@ import java.util.List;
 @AllArgsConstructor
 public class AclsRequestDTO {
 
-    @NotNull
-    private List<Acl> acls;
-
+  @NotNull private List<Acl> acls;
 }

@@ -1,11 +1,10 @@
 package authserver.acl;
 
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Set;
 
 @Data
 @Builder
@@ -13,7 +12,6 @@ import java.util.Set;
 @AllArgsConstructor
 public class AclRelationParent {
 
-    private String relation;
-    private Set<AclRelationParent> parents;
-
+  private String relation;
+  private Set<AclRelationParent> parents;
 }
