@@ -17,6 +17,7 @@ import org.example.authserver.repo.MappingRepository;
 import org.example.authserver.service.MappingCacheService;
 import org.example.authserver.service.model.Mapping;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 
@@ -46,14 +47,12 @@ public class MappingService {
   }
 
   /** @return mapping variables, or {@code null} for no match */
-  public List<Mapping> processRequest(
-      String requestMethod,
-      String path,
-      Map<String, String> headersMap,
-      String requestBody,
-      Claims claims) {
+  public List<Mapping> processRequest(String requestMethod, String path, Map<String, String> headersMap, String requestBody, Claims claims) {
     Map<MappingEntity, Map<String, String>> mappings = findMappings(requestMethod, path);
-    if (mappings == null) return null; // no match
+
+    if (CollectionUtils.isEmpty(mappings)) { // no match
+      return null;
+    }
 
     List<Mapping> result = new ArrayList<>();
 
@@ -63,8 +62,7 @@ public class MappingService {
       Mapping mapping = new Mapping(entry.getKey());
       mapping.getVariableMap().putAll(entry.getValue());
 
-      if (mappingEntity.getBodyMapping() != null
-          && ("POST".equalsIgnoreCase(requestMethod) || "PUT".equalsIgnoreCase(requestMethod))) {
+      if (mappingEntity.getBodyMapping() != null && ("POST".equalsIgnoreCase(requestMethod) || "PUT".equalsIgnoreCase(requestMethod))) {
         BodyMapping bodyMapping = mappingEntity.getBodyMapping();
         mapping.getVariableMap().putAll(parseRequestJsonBody(bodyMapping, requestBody));
       }

@@ -64,7 +64,7 @@ public class AclController {
 
   @PostMapping("/delete")
   public void deleteAcl(@Valid @RequestBody Acl acl) {
-    log.info("Delete acl: {}", acl);
-    repository.delete(acl);
+    log.info("Delete acl: {}", acl); //todo add cache purging
+    repository.delete(acl);//todo mvn com.coveo:fmt-maven-plugin:format
   }
 }

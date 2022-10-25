@@ -89,12 +89,12 @@ public class CacheService {
         executor.execute(() -> persistCache(principal, relations, path, rev));
     }
 
-    public void persistCache(String principal, Collection<String> relations, String path, Long rev) {
+    public void persistCache(String principal, Collection<String> relations, String path, Long revision) {
         List<RelCache> cache = new ArrayList<>();
         for (String tag : relations) {
             Set<String> nestedTags = new HashSet<>(relations);
             nestedTags.remove(tag); // remove current
-            String compositeIdKey = getCompositeIdKey(principal, tag, path);
+            String compositeIdKey = getCompositeIdKey(principal, tag, path, revision);
             String id = getKeyHash(compositeIdKey);
             Acl parsedTag = Utils.parseTag(tag);
             if (parsedTag == null) {
@@ -103,7 +103,7 @@ public class CacheService {
 
             cache.add(RelCache.builder()
                                 .id(id)
-                                .rev(rev)
+                                .rev(revision)
                                 .nsobject(Utils.createNsObject(parsedTag.getNamespace(), parsedTag.getObject()))
                                 .relation(parsedTag.getRelation())
                                 .nestedRelations(nestedTags)
@@ -124,7 +124,7 @@ public class CacheService {
         return sb.toString();
     }
 
-    protected String getCompositeIdKey(String principal, String tag, String path) {
-        return String.format("%s+%s+%s", principal, tag, path);
+    protected String getCompositeIdKey(String principal, String tag, String path, Long revision) {
+        return String.format("%s+%s+%s+%s", principal, tag, path, revision);
     }
 }
