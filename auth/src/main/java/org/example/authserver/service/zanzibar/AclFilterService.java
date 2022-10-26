@@ -28,30 +28,27 @@ public class AclFilterService {
     private final RelationsService relationsService;
     private final CacheService cacheService;
 
-    private final static StopWatch stopWatch = new StopWatch("AclFilter");
 
     public CheckResult checkRequest(CheckRequest request) {
-        stopWatch.start("getAllClaimsFromRequest");
+        long start = System.nanoTime();
         Claims claims = tokenService.getAllClaimsFromRequest(request);
-        stopWatch.stop();
+        long getAllClaimsFinished = System.nanoTime();
 
         if (Objects.isNull(claims)) {
             return CheckResult.builder().jwtPresent(false).result(false).build();
         }
 
-        stopWatch.start("mappingService.processRequest");
+        long processRequestStarted = System.nanoTime();
         String user = claims.getSubject();
         List<Mapping> mappings = mappingService.processRequest(request, claims);
-        stopWatch.stop();
+        long processRequestStopped = System.nanoTime();
 
         if (CollectionUtils.isEmpty(mappings)) {
             log.debug("Unable to find mapping for user {}.", user);
             return CheckResult.builder().mappingsPresent(false).result(false).build();
         }
 
-        stopWatch.start("relationsService.getAclMaxUpdate");
         Long maxAclUpdate = relationsService.getAclMaxUpdate(user); // found revision
-        stopWatch.stop();
 
         Set<String> allowedTags = new HashSet<>();
         for (Mapping mapping : mappings) {
@@ -69,25 +66,25 @@ public class AclFilterService {
                         .build();
             }
 
-            stopWatch.start("zanzibar.getRelations - cache for " + mappingId);
+            long cacheOperationStarted = System.nanoTime();
             Set<String> relations = cacheService.getCachedRelations(user, namespace, object, path, maxAclUpdate); // get from cache
-            stopWatch.stop();
 
             if (checkTag(relations, roles, namespace, object)) { //cache hit
                 allowedTags.addAll(relations);
+                log.info("zanzibar.getCachedRelations {} ms.", toMs(cacheOperationStarted, System.nanoTime()));
             } else {                                             // cache miss
-                stopWatch.start("zanzibar.getRelations - for " + mappingId);
                 relations = relationsService.getRelations(namespace, object, user, new LocalCache());
+                log.info("zanzibar.getRelations {} ms.", toMs(cacheOperationStarted, System.nanoTime()));
 
                 if (checkTag(relations, roles, namespace, object)) {
                     allowedTags.addAll(relations);
+                    log.info("cache warming");
                     cacheService.persistCacheAsync(user, relations, path, maxAclUpdate); // cache warming
-                    stopWatch.stop();
                 } else {
                     log.info("expected roles: {}:{} {}", namespace, object, roles);
                     log.info("roles available for {}: {}", user, relations);
-                    stopWatch.stop();
-                    log.info(timingsPrettyPrint());
+                    log.info("CheckRequest {} ms", toMs(start, System.nanoTime()));
+
                     return CheckResult.builder()
                             .mappingsPresent(true)
                             .rejectedWithMappingId(mappingId)
@@ -96,14 +93,21 @@ public class AclFilterService {
                 }
             }
         }
-
+        log.info("getAllClaimsFromRequest {} ms.", toMs(start, getAllClaimsFinished));
+        log.info("mappingService.processRequest {} ms.", toMs(processRequestStarted, processRequestStopped));
+        log.info("CheckRequest {} ms", toMs(start, System.nanoTime()));
         log.info("mappings size: {}.", mappings.size());
-        log.info(timingsPrettyPrint());
+
         return CheckResult.builder()
                 .mappingsPresent(true)
                 .result(true)
                 .tags(allowedTags)
                 .build();
+    }
+
+    private static long toMs(long nanosStart, long nanosFinish) {
+        int nanosInMillis = 1000000;
+        return (nanosFinish - nanosStart) / nanosInMillis;
     }
 
     private static boolean checkTag(Set<String> relations, Set<String> roles, String namespace, String object) {
@@ -120,12 +124,5 @@ public class AclFilterService {
             }
         }
         return false;
-    }
-
-    private static String timingsPrettyPrint() {
-        return System.getProperty("line.separator")
-                + "==============================" + System.getProperty("line.separator")
-                + stopWatch.prettyPrint() + System.getProperty("line.separator") +
-               "==============================";
     }
 }

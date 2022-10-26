@@ -23,6 +23,7 @@ import org.apache.commons.codec.digest.MurmurHash3;
 import org.example.authserver.Utils;
 import org.example.authserver.entity.RelCache;
 import org.example.authserver.repo.RelCacheRepository;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -112,7 +113,13 @@ public class CacheService {
                                 .build());
         }
 
-        relCacheRepository.saveAll(cache);
+        try {
+            relCacheRepository.saveAll(cache);
+        } catch (JpaSystemException e) {
+            // very rare exceptions linked with race condition between instances.
+            // If revision in composite key doesn't help with uniqueness, must be changed to optimistic lock.
+            log.warn("Cache saving problems", e);
+        }
     }
 
     private String getKeyHash(String compositeIdKey) {
