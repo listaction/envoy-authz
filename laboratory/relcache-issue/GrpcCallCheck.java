@@ -29,8 +29,8 @@ import java.util.stream.IntStream;
 //io.envoyproxy.controlplane.api
 
 public class GrpcCallCheck {
-    private static final String USER = "5b6d7f0a-fb67-43aa-8ee5-995be7c23eb1"; // from DB - authz.rel_cache
-    private static final String ISSUER_ID = "https://auth-dev.lendistry-dev.net/auth/realms/venues-crg";
+    private static final String USER = "23a98b18-430b-4582-aba5-93c245b48661"; // from DB - authz.rel_cache
+    private static final String ISSUER_ID = "/realms/venues-crg";
     private static final String REQUEST_METHOD = "GET";
     private static final String PATH = "/account/user/profile"; // from DB - authz.rel_cache
 
