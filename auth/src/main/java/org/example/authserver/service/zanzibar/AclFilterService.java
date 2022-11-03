@@ -17,7 +17,6 @@ import org.example.authserver.service.model.LocalCache;
 import org.example.authserver.service.model.Mapping;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StopWatch;
 
 @Slf4j
 @Service
