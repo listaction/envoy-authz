@@ -3,8 +3,10 @@ package org.example.authserver.service.zanzibar;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -29,12 +31,13 @@ public class AclFilterService {
 
 
     public CheckResult checkRequest(CheckRequest request) {
+        Map<String, String> events = new HashMap<>();
         long start = System.nanoTime();
         Claims claims = tokenService.getAllClaimsFromRequest(request);
         long getAllClaimsFinished = System.nanoTime();
 
         if (Objects.isNull(claims)) {
-            return CheckResult.builder().jwtPresent(false).result(false).build();
+            return CheckResult.builder().jwtPresent(false).result(false).events(events).build();
         }
 
         long processRequestStarted = System.nanoTime();
@@ -43,8 +46,8 @@ public class AclFilterService {
         long processRequestStopped = System.nanoTime();
 
         if (CollectionUtils.isEmpty(mappings)) {
-            log.debug("Unable to find mapping for user {}.", user);
-            return CheckResult.builder().mappingsPresent(false).result(false).build();
+            events.put("Unable to find mapping for user", user);
+            return CheckResult.builder().mappingsPresent(false).result(false).events(events).build();
         }
 
         Long maxAclUpdate = relationsService.getAclMaxUpdate(user); // found revision
@@ -62,6 +65,7 @@ public class AclFilterService {
                         .mappingsPresent(true)
                         .rejectedWithMappingId(mappingId)
                         .result(false)
+                        .events(events)
                         .build();
             }
 
@@ -70,43 +74,47 @@ public class AclFilterService {
 
             if (checkTag(relations, roles, namespace, object)) { //cache hit
                 allowedTags.addAll(relations);
-                log.info("zanzibar.getCachedRelations {} ms.", toMs(cacheOperationStarted, System.nanoTime()));
+                events.put("zanzibar.getCachedRelations in ms", toMs(cacheOperationStarted, System.nanoTime()));
             } else {                                             // cache miss
                 relations = relationsService.getRelations(namespace, object, user, new LocalCache());
-                log.info("zanzibar.getRelations {} ms.", toMs(cacheOperationStarted, System.nanoTime()));
+                events.put("zanzibar.getRelations ins ms", toMs(cacheOperationStarted, System.nanoTime()));
 
                 if (checkTag(relations, roles, namespace, object)) {
                     allowedTags.addAll(relations);
-                    log.info("cache warming");
+                    events.put("cache warming", "");
+
                     cacheService.persistCacheAsync(user, relations, path, maxAclUpdate); // cache warming
                 } else {
-                    log.info("expected roles: {}:{} {}", namespace, object, roles);
-                    log.info("roles available for {}: {}", user, relations);
-                    log.info("CheckRequest {} ms", toMs(start, System.nanoTime()));
+                    events.put(String.format("expected roles: %s:%s %s", namespace, object, roles), "");
+                    events.put(String.format("roles available for %s: %s", user, relations), "");
+                    events.put("CheckRequest in ms", toMs(start, System.nanoTime()));
 
                     return CheckResult.builder()
                             .mappingsPresent(true)
                             .rejectedWithMappingId(mappingId)
                             .result(false)
+                            .events(events)
                             .build();
                 }
             }
         }
-        log.info("getAllClaimsFromRequest {} ms.", toMs(start, getAllClaimsFinished));
-        log.info("mappingService.processRequest {} ms.", toMs(processRequestStarted, processRequestStopped));
-        log.info("CheckRequest {} ms", toMs(start, System.nanoTime()));
-        log.info("mappings size: {}.", mappings.size());
+
+        events.put("getAllClaimsFromRequest in ms.", toMs(start, getAllClaimsFinished));
+        events.put("mappingService.processRequest in ms.", toMs(processRequestStarted, processRequestStopped));
+        events.put("CheckRequest in ms", toMs(start, System.nanoTime()));
+        events.put("mappings size: ", String.valueOf(mappings.size()));
 
         return CheckResult.builder()
                 .mappingsPresent(true)
                 .result(true)
                 .tags(allowedTags)
+                .events(events)
                 .build();
     }
 
-    private static long toMs(long nanosStart, long nanosFinish) {
+    private static String toMs(long nanosStart, long nanosFinish) {
         int nanosInMillis = 1000000;
-        return (nanosFinish - nanosStart) / nanosInMillis;
+        return String.valueOf((nanosFinish - nanosStart) / nanosInMillis);
     }
 
     private static boolean checkTag(Set<String> relations, Set<String> roles, String namespace, String object) {
