@@ -1,6 +1,7 @@
 package org.example.authserver.service;
 
 import com.google.rpc.Status;
+import com.newrelic.api.agent.Trace;
 import io.envoyproxy.envoy.config.core.v3.HeaderValue;
 import io.envoyproxy.envoy.config.core.v3.HeaderValueOption;
 import io.envoyproxy.envoy.service.auth.v3.*;
@@ -32,6 +33,7 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     this.tokenService = tokenService;
   }
 
+  @Trace(dispatcher = true)
   @Override
   public void check(CheckRequest request, StreamObserver<CheckResponse> responseObserver) {
     log.info(
