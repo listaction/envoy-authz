@@ -65,6 +65,7 @@ public class AclController {
   @PostMapping("/delete")
   public void deleteAcl(@Valid @RequestBody Acl acl) {
     log.info("Delete acl: {}", acl);
+    cacheService.purgeCacheAsync(acl.getUser(), acl.getCreated());
     repository.delete(acl);
   }
 }

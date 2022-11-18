@@ -4,16 +4,25 @@ import com.google.rpc.Status;
 import com.newrelic.api.agent.Trace;
 import io.envoyproxy.envoy.config.core.v3.HeaderValue;
 import io.envoyproxy.envoy.config.core.v3.HeaderValueOption;
-import io.envoyproxy.envoy.service.auth.v3.*;
+import io.envoyproxy.envoy.service.auth.v3.AuthorizationGrpc;
+import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
+import io.envoyproxy.envoy.service.auth.v3.CheckResponse;
+import io.envoyproxy.envoy.service.auth.v3.DeniedHttpResponse;
+import io.envoyproxy.envoy.service.auth.v3.OkHttpResponse;
 import io.envoyproxy.envoy.type.v3.HttpStatus;
 import io.envoyproxy.envoy.type.v3.StatusCode;
 import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Claims;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.example.authserver.config.Constants;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.zanzibar.TokenService;
+import org.springframework.boot.configurationprocessor.json.JSONException;
+
+import java.util.Map;
 
 @Slf4j
 public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
@@ -21,6 +30,8 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
   private static final Integer OK = 0;
   private static final Integer PERMISSION_DENIED = 7;
   private static final Integer UNAUTHORIZED = 16;
+  private static final String TRACE_ID = "TRACEPARENT";
+  private static final String SPAN_ID = "X-KEYCLOAK-REALM";
 
   private final AclFilterService aclFilterService;
   private final RedisService redisService;
@@ -36,8 +47,7 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
   @Trace(dispatcher = true)
   @Override
   public void check(CheckRequest request, StreamObserver<CheckResponse> responseObserver) {
-    log.info(
-        "request: {} {}",
+    log.info("request: {} {}",
         request.getAttributes().getRequest().getHttp().getMethod(),
         request.getAttributes().getRequest().getHttp().getPath());
 
@@ -50,6 +60,10 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     }
 
     CheckResult result = aclFilterService.checkRequest(request);
+
+    final Pair<String, String> traceAndSpan = getTraceAndSpan(request);
+    result.setTraceId(traceAndSpan.getLeft());
+    result.setSpanId(traceAndSpan.getRight());
 
     HeaderValue headerAllowedTags =
         HeaderValue.newBuilder()
@@ -79,6 +93,12 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
           "NO MAPPINGS found for {} {}",
           request.getAttributes().getRequest().getHttp().getMethod(),
           request.getAttributes().getRequest().getHttp().getPath());
+    }
+
+    try {
+      log.info(result.eventsToJson());
+    } catch (JSONException e) {
+      e.printStackTrace();
     }
 
     responseObserver.onNext(response);
@@ -116,5 +136,11 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     }
 
     return null;
+  }
+  private Pair<String, String> getTraceAndSpan(CheckRequest checkRequest) {
+    Map<String, String> headersMap = checkRequest.getAttributes().getRequest().getHttp().getHeadersMap();
+    String spanId = headersMap.get(SPAN_ID);
+    String traceId = headersMap.get(TRACE_ID);
+    return Pair.of(traceId, spanId);
   }
 }
