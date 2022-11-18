@@ -39,9 +39,9 @@ public class CheckResult {
     resultMap.put("tenant_id", tenantId);
     resultMap.put("events", events);
     resultMap.put("metrics", metrics);
-    resultMap.put("allowedTags", allowedTags);
+    resultMap.put("allowed_tags", allowedTags);
     resultMap.put("result", result);
-    resultMap.put("cacheHit", cacheHit);
+    resultMap.put("cache_hit", cacheHit);
 
     return resultMap;
   }
