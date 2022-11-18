@@ -33,15 +33,15 @@ public class CheckResult {
 
   public Map<String, Object> getResultMap() {
     Map<String, Object> resultMap = new HashMap<>();
-    resultMap.put("http_method", httpMethod);
-    resultMap.put("request_path", requestPath);
-    resultMap.put("trace_id", traceId);
-    resultMap.put("tenant_id", tenantId);
+    resultMap.put("httpMethod", httpMethod);
+    resultMap.put("requestPath", requestPath);
+    resultMap.put("traceId", traceId);
+    resultMap.put("tenantId", tenantId);
     resultMap.put("events", events);
     resultMap.put("metrics", metrics);
-    resultMap.put("allowed_tags", allowedTags);
+    resultMap.put("allowedTags", allowedTags);
     resultMap.put("result", result);
-    resultMap.put("cache_hit", cacheHit);
+    resultMap.put("cacheHit", cacheHit);
 
     return resultMap;
   }
