@@ -6,6 +6,8 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtHandlerAdapter;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
 import org.example.authserver.config.AppProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
@@ -15,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class TokenService {
 
   private static final String AUTH_HEADER = "authorization";
+  private static final String HEADER_MARK = "Bearer ";
 
   private final AppProperties appProperties;
 
@@ -23,12 +26,11 @@ public class TokenService {
   }
 
   public Claims getAllClaimsFromRequest(CheckRequest request) {
-    String token = getTokenHeader(request);
-    if (token == null && appProperties.isJwtParamEnabled()) {
-      token = getTokenParam(request);
+    Optional<String> token = getTokenHeader(request);
+    if (appProperties.isJwtParamEnabled()) {
+      token = token.isEmpty() ? getTokenParam(request) : token;
     }
-    if (token == null) return null;
-    return getAllClaimsFromToken(token);
+    return token.isEmpty() ? null : getAllClaimsFromToken(token.get());
   }
 
   public Claims getAllClaimsFromToken(String token) {
@@ -41,14 +43,13 @@ public class TokenService {
     return claims;
   }
 
-  public String getTokenParam(CheckRequest request) {
+  public Optional<String> getTokenParam(CheckRequest request) {
     String path = request.getAttributes().getRequest().getHttp().getPath();
-    return getTokenParam(path);
+    return Optional.ofNullable(getTokenParam(path));
   }
 
   public String getTokenParam(String path) {
-    MultiValueMap<String, String> queryParams =
-        UriComponentsBuilder.fromUriString(path).build().getQueryParams();
+    MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUriString(path).build().getQueryParams();
 
     List<String> value = queryParams.get(appProperties.getJwtParam());
     if (value != null && value.size() > 0) {
@@ -57,15 +58,15 @@ public class TokenService {
     return null;
   }
 
-  public String getTokenHeader(CheckRequest request) {
+  public Optional<String> getTokenHeader(CheckRequest request) {
     Map<String, String> headers = request.getAttributes().getRequest().getHttp().getHeadersMap();
     String authHeader = headers.get(AUTH_HEADER);
-    return getTokenHeader(authHeader);
+    return Optional.ofNullable(getTokenHeader(authHeader));
   }
 
   public String getTokenHeader(String authHeader) {
-    if (authHeader != null && authHeader.startsWith("Bearer ")) {
-      return authHeader.substring(7);
+    if (authHeader != null && authHeader.startsWith(HEADER_MARK) && authHeader.length() > HEADER_MARK.length()) {
+      return authHeader.substring(HEADER_MARK.length());
     }
 
     return null;

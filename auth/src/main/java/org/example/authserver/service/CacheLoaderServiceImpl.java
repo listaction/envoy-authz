@@ -18,7 +18,7 @@ public class CacheLoaderServiceImpl implements CacheLoaderService {
   private final SubscriptionRepository subscriptionRepository;
 
   public CacheLoaderServiceImpl(
-      CacheService cacheService,
+          CacheService cacheService,
       AclRelationConfigService configService,
       SubscriptionRepository subscriptionRepository) {
     this.cacheService = cacheService;

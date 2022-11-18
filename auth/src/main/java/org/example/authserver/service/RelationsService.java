@@ -25,12 +25,8 @@ public class RelationsService {
     return aclService.findMaxAclUpdatedByPrincipal(principal);
   }
 
-  @Timed(
-      value = "relation.get",
-      percentiles = {0.99, 0.95, 0.75})
-  public Set<String> getRelations(
-      String namespace, String object, String principal, LocalCache localCache) {
-    // todo: fix local cache
+  @Timed(value = "relation.get", percentiles = {0.99, 0.95, 0.75})
+  public Set<String> getRelations(String namespace, String object, String principal, LocalCache localCache) {
     meterService.countHitsZanzibar();
     return zanzibar.getRelations(namespace, object, principal, new LocalCache());
   }
