@@ -47,7 +47,12 @@ public class MappingService {
   }
 
   /** @return mapping variables, or {@code null} for no match */
-  public List<Mapping> processRequest(String requestMethod, String path, Map<String, String> headersMap, String requestBody, Claims claims) {
+  public List<Mapping> processRequest(
+      String requestMethod,
+      String path,
+      Map<String, String> headersMap,
+      String requestBody,
+      Claims claims) {
     Map<MappingEntity, Map<String, String>> mappings = findMappings(requestMethod, path);
 
     if (CollectionUtils.isEmpty(mappings)) { // no match
@@ -62,7 +67,8 @@ public class MappingService {
       Mapping mapping = new Mapping(entry.getKey());
       mapping.getVariableMap().putAll(entry.getValue());
 
-      if (mappingEntity.getBodyMapping() != null && ("POST".equalsIgnoreCase(requestMethod) || "PUT".equalsIgnoreCase(requestMethod))) {
+      if (mappingEntity.getBodyMapping() != null
+          && ("POST".equalsIgnoreCase(requestMethod) || "PUT".equalsIgnoreCase(requestMethod))) {
         BodyMapping bodyMapping = mappingEntity.getBodyMapping();
         mapping.getVariableMap().putAll(parseRequestJsonBody(bodyMapping, requestBody));
       }

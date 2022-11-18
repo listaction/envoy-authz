@@ -1,28 +1,21 @@
 package org.example.authserver.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.rpc.Status;
-import com.newrelic.api.agent.Trace;
 import io.envoyproxy.envoy.config.core.v3.HeaderValue;
 import io.envoyproxy.envoy.config.core.v3.HeaderValueOption;
-import io.envoyproxy.envoy.service.auth.v3.AuthorizationGrpc;
-import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
-import io.envoyproxy.envoy.service.auth.v3.CheckResponse;
-import io.envoyproxy.envoy.service.auth.v3.DeniedHttpResponse;
-import io.envoyproxy.envoy.service.auth.v3.OkHttpResponse;
+import io.envoyproxy.envoy.service.auth.v3.*;
 import io.envoyproxy.envoy.type.v3.HttpStatus;
 import io.envoyproxy.envoy.type.v3.StatusCode;
 import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Claims;
-import lombok.AllArgsConstructor;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
+import org.example.authserver.Utils;
 import org.example.authserver.config.Constants;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.zanzibar.TokenService;
-import org.springframework.boot.configurationprocessor.json.JSONException;
-
-import java.util.Map;
 
 @Slf4j
 public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
@@ -31,7 +24,7 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
   private static final Integer PERMISSION_DENIED = 7;
   private static final Integer UNAUTHORIZED = 16;
   private static final String TRACE_ID = "TRACEPARENT";
-  private static final String SPAN_ID = "X-KEYCLOAK-REALM";
+  private static final String TENANT_ID = "X-KEYCLOAK-REALM";
 
   private final AclFilterService aclFilterService;
   private final RedisService redisService;
@@ -44,10 +37,10 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     this.tokenService = tokenService;
   }
 
-  @Trace(dispatcher = true)
   @Override
   public void check(CheckRequest request, StreamObserver<CheckResponse> responseObserver) {
-    log.info("request: {} {}",
+    log.info(
+        "request: {} {}",
         request.getAttributes().getRequest().getHttp().getMethod(),
         request.getAttributes().getRequest().getHttp().getPath());
 
@@ -60,16 +53,13 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     }
 
     CheckResult result = aclFilterService.checkRequest(request);
-
-    final Pair<String, String> traceAndSpan = getTraceAndSpan(request);
-    result.setTraceId(traceAndSpan.getLeft());
-    result.setSpanId(traceAndSpan.getRight());
+    String allowedTags = String.join(",", result.getTags());
+    result.setTraceId(getTraceId(request));
+    result.setTenantId(getTenantId(request));
+    result.setAllowedTags(allowedTags);
 
     HeaderValue headerAllowedTags =
-        HeaderValue.newBuilder()
-            .setKey("X-ALLOWED-TAGS")
-            .setValue(String.join(",", result.getTags()))
-            .build();
+        HeaderValue.newBuilder().setKey("X-ALLOWED-TAGS").setValue(allowedTags).build();
 
     HeaderValueOption headers = HeaderValueOption.newBuilder().setHeader(headerAllowedTags).build();
 
@@ -79,26 +69,32 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
             .setOkResponse(OkHttpResponse.newBuilder().addHeaders(headers).build())
             .build();
 
-    log.info("response: {}", response);
-
     if (result.isMappingsPresent()) {
-      log.info("request allowed: {}", result.isResult());
+      result.getEvents().put("request allowed", String.valueOf(result.isResult()));
 
       if (!result.isResult()) {
+        result.getEvents().put("REJECTED by mapping id", result.getRejectedWithMappingId());
         log.trace("REJECTED by mapping id: {}", result.getRejectedWithMappingId());
       }
 
     } else {
-      log.warn(
-          "NO MAPPINGS found for {} {}",
-          request.getAttributes().getRequest().getHttp().getMethod(),
-          request.getAttributes().getRequest().getHttp().getPath());
+      result
+          .getEvents()
+          .put(
+              "NO MAPPINGS found",
+              String.format(
+                  "%s %s",
+                  request.getAttributes().getRequest().getHttp().getMethod(),
+                  request.getAttributes().getRequest().getHttp().getPath()));
     }
 
     try {
-      log.info(result.eventsToJson());
-    } catch (JSONException e) {
-      e.printStackTrace();
+      Map<String, Object> resultMap = result.getResultMap();
+
+      String logEntry = Utils.prettyPrintObject(resultMap);
+      log.info(logEntry);
+    } catch (JsonProcessingException e) {
+      log.warn("Can't read resultMap", e);
     }
 
     responseObserver.onNext(response);
@@ -137,10 +133,16 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
 
     return null;
   }
-  private Pair<String, String> getTraceAndSpan(CheckRequest checkRequest) {
-    Map<String, String> headersMap = checkRequest.getAttributes().getRequest().getHttp().getHeadersMap();
-    String spanId = headersMap.get(SPAN_ID);
-    String traceId = headersMap.get(TRACE_ID);
-    return Pair.of(traceId, spanId);
+
+  private String getTraceId(CheckRequest checkRequest) {
+    Map<String, String> headersMap =
+        checkRequest.getAttributes().getRequest().getHttp().getHeadersMap();
+    return headersMap.get(TRACE_ID);
+  }
+
+  private String getTenantId(CheckRequest checkRequest) {
+    Map<String, String> headersMap =
+        checkRequest.getAttributes().getRequest().getHttp().getHeadersMap();
+    return headersMap.get(TENANT_ID);
   }
 }
