@@ -3,7 +3,6 @@ package org.example.authserver.service;
 import authserver.common.CheckRequestDTO;
 import authserver.common.CheckTestDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.rpc.Status;
 import io.envoyproxy.envoy.config.core.v3.HeaderValue;
 import io.envoyproxy.envoy.config.core.v3.HeaderValueOption;
@@ -15,9 +14,9 @@ import io.jsonwebtoken.Claims;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Map;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.Utils;
+import org.example.authserver.config.AppProperties;
 import org.example.authserver.config.Constants;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.AclFilterService;
@@ -36,16 +35,19 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
   private final RedisService redisService;
   private final TokenService tokenService;
   private final SplitTestService splitTestService;
+  private final AppProperties appProperties;
 
   public AuthService(
       AclFilterService aclFilterService,
       RedisService redisService,
       TokenService tokenService,
-      SplitTestService splitTestService) {
+      SplitTestService splitTestService,
+      AppProperties appProperties) {
     this.aclFilterService = aclFilterService;
     this.redisService = redisService;
     this.tokenService = tokenService;
     this.splitTestService = splitTestService;
+    this.appProperties = appProperties;
   }
 
   @Override
@@ -130,12 +132,14 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
       log.warn("Can't read resultMap", e);
     }
 
-    splitTestService.submitAsync(
-        CheckTestDto.builder()
-            .request(dto)
-            .result(result.isResult())
-            .resultHeaders(Map.of("X-ALLOWED-TAGS", allowedTags))
-            .build());
+    if (appProperties.isCopyModeEnabled()) {
+      splitTestService.submitAsync(
+          CheckTestDto.builder()
+              .request(dto)
+              .result(result.isResult())
+              .resultHeaders(Map.of("X-ALLOWED-TAGS", allowedTags))
+              .build());
+    }
 
     responseObserver.onNext(response);
     responseObserver.onCompleted();

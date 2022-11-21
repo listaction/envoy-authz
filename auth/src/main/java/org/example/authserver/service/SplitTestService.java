@@ -28,16 +28,14 @@ public class SplitTestService {
   public SplitTestService(JedisPool jedisPool, AppProperties appProperties) {
     this.jedisPool = jedisPool;
     this.appProperties = appProperties;
-    this.splitTestEnabled = appProperties.isCopyMode();
+    this.splitTestEnabled = appProperties.isCacheEnabled();
   }
 
   public void submitAsync(AclOperationDto dto) {
-    if (!splitTestEnabled) return;
     executor.execute(() -> submit(dto));
   }
 
   public void submitAsync(CheckTestDto dto) {
-    if (!splitTestEnabled) return;
     executor.execute(() -> submit(dto));
   }
 

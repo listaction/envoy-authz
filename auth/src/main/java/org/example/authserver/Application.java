@@ -59,7 +59,8 @@ public class Application {
     Server server =
         ServerBuilder.forPort(grpcPort)
             .addService(
-                new AuthService(aclFilterService, redisService, tokenService, splitTestService))
+                new AuthService(
+                    aclFilterService, redisService, tokenService, splitTestService, appProperties))
             .build();
 
     server.start();
