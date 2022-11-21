@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 public class AppProperties {
   private boolean testMode;
+  private boolean cacheEnabled;
   private String jwtParam;
   private boolean jwtParamEnabled;
 }

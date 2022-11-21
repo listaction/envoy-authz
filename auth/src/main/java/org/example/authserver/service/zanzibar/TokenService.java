@@ -7,7 +7,6 @@ import io.jsonwebtoken.JwtHandlerAdapter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import org.example.authserver.config.AppProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
@@ -49,7 +48,8 @@ public class TokenService {
   }
 
   public String getTokenParam(String path) {
-    MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUriString(path).build().getQueryParams();
+    MultiValueMap<String, String> queryParams =
+        UriComponentsBuilder.fromUriString(path).build().getQueryParams();
 
     List<String> value = queryParams.get(appProperties.getJwtParam());
     if (value != null && value.size() > 0) {
@@ -65,7 +65,9 @@ public class TokenService {
   }
 
   public String getTokenHeader(String authHeader) {
-    if (authHeader != null && authHeader.startsWith(HEADER_MARK) && authHeader.length() > HEADER_MARK.length()) {
+    if (authHeader != null
+        && authHeader.startsWith(HEADER_MARK)
+        && authHeader.length() > HEADER_MARK.length()) {
       return authHeader.substring(HEADER_MARK.length());
     }
 

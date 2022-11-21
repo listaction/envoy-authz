@@ -3,60 +3,18 @@
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
     <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
 
-    <property name="LOG_PATH" value="/auth/logs" />
-    <property name="CONSOLE_LOG_PATTERN" value="[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %X{id} %c{1} - %msg%n" />
-    <property name="FILE_LOG_PATTERN" value="[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %X{id} %c{1} - %msg%n" />
-
-    <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <providers>
-                <pattern>
-                    <omitEmptyFields>true</omitEmptyFields>
-                    <pattern>
-                        {
-                        "logger": "%logger",
-                        "level": "%level",
-                        "thread": "%thread",
-                        "message": "%message"
-                        }
-                    </pattern>
-                </pattern>
-            </providers>
-        </encoder>
+    <appender name="ConsoleAppender"
+              class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>
+                %d{MM-dd-yyyy'T'HH:mm:ss.SSSXXX} %highlight(%-5level) [%blue(%t)] %yellow(%C{1.}): %msg%n%throwable
+            </Pattern>
+        </layout>
     </appender>
 
-    <appender name="ROLLING_TEXT_FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/application-text.log</file>
-        <encoder>
-            <Pattern>${FILE_LOG_PATTERN}</Pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/application-text.%d{yyyy-MM-dd}.%i.gz
-            </fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>100MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <maxHistory>10</maxHistory>
-        </rollingPolicy>
-    </appender>
-
-    <appender name="ROLLING_JSON_FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/application-json.log</file>
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/application-json.%d{yyyy-MM-dd}.%i.gz
-            </fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>100MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <maxHistory>10</maxHistory>
-        </rollingPolicy>
-    </appender>
 
     <root level="INFO">
-        <appender-ref ref="CONSOLE_APPENDER" />
-        <!-- <appender-ref ref="ROLLING_TEXT_FILE_APPENDER" /> -->
-        <!-- <appender-ref ref="ROLLING_JSON_FILE_APPENDER" /> -->
+        <appender-ref ref="ConsoleAppender" />
     </root>
 
 </configuration>

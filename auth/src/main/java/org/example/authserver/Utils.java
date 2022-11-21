@@ -77,4 +77,8 @@ public class Utils {
 
     return Acl.builder().namespace(namespace).object(object).relation(relation).build();
   }
+
+  public static String prettyPrintObject(Object o) throws JsonProcessingException {
+    return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(o);
+  }
 }

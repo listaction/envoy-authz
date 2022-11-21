@@ -29,8 +29,11 @@ public class ZanzibarImpl implements Zanzibar {
   }
 
   @Override
-  @Timed(value = "checkAcl", percentiles = {0.99, 0.95, 0.75})
-  public CheckResult check(String namespace, String object, String relation, String principal, LocalCache requestCache) {
+  @Timed(
+      value = "checkAcl",
+      percentiles = {0.99, 0.95, 0.75})
+  public CheckResult check(
+      String namespace, String object, String relation, String principal, LocalCache requestCache) {
     String tag = String.format("%s:%s#%s", namespace, object, relation);
     log.trace("expected tag: {}", tag);
     Set<String> relations = getRelations(namespace, object, principal, requestCache);
@@ -40,9 +43,13 @@ public class ZanzibarImpl implements Zanzibar {
   }
 
   @Override
-  @Timed(value = "getRelation", percentiles = {0.99, 0.95, 0.75})
-  public Set<String> getRelations(String namespace, String object, String principal, LocalCache requestCache) {
-    Set<ExpandedAcl> relations = expandMultiple(Set.of(Tuples.of(namespace, object)), principal, requestCache);
+  @Timed(
+      value = "getRelation",
+      percentiles = {0.99, 0.95, 0.75})
+  public Set<String> getRelations(
+      String namespace, String object, String principal, LocalCache requestCache) {
+    Set<ExpandedAcl> relations =
+        expandMultiple(Set.of(Tuples.of(namespace, object)), principal, requestCache);
     Set<Tuple2<String, String>> lookups = lookup(relations, namespace, object, principal);
 
     Set<String> result = new HashSet<>();
@@ -76,8 +83,11 @@ public class ZanzibarImpl implements Zanzibar {
     return result;
   }
 
-  @Timed(value = "lookup",percentiles = {0.99, 0.95, 0.75})
-  private Set<Tuple2<String, String>> lookup(Set<ExpandedAcl> relations, String namespace, String object, String principal) {
+  @Timed(
+      value = "lookup",
+      percentiles = {0.99, 0.95, 0.75})
+  private Set<Tuple2<String, String>> lookup(
+      Set<ExpandedAcl> relations, String namespace, String object, String principal) {
     Set<Tuple2<String, String>> result = new HashSet<>(); // Tuples of {namespace:object, relation}
     Set<ExpandedAcl> filtered = filter(relations, namespace, object);
     for (ExpandedAcl t : filtered) {
@@ -116,14 +126,21 @@ public class ZanzibarImpl implements Zanzibar {
     return result;
   }
 
-  @Timed(value = "expandMultiple", percentiles = {0.99, 0.95, 0.75})
-  private Set<ExpandedAcl> expandMultiple(Set<Tuple2<String, String>> namespaceObjects, String principal, LocalCache requestCache) {
-    log.trace("calling expandMultiple [cache: {}] =>  {}", requestCache.getCache().size(), namespaceObjects);
+  @Timed(
+      value = "expandMultiple",
+      percentiles = {0.99, 0.95, 0.75})
+  private Set<ExpandedAcl> expandMultiple(
+      Set<Tuple2<String, String>> namespaceObjects, String principal, LocalCache requestCache) {
+    log.trace(
+        "calling expandMultiple [cache: {}] =>  {}",
+        requestCache.getCache().size(),
+        namespaceObjects);
     if (namespaceObjects.size() == 0) {
       return new HashSet<>();
     }
 
-    List<String> nsObjects = namespaceObjects.stream()
+    List<String> nsObjects =
+        namespaceObjects.stream()
             .map(tuple -> String.format("%s:%s", tuple.getT1(), tuple.getT2()))
             .collect(Collectors.toList());
     Set<Acl> acls = new HashSet<>();
@@ -142,7 +159,8 @@ public class ZanzibarImpl implements Zanzibar {
       for (Tuple2<String, String> tuple : namespaceObjects) {
         String ns = String.format("%s:%s", tuple.getT1(), tuple.getT2());
         if (acl.getNsObject().equalsIgnoreCase(ns)) {
-          Set<ExpandedAcl> tmp = expand(tuple.getT1(), tuple.getT2(), principal, acls, requestCache);
+          Set<ExpandedAcl> tmp =
+              expand(tuple.getT1(), tuple.getT2(), principal, acls, requestCache);
           result.addAll(tmp);
         }
       }
@@ -150,8 +168,11 @@ public class ZanzibarImpl implements Zanzibar {
     return result;
   }
 
-  @Timed(value = "expandNoDbQuery", percentiles = {0.99, 0.95, 0.75})
-  private Set<ExpandedAcl> expand(String namespace, String object, String principal, Set<Acl> acls, LocalCache requestCache) {
+  @Timed(
+      value = "expandNoDbQuery",
+      percentiles = {0.99, 0.95, 0.75})
+  private Set<ExpandedAcl> expand(
+      String namespace, String object, String principal, Set<Acl> acls, LocalCache requestCache) {
     Map<Tuple2<String, String>, Set<ExpandedAcl>> cache = requestCache.getCache();
     Map<String, Set<Acl>> principalAclCache = requestCache.getPrincipalAclCache();
 
