@@ -45,7 +45,6 @@ public class AclFilterService {
     long start = System.nanoTime();
     Claims claims = tokenService.getAllClaimsFromRequest(request);
     long getAllClaimsFinished = System.nanoTime();
-
     if (Objects.isNull(claims)) {
       return CheckResult.builder().jwtPresent(false).result(false).events(events).build();
     }

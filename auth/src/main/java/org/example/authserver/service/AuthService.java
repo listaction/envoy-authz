@@ -3,6 +3,7 @@ package org.example.authserver.service;
 import authserver.common.CheckRequestDTO;
 import authserver.common.CheckTestDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.rpc.Status;
 import io.envoyproxy.envoy.config.core.v3.HeaderValue;
 import io.envoyproxy.envoy.config.core.v3.HeaderValueOption;
@@ -13,6 +14,7 @@ import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Claims;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Map;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.Utils;
@@ -33,7 +35,6 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
   private final AclFilterService aclFilterService;
   private final RedisService redisService;
   private final TokenService tokenService;
-
   private final SplitTestService splitTestService;
 
   public AuthService(
@@ -72,7 +73,6 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
           "Can't check request: {} {} ",
           request.getAttributes().getRequest().getHttp().getMethod(),
           request.getAttributes().getRequest().getHttp().getPath());
-
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
       e.printStackTrace(pw);
