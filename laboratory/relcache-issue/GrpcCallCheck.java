@@ -30,7 +30,7 @@ import java.util.stream.IntStream;
 
 public class GrpcCallCheck {
     private static final String USER = "23a98b18-430b-4582-aba5-93c245b48661"; // from DB - authz.rel_cache
-    private static final String ISSUER_ID = "/realms/venues-crg";
+    private static final String ISSUER_ID = "/realms/test";
     private static final String REQUEST_METHOD = "GET";
     private static final String PATH = "/account/user/profile"; // from DB - authz.rel_cache
 

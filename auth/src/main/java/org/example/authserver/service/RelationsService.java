@@ -3,7 +3,7 @@ package org.example.authserver.service;
 import io.micrometer.core.annotation.Timed;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.service.model.LocalCache;
+import org.example.authserver.entity.LocalCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.stereotype.Service;
 

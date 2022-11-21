@@ -2,7 +2,7 @@ package org.example.authserver.service.zanzibar;
 
 import java.util.Set;
 import org.example.authserver.entity.CheckResult;
-import org.example.authserver.service.model.LocalCache;
+import org.example.authserver.entity.LocalCache;
 
 public interface Zanzibar {
 

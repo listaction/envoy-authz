@@ -9,6 +9,7 @@ import org.example.authserver.config.AppProperties;
 import org.example.authserver.service.AuthService;
 import org.example.authserver.service.CacheLoaderService;
 import org.example.authserver.service.RedisService;
+import org.example.authserver.service.SplitTestService;
 import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.zanzibar.TokenService;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +33,7 @@ public class Application {
   private final AppProperties appProperties;
   private final int grpcPort;
   private final TokenService tokenService;
+  private final SplitTestService splitTestService;
 
   public Application(
       @Nullable JedisPool jedisPool,
@@ -39,13 +41,15 @@ public class Application {
       CacheLoaderService cacheLoaderService,
       AppProperties appProperties,
       @Value("${grpc.port:8080}") int grpcPort,
-      TokenService tokenService) {
+      TokenService tokenService,
+      SplitTestService splitTestService) {
     this.aclFilterService = aclFilterService;
     this.redisService = new RedisService(jedisPool);
     this.tokenService = tokenService;
     this.cacheLoaderService = cacheLoaderService;
     this.appProperties = appProperties;
     this.grpcPort = grpcPort;
+    this.splitTestService = splitTestService;
   }
 
   @PostConstruct
@@ -54,7 +58,8 @@ public class Application {
 
     Server server =
         ServerBuilder.forPort(grpcPort)
-            .addService(new AuthService(aclFilterService, redisService, tokenService))
+            .addService(
+                new AuthService(aclFilterService, redisService, tokenService, splitTestService))
             .build();
 
     server.start();

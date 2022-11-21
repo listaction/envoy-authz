@@ -1,6 +1,8 @@
 package org.example.authserver.controller;
 
 import authserver.acl.Acl;
+import authserver.common.AclOperation;
+import authserver.common.AclOperationDto;
 import com.google.common.base.Stopwatch;
 import java.util.HashSet;
 import java.util.Set;
@@ -11,6 +13,7 @@ import org.example.authserver.entity.AclsRequestDTO;
 import org.example.authserver.repo.SubscriptionRepository;
 import org.example.authserver.service.AclService;
 import org.example.authserver.service.CacheService;
+import org.example.authserver.service.SplitTestService;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -21,14 +24,17 @@ public class AclController {
   private final AclService repository;
   private final SubscriptionRepository subscriptionRepository;
   private final CacheService cacheService;
+  private final SplitTestService splitTestService;
 
   public AclController(
       AclService repository,
       SubscriptionRepository subscriptionRepository,
-      CacheService cacheService) {
+      CacheService cacheService,
+      SplitTestService splitTestService) {
     this.repository = repository;
     this.subscriptionRepository = subscriptionRepository;
     this.cacheService = cacheService;
+    this.splitTestService = splitTestService;
   }
 
   @GetMapping("/list")
@@ -59,6 +65,8 @@ public class AclController {
     log.info("Creating ACL: {}", acl);
     repository.save(acl);
     subscriptionRepository.publish(acl);
+    splitTestService.submitAsync(
+        AclOperationDto.builder().op(AclOperation.CREATE).acl(acl).build());
     log.info("Created ACL: {}, time {}ms", acl, stopwatch.elapsed(TimeUnit.MILLISECONDS));
   }
 
@@ -67,5 +75,6 @@ public class AclController {
     log.info("Delete acl: {}", acl);
     cacheService.purgeCacheAsync(acl.getUser(), acl.getCreated());
     repository.delete(acl);
+    splitTestService.submitAsync(AclOperationDto.builder().op(AclOperation.DEL).acl(acl).build());
   }
 }

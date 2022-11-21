@@ -1,5 +1,6 @@
 package org.example.authserver.service.zanzibar;
 
+import authserver.common.CheckRequestDTO;
 import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -32,6 +33,14 @@ public class TokenService {
     return token.isEmpty() ? null : getAllClaimsFromToken(token.get());
   }
 
+  public Claims getAllClaimsFromRequest(CheckRequestDTO request) {
+    Optional<String> token = getTokenHeader(request);
+    if (appProperties.isJwtParamEnabled()) {
+      token = token.isEmpty() ? getTokenParam(request) : token;
+    }
+    return token.isEmpty() ? null : getAllClaimsFromToken(token.get());
+  }
+
   public Claims getAllClaimsFromToken(String token) {
     Claims claims;
     try {
@@ -44,6 +53,11 @@ public class TokenService {
 
   public Optional<String> getTokenParam(CheckRequest request) {
     String path = request.getAttributes().getRequest().getHttp().getPath();
+    return Optional.ofNullable(getTokenParam(path));
+  }
+
+  public Optional<String> getTokenParam(CheckRequestDTO request) {
+    String path = request.getRequestPath();
     return Optional.ofNullable(getTokenParam(path));
   }
 
@@ -60,6 +74,12 @@ public class TokenService {
 
   public Optional<String> getTokenHeader(CheckRequest request) {
     Map<String, String> headers = request.getAttributes().getRequest().getHttp().getHeadersMap();
+    String authHeader = headers.get(AUTH_HEADER);
+    return Optional.ofNullable(getTokenHeader(authHeader));
+  }
+
+  public Optional<String> getTokenHeader(CheckRequestDTO request) {
+    Map<String, String> headers = request.getHeadersMap();
     String authHeader = headers.get(AUTH_HEADER);
     return Optional.ofNullable(getTokenHeader(authHeader));
   }

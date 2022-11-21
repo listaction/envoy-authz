@@ -1,9 +1,8 @@
-package org.example.authserver.service.model;
+package org.example.authserver.entity;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.example.authserver.entity.MappingEntity;
 
 public class Mapping {
 

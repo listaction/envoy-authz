@@ -1,15 +1,15 @@
 package org.example.authserver.service.zanzibar;
 
-import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
+import authserver.common.CheckRequestDTO;
 import io.jsonwebtoken.Claims;
 import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.config.AppProperties;
 import org.example.authserver.entity.CheckResult;
+import org.example.authserver.entity.LocalCache;
+import org.example.authserver.entity.Mapping;
 import org.example.authserver.service.CacheService;
 import org.example.authserver.service.RelationsService;
-import org.example.authserver.service.model.LocalCache;
-import org.example.authserver.service.model.Mapping;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -35,11 +35,11 @@ public class AclFilterService {
     this.appProperties = appProperties;
   }
 
-  public CheckResult checkRequest(CheckRequest request) {
+  public CheckResult checkRequest(CheckRequestDTO request) {
     Map<String, String> events = new HashMap<>();
     Map<String, Long> metrics = new HashMap<>();
-    String httpMethod = request.getAttributes().getRequest().getHttp().getMethod();
-    String requestPath = request.getAttributes().getRequest().getHttp().getPath();
+    String httpMethod = request.getHttpMethod();
+    String requestPath = request.getRequestPath();
     boolean cacheHit = false;
 
     long start = System.nanoTime();

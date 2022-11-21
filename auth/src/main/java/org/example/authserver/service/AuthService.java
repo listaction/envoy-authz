@@ -1,5 +1,7 @@
 package org.example.authserver.service;
 
+import authserver.common.CheckRequestDTO;
+import authserver.common.CheckTestDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.rpc.Status;
 import io.envoyproxy.envoy.config.core.v3.HeaderValue;
@@ -9,6 +11,8 @@ import io.envoyproxy.envoy.type.v3.HttpStatus;
 import io.envoyproxy.envoy.type.v3.StatusCode;
 import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Claims;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.Utils;
@@ -30,11 +34,17 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
   private final RedisService redisService;
   private final TokenService tokenService;
 
+  private final SplitTestService splitTestService;
+
   public AuthService(
-      AclFilterService aclFilterService, RedisService redisService, TokenService tokenService) {
+      AclFilterService aclFilterService,
+      RedisService redisService,
+      TokenService tokenService,
+      SplitTestService splitTestService) {
     this.aclFilterService = aclFilterService;
     this.redisService = redisService;
     this.tokenService = tokenService;
+    this.splitTestService = splitTestService;
   }
 
   @Override
@@ -52,7 +62,30 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
       return;
     }
 
-    CheckResult result = aclFilterService.checkRequest(request);
+    CheckRequestDTO dto = CheckRequestMapper.request2dto(request);
+
+    CheckResult result;
+    try {
+      result = aclFilterService.checkRequest(dto);
+    } catch (Exception e) {
+      log.warn(
+          "Can't check request: {} {} ",
+          request.getAttributes().getRequest().getHttp().getMethod(),
+          request.getAttributes().getRequest().getHttp().getPath());
+
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
+
+      result =
+          CheckResult.builder()
+              .httpMethod(dto.getHttpMethod())
+              .requestPath(dto.getRequestPath())
+              .result(false)
+              .events(Map.of("Exception", e.getMessage(), "Trace", pw.toString()))
+              .build();
+    }
+
     String allowedTags = String.join(",", result.getTags());
     result.setTraceId(getTraceId(request));
     result.setTenantId(getTenantId(request));
@@ -96,6 +129,13 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     } catch (JsonProcessingException e) {
       log.warn("Can't read resultMap", e);
     }
+
+    splitTestService.submitAsync(
+        CheckTestDto.builder()
+            .request(dto)
+            .result(result.isResult())
+            .resultHeaders(Map.of("X-ALLOWED-TAGS", allowedTags))
+            .build());
 
     responseObserver.onNext(response);
     responseObserver.onCompleted();
