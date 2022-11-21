@@ -1,21 +1,18 @@
 package org.example.authserver.service.zanzibar;
 
+import authserver.common.CheckRequestDTO;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import io.envoyproxy.envoy.service.auth.v3.CheckRequest;
 import io.jsonwebtoken.Claims;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
-import org.example.authserver.entity.BodyMapping;
-import org.example.authserver.entity.BodyMappingKey;
-import org.example.authserver.entity.HeaderMappingKey;
-import org.example.authserver.entity.MappingEntity;
+import org.example.authserver.entity.*;
+import org.example.authserver.entity.Mapping;
 import org.example.authserver.repo.MappingRepository;
 import org.example.authserver.service.MappingCacheService;
-import org.example.authserver.service.model.Mapping;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.util.pattern.PathPatternParser;
@@ -37,11 +34,11 @@ public class MappingService {
     this.mappingRepository = mappingRepository;
   }
 
-  public List<Mapping> processRequest(CheckRequest request, Claims claims) {
-    String requestMethod = request.getAttributes().getRequest().getHttp().getMethod();
-    String path = removeQuery(request.getAttributes().getRequest().getHttp().getPath());
-    Map<String, String> headersMap = request.getAttributes().getRequest().getHttp().getHeadersMap();
-    String requestBody = request.getAttributes().getRequest().getHttp().getBody();
+  public List<Mapping> processRequest(CheckRequestDTO request, Claims claims) {
+    String requestMethod = request.getHttpMethod();
+    String path = removeQuery(request.getRequestPath());
+    Map<String, String> headersMap = request.getHeadersMap();
+    String requestBody = null; // todo: fix body
 
     return processRequest(requestMethod, path, headersMap, requestBody, claims);
   }

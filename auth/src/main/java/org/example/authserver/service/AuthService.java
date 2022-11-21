@@ -1,5 +1,7 @@
 package org.example.authserver.service;
 
+import authserver.common.CheckRequestDTO;
+import authserver.common.CheckTestDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.rpc.Status;
 import io.envoyproxy.envoy.config.core.v3.HeaderValue;
@@ -9,9 +11,12 @@ import io.envoyproxy.envoy.type.v3.HttpStatus;
 import io.envoyproxy.envoy.type.v3.StatusCode;
 import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Claims;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.Utils;
+import org.example.authserver.config.AppProperties;
 import org.example.authserver.config.Constants;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.AclFilterService;
@@ -29,12 +34,20 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
   private final AclFilterService aclFilterService;
   private final RedisService redisService;
   private final TokenService tokenService;
+  private final SplitTestService splitTestService;
+  private final AppProperties appProperties;
 
   public AuthService(
-      AclFilterService aclFilterService, RedisService redisService, TokenService tokenService) {
+      AclFilterService aclFilterService,
+      RedisService redisService,
+      TokenService tokenService,
+      SplitTestService splitTestService,
+      AppProperties appProperties) {
     this.aclFilterService = aclFilterService;
     this.redisService = redisService;
     this.tokenService = tokenService;
+    this.splitTestService = splitTestService;
+    this.appProperties = appProperties;
   }
 
   @Override
@@ -52,7 +65,29 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
       return;
     }
 
-    CheckResult result = aclFilterService.checkRequest(request);
+    CheckRequestDTO dto = CheckRequestMapper.request2dto(request);
+
+    CheckResult result;
+    try {
+      result = aclFilterService.checkRequest(dto);
+    } catch (Exception e) {
+      log.warn(
+          "Can't check request: {} {} ",
+          request.getAttributes().getRequest().getHttp().getMethod(),
+          request.getAttributes().getRequest().getHttp().getPath());
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
+
+      result =
+          CheckResult.builder()
+              .httpMethod(dto.getHttpMethod())
+              .requestPath(dto.getRequestPath())
+              .result(false)
+              .events(Map.of("Exception", e.getMessage(), "Trace", pw.toString()))
+              .build();
+    }
+
     String allowedTags = String.join(",", result.getTags());
     result.setTraceId(getTraceId(request));
     result.setTenantId(getTenantId(request));
@@ -95,6 +130,15 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
       log.info(logEntry);
     } catch (JsonProcessingException e) {
       log.warn("Can't read resultMap", e);
+    }
+
+    if (appProperties.isCopyModeEnabled()) {
+      splitTestService.submitAsync(
+          CheckTestDto.builder()
+              .request(dto)
+              .result(result.isResult())
+              .resultHeaders(Map.of("X-ALLOWED-TAGS", allowedTags))
+              .build());
     }
 
     responseObserver.onNext(response);

@@ -42,7 +42,9 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
   @Override
   public Flux<String> subscribeAcl() {
-    if (jedis == null) Flux.empty();
+    if (jedis == null) {
+      return Flux.empty();
+    }
     return Flux.create(
         sink -> {
           Jedis conn = jedis.getResource();
@@ -52,7 +54,9 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
   @Override
   public Flux<String> subscribeConfig() {
-    if (jedis == null) Flux.empty();
+    if (jedis == null) {
+      return Flux.empty();
+    }
     return Flux.create(
         sink -> {
           Jedis conn = jedis.getResource();

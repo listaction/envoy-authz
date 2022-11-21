@@ -6,8 +6,8 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.CheckResult;
+import org.example.authserver.entity.LocalCache;
 import org.example.authserver.service.RelationsService;
-import org.example.authserver.service.model.LocalCache;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.web.bind.annotation.*;
 

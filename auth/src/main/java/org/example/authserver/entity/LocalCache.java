@@ -1,4 +1,4 @@
-package org.example.authserver.service.model;
+package org.example.authserver.entity;
 
 import authserver.acl.Acl;
 import java.util.*;
