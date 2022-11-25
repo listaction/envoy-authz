@@ -51,7 +51,7 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     this.appProperties = appProperties;
   }
 
-  @Trace
+  @Trace(dispatcher = true)
   @Override
   public void check(CheckRequest request, StreamObserver<CheckResponse> responseObserver) {
     log.info(
