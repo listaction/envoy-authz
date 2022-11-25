@@ -1,6 +1,7 @@
 package org.example.authserver.service.zanzibar;
 
 import authserver.common.CheckRequestDTO;
+import com.newrelic.api.agent.Trace;
 import io.jsonwebtoken.Claims;
 import java.util.*;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ public class AclFilterService {
     this.appProperties = appProperties;
   }
 
+  @Trace
   public CheckResult checkRequest(CheckRequestDTO request) {
     Map<String, String> events = new HashMap<>();
     Map<String, Long> metrics = new HashMap<>();
