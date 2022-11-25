@@ -4,6 +4,7 @@ import authserver.common.CheckRequestDTO;
 import authserver.common.CheckTestDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.rpc.Status;
+import com.newrelic.api.agent.Trace;
 import io.envoyproxy.envoy.config.core.v3.HeaderValue;
 import io.envoyproxy.envoy.config.core.v3.HeaderValueOption;
 import io.envoyproxy.envoy.service.auth.v3.*;
@@ -50,6 +51,7 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     this.appProperties = appProperties;
   }
 
+  @Trace
   @Override
   public void check(CheckRequest request, StreamObserver<CheckResponse> responseObserver) {
     log.info(
