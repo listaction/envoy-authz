@@ -17,5 +17,7 @@ public class CheckTestDto {
   private CheckRequestDTO request;
   private boolean result;
   private Map<String, String> resultHeaders;
+
+  @Builder.Default
   private ZonedDateTime time = ZonedDateTime.ofInstant(Instant.now(), ZoneId.of("UTC"));
 }
