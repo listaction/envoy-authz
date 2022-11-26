@@ -1,11 +1,9 @@
 package org.example.authserver.controller;
 
 import authserver.common.CheckRequestDTO;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -68,11 +66,7 @@ public class DebugController {
   }
 
   @PostMapping("/query")
-  public CheckResult query(@RequestBody CheckRequestDTO dto) throws JsonProcessingException {
-    Base64.Encoder encoder = Base64.getEncoder();
-    String json = mapper.writeValueAsString(dto);
-    String jsonEncoded = encoder.encodeToString(json.getBytes(StandardCharsets.UTF_8));
-    System.out.println(jsonEncoded);
+  public CheckResult query(@RequestBody CheckRequestDTO dto) {
     return authService.check(dto, null);
   }
 
