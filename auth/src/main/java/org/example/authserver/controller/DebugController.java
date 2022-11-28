@@ -1,12 +1,17 @@
 package org.example.authserver.controller;
 
+import authserver.common.CheckRequestDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
+import java.io.IOException;
+import java.util.Base64;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.entity.LocalCache;
+import org.example.authserver.service.AuthService;
 import org.example.authserver.service.RelationsService;
 import org.example.authserver.service.zanzibar.Zanzibar;
 import org.springframework.web.bind.annotation.*;
@@ -16,12 +21,17 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/debug")
 public class DebugController {
 
+  private static final ObjectMapper mapper = new ObjectMapper();
+
   private final RelationsService relationsService;
   private final Zanzibar zanzibar;
+  private final AuthService authService;
 
-  public DebugController(RelationsService relationsService, Zanzibar zanzibar) {
+  public DebugController(
+      RelationsService relationsService, Zanzibar zanzibar, AuthService authService) {
     this.relationsService = relationsService;
     this.zanzibar = zanzibar;
+    this.authService = authService;
   }
 
   @GetMapping("/relations")
@@ -53,5 +63,18 @@ public class DebugController {
         principal,
         stopwatch.elapsed(TimeUnit.MILLISECONDS));
     return result.isResult();
+  }
+
+  @PostMapping("/query")
+  public CheckResult query(@RequestBody CheckRequestDTO dto) {
+    return authService.check(dto, null);
+  }
+
+  @GetMapping("/query")
+  public CheckResult query(@RequestParam String q) throws IOException {
+    Base64.Decoder decoder = Base64.getDecoder();
+    byte[] payload = decoder.decode(q);
+    CheckRequestDTO dto = mapper.readValue(payload, CheckRequestDTO.class);
+    return authService.check(dto, null);
   }
 }

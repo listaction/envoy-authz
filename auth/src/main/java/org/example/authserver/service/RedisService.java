@@ -1,9 +1,11 @@
 package org.example.authserver.service;
 
 import javax.annotation.Nullable;
+import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+@Service
 public class RedisService {
 
   public static final String REFRESH_PROCESSING_MARKER_KEY = "REFRESH_PROCESSING_MARKER";

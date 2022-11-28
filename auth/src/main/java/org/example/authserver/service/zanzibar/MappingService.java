@@ -1,16 +1,11 @@
 package org.example.authserver.service.zanzibar;
 
-import authserver.common.CheckRequestDTO;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import io.jsonwebtoken.Claims;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
 import org.example.authserver.entity.*;
-import org.example.authserver.entity.Mapping;
 import org.example.authserver.repo.MappingRepository;
 import org.example.authserver.service.MappingCacheService;
 import org.springframework.stereotype.Service;
@@ -22,8 +17,6 @@ import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 @Service
 public class MappingService {
 
-  private static final Pattern pattern = Pattern.compile("(.*)\\/realms\\/(.*)");
-
   private final MappingCacheService mappingCacheService;
 
   private final MappingRepository mappingRepository;
@@ -34,22 +27,14 @@ public class MappingService {
     this.mappingRepository = mappingRepository;
   }
 
-  public List<Mapping> processRequest(CheckRequestDTO request, Claims claims) {
-    String requestMethod = request.getHttpMethod();
-    String path = removeQuery(request.getRequestPath());
-    Map<String, String> headersMap = request.getHeadersMap();
-    String requestBody = null; // todo: fix body
-
-    return processRequest(requestMethod, path, headersMap, requestBody, claims);
-  }
-
   /** @return mapping variables, or {@code null} for no match */
   public List<Mapping> processRequest(
       String requestMethod,
-      String path,
+      String requestPath,
       Map<String, String> headersMap,
-      String requestBody,
-      Claims claims) {
+      String userId,
+      String tenant) {
+    String path = removeQuery(requestPath);
     Map<MappingEntity, Map<String, String>> mappings = findMappings(requestMethod, path);
 
     if (CollectionUtils.isEmpty(mappings)) { // no match
@@ -64,22 +49,12 @@ public class MappingService {
       Mapping mapping = new Mapping(entry.getKey());
       mapping.getVariableMap().putAll(entry.getValue());
 
-      if (mappingEntity.getBodyMapping() != null
-          && ("POST".equalsIgnoreCase(requestMethod) || "PUT".equalsIgnoreCase(requestMethod))) {
-        BodyMapping bodyMapping = mappingEntity.getBodyMapping();
-        mapping.getVariableMap().putAll(parseRequestJsonBody(bodyMapping, requestBody));
-      }
-
       if (mappingEntity.getHeaderMapping() != null) {
         mapping.getVariableMap().putAll(parseHeaders(mappingEntity.getHeaderMapping(), headersMap));
       }
 
-      Matcher m = pattern.matcher(claims.getIssuer());
-      if (m.matches() && m.groupCount() >= 2) {
-        mapping.getVariableMap().put("tenant", m.group(2));
-      }
-
-      mapping.getVariableMap().put("userId", claims.getSubject());
+      mapping.getVariableMap().put("tenant", tenant);
+      mapping.getVariableMap().put("userId", userId);
       mapping.getVariableMap().put("aclId", mappingEntity.getId());
       mapping.getVariableMap().forEach((key, v) -> log.trace("{} => {}", key, v));
 
@@ -148,7 +123,7 @@ public class MappingService {
       List<HeaderMappingKey> headerMapping, Map<String, String> headersMap) {
     Map<String, String> variables = new HashMap<>();
     for (HeaderMappingKey h : headerMapping) {
-      variables.put("body." + h.getNamespace(), headersMap.get(h.getName()));
+      variables.put("header." + h.getNamespace(), headersMap.get(h.getName()));
     }
 
     return variables;

@@ -14,4 +14,6 @@ public class CheckRequestDTO {
   private String httpMethod;
   private String requestPath;
   private Map<String, String> headersMap;
+  private String userId;
+  private String tenant;
 }

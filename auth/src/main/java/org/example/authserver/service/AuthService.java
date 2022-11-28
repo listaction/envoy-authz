@@ -14,7 +14,13 @@ import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Claims;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.Utils;
 import org.example.authserver.config.AppProperties;
@@ -22,15 +28,17 @@ import org.example.authserver.config.Constants;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.zanzibar.TokenService;
+import org.springframework.stereotype.Service;
 
 @Slf4j
+@Service
 public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
+  private static final Pattern pattern = Pattern.compile("(.*)\\/realms\\/(.*)");
 
   private static final Integer OK = 0;
   private static final Integer PERMISSION_DENIED = 7;
   private static final Integer UNAUTHORIZED = 16;
   private static final String TRACE_ID = "TRACEPARENT";
-  private static final String TENANT_ID = "X-KEYCLOAK-REALM";
 
   private final AclFilterService aclFilterService;
   private final RedisService redisService;
@@ -68,35 +76,12 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     }
 
     CheckRequestDTO dto = CheckRequestMapper.request2dto(request);
+    String traceId = getTraceId(request);
 
-    CheckResult result;
-    try {
-      result = aclFilterService.checkRequest(dto);
-    } catch (Exception e) {
-      log.warn(
-          "Can't check request: {} {} ",
-          request.getAttributes().getRequest().getHttp().getMethod(),
-          request.getAttributes().getRequest().getHttp().getPath());
-      StringWriter sw = new StringWriter();
-      PrintWriter pw = new PrintWriter(sw);
-      e.printStackTrace(pw);
-
-      result =
-          CheckResult.builder()
-              .httpMethod(dto.getHttpMethod())
-              .requestPath(dto.getRequestPath())
-              .result(false)
-              .events(Map.of("Exception", e.getMessage(), "Trace", pw.toString()))
-              .build();
-    }
-
-    String allowedTags = String.join(",", result.getTags());
-    result.setTraceId(getTraceId(request));
-    result.setTenantId(getTenantId(request));
-    result.setAllowedTags(allowedTags);
+    CheckResult result = check(dto, traceId);
 
     HeaderValue headerAllowedTags =
-        HeaderValue.newBuilder().setKey("X-ALLOWED-TAGS").setValue(allowedTags).build();
+        HeaderValue.newBuilder().setKey("X-ALLOWED-TAGS").setValue(result.getAllowedTags()).build();
 
     HeaderValueOption headers = HeaderValueOption.newBuilder().setHeader(headerAllowedTags).build();
 
@@ -105,25 +90,6 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
             .setStatus(Status.newBuilder().setCode(getCode(result.isResult())).build())
             .setOkResponse(OkHttpResponse.newBuilder().addHeaders(headers).build())
             .build();
-
-    if (result.isMappingsPresent()) {
-      result.getEvents().put("request allowed", String.valueOf(result.isResult()));
-
-      if (!result.isResult()) {
-        result.getEvents().put("REJECTED by mapping id", result.getRejectedWithMappingId());
-        log.trace("REJECTED by mapping id: {}", result.getRejectedWithMappingId());
-      }
-
-    } else {
-      result
-          .getEvents()
-          .put(
-              "NO MAPPINGS found",
-              String.format(
-                  "%s %s",
-                  request.getAttributes().getRequest().getHttp().getMethod(),
-                  request.getAttributes().getRequest().getHttp().getPath()));
-    }
 
     try {
       Map<String, Object> resultMap = result.getResultMap();
@@ -139,12 +105,76 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
           CheckTestDto.builder()
               .request(dto)
               .result(result.isResult())
-              .resultHeaders(Map.of("X-ALLOWED-TAGS", allowedTags))
+              .resultHeaders(Map.of("X-ALLOWED-TAGS", result.getAllowedTags()))
+              .time(ZonedDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
               .build());
     }
 
     responseObserver.onNext(response);
     responseObserver.onCompleted();
+  }
+
+  public CheckResult check(CheckRequestDTO dto, String traceId) {
+    log.info("request: {} {}", dto.getHttpMethod(), dto.getRequestPath());
+
+    String userId = dto.getUserId();
+    String tenantId = dto.getTenant();
+
+    if (userId == null || tenantId == null) {
+      Claims claims = tokenService.getAllClaimsFromRequest(dto);
+      if (claims != null) {
+        userId = claims.getSubject();
+        String issuer = claims.getIssuer();
+        tenantId = getTenantId(issuer);
+      }
+    }
+
+    CheckResult result;
+    try {
+      if (userId != null && tenantId != null) {
+        result =
+            aclFilterService.checkRequest(
+                dto.getHttpMethod(), dto.getRequestPath(), dto.getHeadersMap(), userId, tenantId);
+      } else {
+        result =
+            CheckResult.builder().jwtPresent(false).result(false).events(new HashMap<>()).build();
+      }
+
+    } catch (Exception e) {
+      log.warn("Can't check request: {} {} ", dto.getHttpMethod(), dto.getRequestPath());
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
+
+      result =
+          CheckResult.builder()
+              .httpMethod(dto.getHttpMethod())
+              .requestPath(dto.getRequestPath())
+              .result(false)
+              .events(Map.of("Exception", e.getMessage(), "Trace", pw.toString()))
+              .build();
+    }
+
+    String allowedTags = String.join(",", result.getTags());
+    result.setTraceId(traceId);
+    result.setTenantId(tenantId);
+    result.setAllowedTags(allowedTags);
+
+    if (result.isMappingsPresent()) {
+      if (!result.isResult()) {
+        result.getEvents().put("REJECTED by mapping id", result.getRejectedWithMappingId());
+        log.trace("REJECTED by mapping id: {}", result.getRejectedWithMappingId());
+      }
+
+    } else {
+      result
+          .getEvents()
+          .put(
+              "NO MAPPINGS found",
+              String.format("%s %s", dto.getHttpMethod(), dto.getRequestPath()));
+    }
+
+    return result;
   }
 
   private int getCode(boolean allow) {
@@ -186,9 +216,11 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     return headersMap.get(TRACE_ID);
   }
 
-  private String getTenantId(CheckRequest checkRequest) {
-    Map<String, String> headersMap =
-        checkRequest.getAttributes().getRequest().getHttp().getHeadersMap();
-    return headersMap.get(TENANT_ID);
+  private String getTenantId(String issuer) {
+    Matcher m = pattern.matcher(issuer);
+    if (m.matches() && m.groupCount() >= 2) {
+      return m.group(2);
+    }
+    return null;
   }
 }

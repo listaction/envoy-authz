@@ -2,23 +2,16 @@ package org.example.authserver;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.config.AppProperties;
 import org.example.authserver.service.AuthService;
 import org.example.authserver.service.CacheLoaderService;
-import org.example.authserver.service.RedisService;
-import org.example.authserver.service.SplitTestService;
-import org.example.authserver.service.zanzibar.AclFilterService;
-import org.example.authserver.service.zanzibar.TokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import redis.clients.jedis.JedisPool;
 
 @Slf4j
 @EnableConfigurationProperties
@@ -27,44 +20,27 @@ import redis.clients.jedis.JedisPool;
 @SpringBootApplication
 public class Application {
 
-  private final AclFilterService aclFilterService;
-  private final RedisService redisService;
+  private final AuthService authService;
   private final CacheLoaderService cacheLoaderService;
-  private final AppProperties appProperties;
   private final int grpcPort;
-  private final TokenService tokenService;
-  private final SplitTestService splitTestService;
 
   public Application(
-      @Nullable JedisPool jedisPool,
-      AclFilterService aclFilterService,
+      AuthService authService,
       CacheLoaderService cacheLoaderService,
-      AppProperties appProperties,
-      @Value("${grpc.port:8080}") int grpcPort,
-      TokenService tokenService,
-      SplitTestService splitTestService) {
-    this.aclFilterService = aclFilterService;
-    this.redisService = new RedisService(jedisPool);
-    this.tokenService = tokenService;
+      @Value("${grpc.port:8080}") int grpcPort) {
+    this.authService = authService;
     this.cacheLoaderService = cacheLoaderService;
-    this.appProperties = appProperties;
     this.grpcPort = grpcPort;
-    this.splitTestService = splitTestService;
   }
 
   @PostConstruct
   public void start() throws Exception {
     cacheLoaderService.subscribe();
 
-    Server server =
-        ServerBuilder.forPort(grpcPort)
-            .addService(
-                new AuthService(
-                    aclFilterService, redisService, tokenService, splitTestService, appProperties))
-            .build();
+    Server server = ServerBuilder.forPort(grpcPort).addService(authService).build();
 
     server.start();
-    log.info("Started. Listen post: {}}", grpcPort);
+    log.info("Started. Listen GRPC port: {}}", grpcPort);
   }
 
   public static void main(String[] args) {

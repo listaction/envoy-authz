@@ -1,5 +1,6 @@
 package org.example.authserver.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,7 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.logging.log4j.util.Strings;
 
 @Data
 @Builder
@@ -27,16 +27,19 @@ public class CheckResult {
   @Builder.Default private Collection<String> tags = new HashSet<>();
   @Builder.Default private Map<String, String> events = new HashMap<>();
   @Builder.Default private Map<String, Long> metrics = new HashMap<>();
-  @Builder.Default private String traceId = Strings.EMPTY;
-  @Builder.Default private String tenantId = Strings.EMPTY;
-  @Builder.Default private String allowedTags = Strings.EMPTY;
+  private String traceId;
+  private String tenantId;
+  private String userId;
+  private String allowedTags;
 
+  @JsonIgnore
   public Map<String, Object> getResultMap() {
     Map<String, Object> resultMap = new HashMap<>();
+    resultMap.put("tenantId", tenantId);
+    resultMap.put("traceId", traceId);
+    resultMap.put("userId", userId);
     resultMap.put("httpMethod", httpMethod);
     resultMap.put("requestPath", requestPath);
-    resultMap.put("traceId", traceId);
-    resultMap.put("tenantId", tenantId);
     resultMap.put("events", events);
     resultMap.put("metrics", metrics);
     resultMap.put("allowedTags", allowedTags);

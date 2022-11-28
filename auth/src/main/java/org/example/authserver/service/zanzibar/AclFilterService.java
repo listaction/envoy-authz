@@ -1,7 +1,5 @@
 package org.example.authserver.service.zanzibar;
 
-import authserver.common.CheckRequestDTO;
-import io.jsonwebtoken.Claims;
 import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.config.AppProperties;
@@ -16,52 +14,48 @@ import org.springframework.util.CollectionUtils;
 @Slf4j
 @Service
 public class AclFilterService {
+
   private final MappingService mappingService;
-  private final TokenService tokenService;
   private final RelationsService relationsService;
   private final CacheService cacheService;
   private final AppProperties appProperties;
 
   public AclFilterService(
       MappingService mappingService,
-      TokenService tokenService,
       RelationsService relationsService,
       CacheService cacheService,
       AppProperties appProperties) {
     this.mappingService = mappingService;
-    this.tokenService = tokenService;
     this.relationsService = relationsService;
     this.cacheService = cacheService;
     this.appProperties = appProperties;
   }
 
-  public CheckResult checkRequest(CheckRequestDTO request) {
+  public CheckResult checkRequest(
+      String httpMethod,
+      String requestPath,
+      Map<String, String> headersMap,
+      String userId,
+      String tenantId) {
     Map<String, String> events = new HashMap<>();
     Map<String, Long> metrics = new HashMap<>();
-    String httpMethod = request.getHttpMethod();
-    String requestPath = request.getRequestPath();
     boolean cacheHit = false;
 
     long start = System.nanoTime();
-    Claims claims = tokenService.getAllClaimsFromRequest(request);
-    long getAllClaimsFinished = System.nanoTime();
-    if (Objects.isNull(claims)) {
-      return CheckResult.builder().jwtPresent(false).result(false).events(events).build();
-    }
-
     long processRequestStarted = System.nanoTime();
-    String user = claims.getSubject();
-    List<Mapping> mappings = mappingService.processRequest(request, claims);
+
+    List<Mapping> mappings =
+        mappingService.processRequest(httpMethod, requestPath, headersMap, userId, tenantId);
     long processRequestStopped = System.nanoTime();
 
     if (CollectionUtils.isEmpty(mappings)) {
-      events.put("Unable to find mapping for user", user);
+      events.put("Unable to find mapping for user", userId);
       return CheckResult.builder().mappingsPresent(false).result(false).events(events).build();
     }
 
     long maxAclUpdate =
         (appProperties.isCacheEnabled())
-            ? Optional.ofNullable(relationsService.getAclMaxUpdate(user)).orElse(0L)
+            ? Optional.ofNullable(relationsService.getAclMaxUpdate(userId)).orElse(0L)
             : 0L; // found revision
 
     Set<String> allowedTags = new HashSet<>();
@@ -73,6 +67,7 @@ public class AclFilterService {
 
       Set<String> roles = new HashSet<>(mapping.getRoles());
       if (roles.isEmpty()) {
+        events.put(String.format("mapping %s", mappingId), "no roles defined");
         return CheckResult.builder()
             .httpMethod(httpMethod)
             .requestPath(requestPath)
@@ -80,13 +75,16 @@ public class AclFilterService {
             .rejectedWithMappingId(mappingId)
             .result(false)
             .events(events)
+            .userId(userId)
+            .tenantId(tenantId)
             .build();
       }
 
       long cacheOperationStarted = System.nanoTime();
       Set<String> relations =
-          cacheService.getCachedRelations(
-              user, namespace, object, path, maxAclUpdate); // get from cache
+          (appProperties.isCacheEnabled())
+              ? cacheService.getCachedRelations(userId, namespace, object, path, maxAclUpdate)
+              : new HashSet<>(); // get from cache
 
       if (checkTag(relations, roles, namespace, object)) { // cache hit
         allowedTags.addAll(relations);
@@ -94,17 +92,19 @@ public class AclFilterService {
             "zanzibar.getCachedRelations(ms)", toMs(cacheOperationStarted, System.nanoTime()));
         cacheHit = true;
       } else { // cache miss
-        relations = relationsService.getRelations(namespace, object, user, new LocalCache());
+        relations = relationsService.getRelations(namespace, object, userId, new LocalCache());
         metrics.put("zanzibar.getRelations(ms)", toMs(cacheOperationStarted, System.nanoTime()));
 
         if (checkTag(relations, roles, namespace, object)) {
           allowedTags.addAll(relations);
-          events.put("cache warming for user", user);
-          cacheService.persistCacheAsync(user, relations, path, maxAclUpdate); // cache warming
+          if (appProperties.isCacheEnabled()) {
+            events.put("cache warming for user", userId);
+            cacheService.persistCacheAsync(userId, relations, path, maxAclUpdate); // cache warming
+          }
         } else {
           events.put(String.format("expected roles: %s:%s %s", namespace, object, roles), "");
-          events.put(String.format("roles available for %s: %s", user, relations), "");
-          metrics.put("CheckRequest(ms)", toMs(start, System.nanoTime()));
+          events.put(String.format("roles available for %s: %s", userId, relations), "");
+          metrics.put("checkRequest(ms)", toMs(start, System.nanoTime()));
 
           return CheckResult.builder()
               .httpMethod(httpMethod)
@@ -114,16 +114,17 @@ public class AclFilterService {
               .result(false)
               .events(events)
               .metrics(metrics)
+              .userId(userId)
+              .tenantId(tenantId)
               .build();
         }
       }
     }
 
-    metrics.put("getAllClaimsFromRequest(ms)", toMs(start, getAllClaimsFinished));
     metrics.put(
         "mappingService.processRequest(ms)", toMs(processRequestStarted, processRequestStopped));
     metrics.put("CheckRequest(ms)", toMs(start, System.nanoTime()));
-    metrics.put("mappings size", (long) mappings.size());
+    metrics.put("mappings processed", (long) mappings.size());
 
     return CheckResult.builder()
         .httpMethod(httpMethod)
@@ -134,6 +135,8 @@ public class AclFilterService {
         .events(events)
         .metrics(metrics)
         .cacheHit(cacheHit)
+        .userId(userId)
+        .tenantId(tenantId)
         .build();
   }
 

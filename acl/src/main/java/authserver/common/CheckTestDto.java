@@ -1,5 +1,6 @@
 package authserver.common;
 
+import java.time.ZonedDateTime;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,4 +15,5 @@ public class CheckTestDto {
   private CheckRequestDTO request;
   private boolean result;
   private Map<String, String> resultHeaders;
+  private ZonedDateTime time;
 }
