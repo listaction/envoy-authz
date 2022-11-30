@@ -14,9 +14,7 @@ import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Claims;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -106,7 +104,7 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
               .request(dto)
               .result(result.isResult())
               .resultHeaders(Map.of("X-ALLOWED-TAGS", result.getAllowedTags()))
-              .time(ZonedDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+              .time(new Date())
               .build());
     }
 
