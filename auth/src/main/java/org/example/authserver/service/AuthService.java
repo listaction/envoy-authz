@@ -65,12 +65,14 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
         request.getAttributes().getRequest().getHttp().getMethod(),
         request.getAttributes().getRequest().getHttp().getPath());
 
-    CheckResponse unauthorizedCheckResult = validateTokenWithSignOutRequest(request);
-    if (unauthorizedCheckResult != null) {
-      responseObserver.onNext(unauthorizedCheckResult);
-      responseObserver.onCompleted();
+    if (appProperties.isTokenSignOutCheckEnabled()) {
+      CheckResponse unauthorizedCheckResult = validateTokenWithSignOutRequest(request);
+      if (unauthorizedCheckResult != null) {
+        responseObserver.onNext(unauthorizedCheckResult);
+        responseObserver.onCompleted();
 
-      return;
+        return;
+      }
     }
 
     CheckRequestDTO dto = CheckRequestMapper.request2dto(request);
