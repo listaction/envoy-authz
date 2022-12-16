@@ -33,13 +33,13 @@ public class ReTestService {
         List<Mismatch> mismatches = mismatchRepository.findAllByAttemptsBeforeAndResultMismatch(5, true);
         for (Mismatch m : mismatches){
          log.info("retest: {}", m.getId());
-         authzTestService.authzReTest(m);
+         authzTestService.authzReTestGrpc(m);
         }
 
         List<Mismatch> mismatches2 = mismatchRepository.findAllByAttemptsBeforeAndTagsMismatch(5, true);
         for (Mismatch m : mismatches2){
             log.info("retest: {}", m.getId());
-            authzTestService.authzReTest(m);
+            authzTestService.authzReTestGrpc(m);
         }
 
     }

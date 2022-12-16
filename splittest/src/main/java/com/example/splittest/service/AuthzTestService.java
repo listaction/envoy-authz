@@ -9,6 +9,7 @@ import com.example.splittest.entity.Mismatch;
 import com.example.splittest.repo.MismatchRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.google.gson.Gson;
 import io.envoyproxy.envoy.config.core.v3.HeaderValueOption;
 import io.envoyproxy.envoy.service.auth.v3.CheckResponse;
 import java.util.Base64;
@@ -37,17 +38,18 @@ public class AuthzTestService {
   }
 
   public void authzTest(CheckTestDto dto) {
-    if (dto.getRequest().getRequestPath().contains("/signout")){
-      return; //skip
-    }
     long debugId = System.nanoTime();
 
     try {
       CheckResponse checkResponse = grpcClient.sendRequest(dto);
+      Gson gson = new Gson();
+      String grpcResponseJson = gson.toJson(checkResponse);
       Mismatch mismatch = compareResults(dto, checkResponse, debugId);
       if (mismatch != null){
+        mismatch.setGrpcResponse(grpcResponseJson);
         mismatchRepository.save(mismatch);
       }
+      log.info("GRPC response: {}", grpcResponseJson);
     } catch (Exception e) {
       log.warn("Can't call", e);
     }
@@ -55,9 +57,6 @@ public class AuthzTestService {
 
   public void authzReTest(Mismatch m) {
     CheckTestDto dto = m.getCheckTestDto();
-    if (dto.getRequest().getRequestPath().contains("/signout")){
-      return; //skip
-    }
 
     try {
       CheckResult checkResponse = authzClient.checkQuery("", m.getDebug());
@@ -87,13 +86,53 @@ public class AuthzTestService {
     }
   }
 
+  public void authzReTestGrpc(Mismatch m) {
+    CheckTestDto dto = m.getCheckTestDto();
+
+    long debugId = System.nanoTime();
+    try {
+      CheckResponse checkResponse = grpcClient.sendRequest(dto);
+      List<HeaderValueOption> actualResponseHeadersList =
+              checkResponse.getOkResponse().getHeadersList();
+      String actualTags = getActualHeader(actualResponseHeadersList, X_ALLOWED_TAGS_HEADER);
+      String expectedTags = dto.getResultHeaders().getOrDefault(X_ALLOWED_TAGS_HEADER, "");
+
+      Mismatch mismatch = compareResults(dto, checkResponse, debugId);
+      if (mismatch != null){
+        m.setActualTags(actualTags);
+        m.setAttempts(m.getAttempts() + 1);
+        m.setUpdated(new Date());
+        mismatchRepository.save(m);
+
+        if (!m.getTagsMismatch() && !m.getResultMismatch()){
+          log.info("retest case {} resolved", m.getId());
+        }
+      } else {
+        m.setActualUpdated(m.getExpected());
+        m.setResultMismatch(false);
+      }
+
+      m.setActualTags(actualTags);
+      m.setAttempts(m.getAttempts() + 1);
+      m.setUpdated(new Date());
+      mismatchRepository.save(m);
+    } catch (Exception e) {
+      log.warn("Can't call", e);
+    }
+
+    if (!m.getTagsMismatch() && !m.getResultMismatch()){
+      log.info("retest case {} resolved", m.getId());
+    }
+  }
+
   private Mismatch compareResults(CheckTestDto dto, CheckResponse checkResponse, long debugId) {
     List<HeaderValueOption> actualResponseHeadersList =
         checkResponse.getOkResponse().getHeadersList();
     String actualTags = getActualHeader(actualResponseHeadersList, X_ALLOWED_TAGS_HEADER);
     String expectedTags = dto.getResultHeaders().getOrDefault(X_ALLOWED_TAGS_HEADER, "");
 
-    if (dto.isResult() != checkResponse.hasOkResponse()) {
+    boolean actualAccess = (0 == checkResponse.getStatus().getCode());
+    if (dto.isResult() != actualAccess) {
       log.info(
           "result mismatch: expected {}, actual: {},\nrequest: {}\nresponse headers: {}",
           dto.isResult(),

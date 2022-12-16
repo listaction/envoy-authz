@@ -43,6 +43,8 @@ public class Mismatch {
     private String userId;
     @Column(columnDefinition = "text")
     private String debug;
+    @Column(columnDefinition = "text")
+    private String grpcResponse;
 
     private Boolean expected;
     private Boolean actual;

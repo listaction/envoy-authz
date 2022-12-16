@@ -76,7 +76,11 @@
             <artifactId>grpc-stub</artifactId>
             <version>1.49.2</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10</version>
+        </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>

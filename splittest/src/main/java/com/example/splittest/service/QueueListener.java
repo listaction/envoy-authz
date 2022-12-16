@@ -30,7 +30,7 @@ public class QueueListener {
   private final String CHECK_REQUEST_QUEUE_NAME = "CheckQueue";
   private final String ACL_QUEUE_NAME = "AclQueue";
 
-  private final Long DELAY_TIME = 5 * 60 * 1000L;
+  private final Long DELAY_TIME = 3 * 60 * 1000L;
 
   private final int ACL_PROCESS_THREADS = 5;
   private final ScheduledExecutorService executor =
