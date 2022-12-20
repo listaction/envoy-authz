@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthzAclService {
 
-  private final Executor executor = Executors.newScheduledThreadPool(5);
+  private final Executor executor = Executors.newScheduledThreadPool(20);
   private final AuthzClient authzClient;
 
   public AuthzAclService(AuthzClient authzClient) {

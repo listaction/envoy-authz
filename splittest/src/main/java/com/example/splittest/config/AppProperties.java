@@ -12,4 +12,6 @@ public class AppProperties {
   private int authzGrpcPort;
   private String authzHostname;
   private String authzRestApiUrl;
+  private boolean aclsSubscribeEnabled;
+  private boolean crsSubscribeEnabled;
 }
