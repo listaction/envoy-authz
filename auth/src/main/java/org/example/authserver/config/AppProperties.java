@@ -13,4 +13,6 @@ public class AppProperties {
   private String jwtParam;
   private boolean jwtParamEnabled;
   private boolean tokenSignOutCheckEnabled;
+  private String groupRelationsNamespace;
+  private String groupRelationsObject;
 }

@@ -42,6 +42,10 @@ public class MappingEntity implements Serializable {
   @Column(columnDefinition = "jsonb")
   private List<String> roles;
 
+  @Type(type = "jsonb")
+  @Column(columnDefinition = "jsonb", name = "group_roles")
+  private List<String> groupRoles;
+
   private String namespace;
   private String object;
 
