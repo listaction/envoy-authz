@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.config.AppProperties;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.entity.LocalCache;
-import org.example.authserver.entity.Mapping;
+import org.example.authserver.entity.MappingDTO;
 import org.example.authserver.service.CacheService;
 import org.example.authserver.service.RelationsService;
 import org.springframework.stereotype.Service;
@@ -44,7 +44,7 @@ public class AclFilterService {
     long start = System.nanoTime();
     long processRequestStarted = System.nanoTime();
 
-    List<Mapping> mappings =
+    List<MappingDTO> mappings =
         mappingService.processRequest(httpMethod, requestPath, headersMap, userId, tenantId);
     long processRequestStopped = System.nanoTime();
 
@@ -59,14 +59,17 @@ public class AclFilterService {
             : 0L; // found revision
 
     Set<String> allowedTags = new HashSet<>();
-    for (Mapping mapping : mappings) {
+    for (MappingDTO mapping : mappings) {
       String mappingId = mapping.getVariable("aclId");
       String namespace = mapping.getVariable("namespace");
+      String groupRelationsNamespace = mapping.getVariable("groupRelationsNamespace");
+      String groupRelationsObject = mapping.getVariable("groupRelationsObject");
       String object = mapping.getVariable("object");
       String path = mapping.getMappingEntity().getPath();
 
       Set<String> roles = new HashSet<>(mapping.getRoles());
-      if (roles.isEmpty()) {
+      Set<String> groupRoles = new HashSet<>(mapping.getGroupRoles());
+      if (roles.isEmpty() && groupRoles.isEmpty()) {
         events.put(String.format("mapping %s", mappingId), "no roles defined");
         return CheckResult.builder()
             .httpMethod(httpMethod)
@@ -77,6 +80,7 @@ public class AclFilterService {
             .events(events)
             .userId(userId)
             .tenantId(tenantId)
+            .cacheHit(cacheHit)
             .build();
       }
 
@@ -86,20 +90,50 @@ public class AclFilterService {
               ? cacheService.getCachedRelations(userId, namespace, object, path, maxAclUpdate)
               : new HashSet<>(); // get from cache
 
-      if (checkTag(relations, roles, namespace, object)) { // cache hit
+      if (checkTag(relations, roles, namespace, object)
+          || checkTag(
+              relations, groupRoles, groupRelationsNamespace, groupRelationsObject)) { // cache hit
         allowedTags.addAll(relations);
         metrics.put(
             "zanzibar.getCachedRelations(ms)", toMs(cacheOperationStarted, System.nanoTime()));
         cacheHit = true;
       } else { // cache miss
         relations = relationsService.getRelations(namespace, object, userId, new LocalCache());
+        Set<String> groupRelations =
+            relationsService.getRelations(
+                groupRelationsNamespace, groupRelationsObject, userId, new LocalCache());
         metrics.put("zanzibar.getRelations(ms)", toMs(cacheOperationStarted, System.nanoTime()));
 
-        if (checkTag(relations, roles, namespace, object)) {
+        if (checkTag(relations, roles, namespace, object)
+            || checkTag(
+                groupRelations, groupRoles, groupRelationsNamespace, groupRelationsObject)) {
           allowedTags.addAll(relations);
+          allowedTags.addAll(groupRelations);
+
+          String fgTag = null;
+          if (groupRelationsNamespace != null && groupRelationsObject != null) {
+            for (String groupRole : groupRoles) {
+              String tagForCheck =
+                  makeTag(groupRelationsNamespace, groupRelationsObject, groupRole);
+              // checking top level role
+              if (allowedTags.contains(tagForCheck)) {
+                fgTag = makeTag(namespace, object, groupRole);
+              }
+            }
+          }
+
           if (appProperties.isCacheEnabled()) {
+            // cache warming
             events.put("cache warming for user", userId);
-            cacheService.persistCacheAsync(userId, relations, path, maxAclUpdate); // cache warming
+            cacheService.persistCacheAsync(userId, allowedTags, path, maxAclUpdate);
+            if (fgTag != null) {
+              cacheService.persistFineGrainedCacheAsync(
+                  userId, fgTag, allowedTags, path, maxAclUpdate);
+            }
+          }
+
+          if (fgTag != null) {
+            allowedTags.add(fgTag);
           }
         } else {
           events.put(String.format("expected roles: %s:%s %s", namespace, object, roles), "");
@@ -116,6 +150,7 @@ public class AclFilterService {
               .metrics(metrics)
               .userId(userId)
               .tenantId(tenantId)
+              .cacheHit(cacheHit)
               .build();
         }
       }
@@ -152,7 +187,7 @@ public class AclFilterService {
     }
 
     for (String role : roles) {
-      String currentTag = String.format("%s:%s#%s", namespace, object, role);
+      String currentTag = makeTag(namespace, object, role);
       boolean tagFound = relations.contains(currentTag);
       if (tagFound) {
         log.trace("Found tag: {}", currentTag);
@@ -160,5 +195,10 @@ public class AclFilterService {
       }
     }
     return false;
+  }
+
+  private static String makeTag(String namespace, String object, String role) {
+
+    return String.format("%s:%s#%s", namespace, object, role);
   }
 }
