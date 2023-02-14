@@ -12,13 +12,14 @@ import io.envoyproxy.envoy.type.v3.HttpStatus;
 import io.envoyproxy.envoy.type.v3.StatusCode;
 import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Claims;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.example.authserver.Utils;
 import org.example.authserver.config.AppProperties;
 import org.example.authserver.config.Constants;
@@ -114,6 +115,8 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
   }
 
   public CheckResult check(CheckRequestDTO dto, String traceId) {
+    log.info("request: {} {}", dto.getHttpMethod(), dto.getRequestPath());
+
     String userId = dto.getUserId();
     String tenantId = dto.getTenant();
 
@@ -138,19 +141,17 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
       }
 
     } catch (Exception e) {
-      log.warn("Can't check request: {} {} ", dto.getHttpMethod(), dto.getRequestPath(), e);
-      String stacktrace = ExceptionUtils.getStackTrace(e);
-
-      Map<String, String> events = new HashMap<>();
-      events.put("Exception", e.getMessage());
-      events.put("Trace", stacktrace);
+      log.warn("Can't check request: {} {} ", dto.getHttpMethod(), dto.getRequestPath());
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
 
       result =
           CheckResult.builder()
               .httpMethod(dto.getHttpMethod())
               .requestPath(dto.getRequestPath())
               .result(false)
-              .events(events)
+              .events(Map.of("Exception", e.getMessage(), "Trace", pw.toString()))
               .build();
     }
 

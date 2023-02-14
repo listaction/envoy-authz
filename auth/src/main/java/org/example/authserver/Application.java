@@ -2,7 +2,6 @@ package org.example.authserver;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.grpc.protobuf.services.ProtoReflectionService;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.service.AuthService;
@@ -13,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import io.grpc.protobuf.services.ProtoReflectionService;
 
 @Slf4j
 @EnableConfigurationProperties
@@ -38,11 +38,9 @@ public class Application {
   public void start() throws Exception {
     cacheLoaderService.subscribe();
 
-    Server server =
-        ServerBuilder.forPort(grpcPort)
-            .addService(ProtoReflectionService.newInstance())
-            .addService(authService)
-            .build();
+    Server server = ServerBuilder.forPort(grpcPort)
+        .addService(ProtoReflectionService.newInstance())
+        .addService(authService).build();
 
     server.start();
     log.info("Started. Listen GRPC port: {}}", grpcPort);

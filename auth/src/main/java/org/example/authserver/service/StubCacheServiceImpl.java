@@ -40,12 +40,4 @@ public class StubCacheServiceImpl implements CacheService {
   @Override
   public void persistCache(
       String principal, Collection<String> relations, String path, Long revision) {}
-
-  @Override
-  public void persistFineGrainedCacheAsync(
-      String principal, String relation, Collection<String> nested, String path, Long revision) {}
-
-  @Override
-  public void persistFineGrainedCache(
-      String principal, String relation, Collection<String> nested, String path, Long revision) {}
 }

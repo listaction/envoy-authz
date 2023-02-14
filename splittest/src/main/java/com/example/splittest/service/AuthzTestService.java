@@ -30,11 +30,7 @@ public class AuthzTestService {
   private final MeterService meterService;
   private final MismatchRepository mismatchRepository;
 
-  public AuthzTestService(
-      GrpcClient grpcClient,
-      AuthzClient authzClient,
-      MeterService meterService,
-      MismatchRepository mismatchRepository) {
+  public AuthzTestService(GrpcClient grpcClient, AuthzClient authzClient, MeterService meterService, MismatchRepository mismatchRepository) {
     this.grpcClient = grpcClient;
     this.authzClient = authzClient;
     this.meterService = meterService;
@@ -49,7 +45,7 @@ public class AuthzTestService {
       Gson gson = new Gson();
       String grpcResponseJson = gson.toJson(checkResponse);
       Mismatch mismatch = compareResults(dto, checkResponse, debugId);
-      if (mismatch != null) {
+      if (mismatch != null){
         mismatch.setGrpcResponse(grpcResponseJson);
         mismatchRepository.save(mismatch);
       }
@@ -64,7 +60,7 @@ public class AuthzTestService {
 
     try {
       CheckResult checkResponse = authzClient.checkQuery("", m.getDebug());
-      if (checkResponse.isResult() == m.getExpected()) {
+      if (checkResponse.isResult() == m.getExpected()){
         m.setActualUpdated(m.getExpected());
         m.setResultMismatch(false);
 
@@ -82,7 +78,7 @@ public class AuthzTestService {
       m.setUpdated(new Date());
       mismatchRepository.save(m);
 
-      if (!m.getTagsMismatch() && !m.getResultMismatch()) {
+      if (!m.getTagsMismatch() && !m.getResultMismatch()){
         log.info("retest case {} resolved", m.getId());
       }
     } catch (Exception e) {
@@ -97,18 +93,18 @@ public class AuthzTestService {
     try {
       CheckResponse checkResponse = grpcClient.sendRequest(dto);
       List<HeaderValueOption> actualResponseHeadersList =
-          checkResponse.getOkResponse().getHeadersList();
+              checkResponse.getOkResponse().getHeadersList();
       String actualTags = getActualHeader(actualResponseHeadersList, X_ALLOWED_TAGS_HEADER);
       String expectedTags = dto.getResultHeaders().getOrDefault(X_ALLOWED_TAGS_HEADER, "");
 
       Mismatch mismatch = compareResults(dto, checkResponse, debugId);
-      if (mismatch != null) {
+      if (mismatch != null){
         m.setActualTags(actualTags);
         m.setAttempts(m.getAttempts() + 1);
         m.setUpdated(new Date());
         mismatchRepository.save(m);
 
-        if (!m.getTagsMismatch() && !m.getResultMismatch()) {
+        if (!m.getTagsMismatch() && !m.getResultMismatch()){
           log.info("retest case {} resolved", m.getId());
         }
       } else {
@@ -124,7 +120,7 @@ public class AuthzTestService {
       log.warn("Can't call", e);
     }
 
-    if (!m.getTagsMismatch() && !m.getResultMismatch()) {
+    if (!m.getTagsMismatch() && !m.getResultMismatch()){
       log.info("retest case {} resolved", m.getId());
     }
   }
@@ -146,23 +142,23 @@ public class AuthzTestService {
       log.info("debugId: {}", debugId);
       meterService.countAuthzMismatch();
       return Mismatch.builder()
-          .id(debugId)
-          .expected(dto.isResult())
-          .actual(checkResponse.hasOkResponse())
-          .actualUpdated(checkResponse.hasOkResponse())
-          .attempts(0)
-          .debug(debugRequest(dto.getRequest()))
-          .expectedTags(expectedTags)
-          .actualTags(actualTags)
-          .requestMethod(dto.getRequest().getHttpMethod())
-          .requestPath(dto.getRequest().getRequestPath())
-          .created(new Date())
-          .tenant(dto.getRequest().getTenant())
-          .userId(dto.getRequest().getUserId())
-          .checkTestDto(dto)
-          .tagsMismatch(false)
-          .resultMismatch(true)
-          .build();
+              .id(debugId)
+              .expected(dto.isResult())
+              .actual(checkResponse.hasOkResponse())
+              .actualUpdated(checkResponse.hasOkResponse())
+              .attempts(0)
+              .debug(debugRequest(dto.getRequest()))
+              .expectedTags(expectedTags)
+              .actualTags(actualTags)
+              .requestMethod(dto.getRequest().getHttpMethod())
+              .requestPath(dto.getRequest().getRequestPath())
+              .created(new Date())
+              .tenant(dto.getRequest().getTenant())
+              .userId(dto.getRequest().getUserId())
+              .checkTestDto(dto)
+              .tagsMismatch(false)
+              .resultMismatch(true)
+              .build();
     }
     if (dto.isResult()) {
       if (!compareTags(expectedTags, actualTags)) {
@@ -171,23 +167,23 @@ public class AuthzTestService {
         log.info("debugId: {}", debugId);
         meterService.countAuthzMismatch();
         return Mismatch.builder()
-            .id(debugId)
-            .expected(dto.isResult())
-            .actual(checkResponse.hasOkResponse())
-            .actualUpdated(checkResponse.hasOkResponse())
-            .attempts(0)
-            .debug(debugRequest(dto.getRequest()))
-            .expectedTags(expectedTags)
-            .actualTags(actualTags)
-            .requestMethod(dto.getRequest().getHttpMethod())
-            .requestPath(dto.getRequest().getRequestPath())
-            .created(new Date())
-            .tenant(dto.getRequest().getTenant())
-            .userId(dto.getRequest().getUserId())
-            .checkTestDto(dto)
-            .tagsMismatch(true)
-            .resultMismatch(false)
-            .build();
+                .id(debugId)
+                .expected(dto.isResult())
+                .actual(checkResponse.hasOkResponse())
+                .actualUpdated(checkResponse.hasOkResponse())
+                .attempts(0)
+                .debug(debugRequest(dto.getRequest()))
+                .expectedTags(expectedTags)
+                .actualTags(actualTags)
+                .requestMethod(dto.getRequest().getHttpMethod())
+                .requestPath(dto.getRequest().getRequestPath())
+                .created(new Date())
+                .tenant(dto.getRequest().getTenant())
+                .userId(dto.getRequest().getUserId())
+                .checkTestDto(dto)
+                .tagsMismatch(true)
+                .resultMismatch(false)
+                .build();
       }
     }
 

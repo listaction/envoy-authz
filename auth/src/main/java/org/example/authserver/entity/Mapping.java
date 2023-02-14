@@ -1,13 +1,15 @@
 package org.example.authserver.entity;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class MappingDTO {
+public class Mapping {
 
   private final Map<String, String> variables = new HashMap<>();
   private final MappingEntity mappingEntity;
 
-  public MappingDTO(MappingEntity mappingEntity) {
+  public Mapping(MappingEntity mappingEntity) {
     this.mappingEntity = mappingEntity;
   }
 
@@ -20,11 +22,7 @@ public class MappingDTO {
   }
 
   public List<String> getRoles() {
-    return Optional.ofNullable(mappingEntity.getRoles()).orElse(new ArrayList<>());
-  }
-
-  public List<String> getGroupRoles() {
-    return Optional.ofNullable(mappingEntity.getGroupRoles()).orElse(new ArrayList<>());
+    return mappingEntity.getRoles();
   }
 
   public MappingEntity getMappingEntity() {
