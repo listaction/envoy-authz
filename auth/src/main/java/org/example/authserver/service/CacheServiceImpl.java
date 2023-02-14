@@ -100,9 +100,48 @@ public class CacheServiceImpl implements CacheService {
   }
 
   @Override
+  public void persistCacheAsync(
+      String principal,
+      Collection<String> relations,
+      Collection<String> fineGrainedRelations,
+      String path,
+      Long rev) {
+    executor.execute(() -> persistCache(principal, relations, fineGrainedRelations, path, rev));
+  }
+
+  @Override
   public void persistCache(
       String principal, Collection<String> relations, String path, Long revision) {
+    persistCache(principal, relations, new HashSet<>(), path, revision);
+  }
+
+  @Override
+  public void persistCache(
+      String principal,
+      Collection<String> relations,
+      Collection<String> fineGrainedRelations,
+      String path,
+      Long revision) {
     List<RelCache> cache = new ArrayList<>();
+    Set<RelCache> relCache = prepareCache(principal, relations, path, revision);
+    Set<RelCache> fgCache =
+        prepareFineGrainedCache(principal, fineGrainedRelations, relations, path, revision);
+    cache.addAll(fgCache);
+    cache.addAll(relCache);
+
+    try {
+      relCacheRepository.saveAll(cache);
+    } catch (JpaSystemException e) {
+      // very rare exceptions linked with race condition between instances.
+      // If revision in composite key doesn't help with uniqueness, must be changed to optimistic
+      // lock.
+      log.warn("Cache saving problems", e);
+    }
+  }
+
+  private Set<RelCache> prepareCache(
+      String principal, Collection<String> relations, String path, Long revision) {
+    Set<RelCache> cache = new HashSet<>();
     for (String tag : relations) {
       Set<String> nestedTags = new HashSet<>(relations);
       nestedTags.remove(tag); // remove current
@@ -125,53 +164,41 @@ public class CacheServiceImpl implements CacheService {
               .build());
     }
 
-    try {
-      relCacheRepository.saveAll(cache);
-    } catch (JpaSystemException e) {
-      // very rare exceptions linked with race condition between instances.
-      // If revision in composite key doesn't help with uniqueness, must be changed to optimistic
-      // lock.
-      log.warn("Cache saving problems", e);
-    }
+    return cache;
   }
 
-  @Override
-  public void persistFineGrainedCacheAsync(
-      String principal, String relation, Collection<String> nested, String path, Long revision) {
-    executor.execute(() -> persistFineGrainedCache(principal, relation, nested, path, revision));
-  }
-
-  @Override
-  public void persistFineGrainedCache(
-      String principal, String tag, Collection<String> nested, String path, Long revision) {
+  public Set<RelCache> prepareFineGrainedCache(
+      String principal,
+      Collection<String> fineGrainedTags,
+      Collection<String> nested,
+      String path,
+      Long revision) {
+    Set<RelCache> result = new HashSet<>();
     Set<String> nestedTags = new HashSet<>(nested);
-    nestedTags.remove(tag); // remove current
-    String compositeIdKey = getCompositeIdKey(principal, tag, path, revision);
-    String id = getKeyHash(compositeIdKey);
-    Acl parsedTag = Utils.parseTag(tag);
-    if (parsedTag == null) {
-      return;
+    nestedTags.removeAll(fineGrainedTags);
+    for (String tag : fineGrainedTags) {
+      String compositeIdKey = getCompositeIdKey(principal, tag, path, revision);
+      String id = getKeyHash(compositeIdKey);
+      Acl parsedTag = Utils.parseTag(tag);
+      if (parsedTag == null) {
+        continue;
+      }
+
+      RelCache relCache =
+          RelCache.builder()
+              .id(id)
+              .rev(revision)
+              .nsobject(Utils.createNsObject(parsedTag.getNamespace(), parsedTag.getObject()))
+              .relation(parsedTag.getRelation())
+              .nestedRelations(nestedTags)
+              .usr(principal)
+              .path(path)
+              .build();
+
+      result.add(relCache);
     }
 
-    RelCache relCache =
-        RelCache.builder()
-            .id(id)
-            .rev(revision)
-            .nsobject(Utils.createNsObject(parsedTag.getNamespace(), parsedTag.getObject()))
-            .relation(parsedTag.getRelation())
-            .nestedRelations(nestedTags)
-            .usr(principal)
-            .path(path)
-            .build();
-
-    try {
-      relCacheRepository.save(relCache);
-    } catch (JpaSystemException e) {
-      // very rare exceptions linked with race condition between instances.
-      // If revision in composite key doesn't help with uniqueness, must be changed to optimistic
-      // lock.
-      log.warn("Cache saving problems", e);
-    }
+    return result;
   }
 
   private String getKeyHash(String compositeIdKey) {

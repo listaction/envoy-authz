@@ -125,11 +125,11 @@ public class AclFilterService {
           if (appProperties.isCacheEnabled()) {
             // cache warming
             events.put("cache warming for user", userId);
-            cacheService.persistCacheAsync(userId, allowedTags, path, maxAclUpdate);
+            List<String> fgTags = new ArrayList<>();
             if (fgTag != null) {
-              cacheService.persistFineGrainedCacheAsync(
-                  userId, fgTag, allowedTags, path, maxAclUpdate);
+              fgTags.add(fgTag);
             }
+            cacheService.persistCacheAsync(userId, allowedTags, fgTags, path, maxAclUpdate);
           }
 
           if (fgTag != null) {
