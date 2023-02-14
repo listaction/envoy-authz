@@ -135,45 +135,6 @@ public class CacheServiceImpl implements CacheService {
     }
   }
 
-  @Override
-  public void persistFineGrainedCacheAsync(
-      String principal, String relation, Collection<String> nested, String path, Long revision) {
-    executor.execute(() -> persistFineGrainedCache(principal, relation, nested, path, revision));
-  }
-
-  @Override
-  public void persistFineGrainedCache(
-      String principal, String tag, Collection<String> nested, String path, Long revision) {
-    Set<String> nestedTags = new HashSet<>(nested);
-    nestedTags.remove(tag); // remove current
-    String compositeIdKey = getCompositeIdKey(principal, tag, path, revision);
-    String id = getKeyHash(compositeIdKey);
-    Acl parsedTag = Utils.parseTag(tag);
-    if (parsedTag == null) {
-      return;
-    }
-
-    RelCache relCache =
-        RelCache.builder()
-            .id(id)
-            .rev(revision)
-            .nsobject(Utils.createNsObject(parsedTag.getNamespace(), parsedTag.getObject()))
-            .relation(parsedTag.getRelation())
-            .nestedRelations(nestedTags)
-            .usr(principal)
-            .path(path)
-            .build();
-
-    try {
-      relCacheRepository.save(relCache);
-    } catch (JpaSystemException e) {
-      // very rare exceptions linked with race condition between instances.
-      // If revision in composite key doesn't help with uniqueness, must be changed to optimistic
-      // lock.
-      log.warn("Cache saving problems", e);
-    }
-  }
-
   private String getKeyHash(String compositeIdKey) {
     long[] vec = MurmurHash3.hash128(compositeIdKey.getBytes(StandardCharsets.UTF_8));
     StringBuilder sb = new StringBuilder();

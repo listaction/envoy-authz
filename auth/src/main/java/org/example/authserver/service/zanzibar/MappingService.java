@@ -5,7 +5,6 @@ import com.jayway.jsonpath.JsonPath;
 import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
-import org.example.authserver.config.AppProperties;
 import org.example.authserver.entity.*;
 import org.example.authserver.repo.MappingRepository;
 import org.example.authserver.service.MappingCacheService;
@@ -21,19 +20,15 @@ public class MappingService {
   private final MappingCacheService mappingCacheService;
 
   private final MappingRepository mappingRepository;
-  private final AppProperties appProperties;
 
   public MappingService(
-      MappingCacheService mappingCacheService,
-      MappingRepository mappingRepository,
-      AppProperties appProperties) {
+      MappingCacheService mappingCacheService, MappingRepository mappingRepository) {
     this.mappingCacheService = mappingCacheService;
     this.mappingRepository = mappingRepository;
-    this.appProperties = appProperties;
   }
 
   /** @return mapping variables, or {@code null} for no match */
-  public List<MappingDTO> processRequest(
+  public List<Mapping> processRequest(
       String requestMethod,
       String requestPath,
       Map<String, String> headersMap,
@@ -46,27 +41,25 @@ public class MappingService {
       return null;
     }
 
-    List<MappingDTO> result = new ArrayList<>();
+    List<Mapping> result = new ArrayList<>();
 
     for (Map.Entry<MappingEntity, Map<String, String>> entry : mappings.entrySet()) {
       MappingEntity mappingEntity = entry.getKey();
 
-      MappingDTO mappingDTO = new MappingDTO(entry.getKey());
-      mappingDTO.getVariableMap().putAll(entry.getValue());
+      Mapping mapping = new Mapping(entry.getKey());
+      mapping.getVariableMap().putAll(entry.getValue());
 
       if (mappingEntity.getHeaderMapping() != null) {
-        mappingDTO
-            .getVariableMap()
-            .putAll(parseHeaders(mappingEntity.getHeaderMapping(), headersMap));
+        mapping.getVariableMap().putAll(parseHeaders(mappingEntity.getHeaderMapping(), headersMap));
       }
 
-      mappingDTO.getVariableMap().put("tenant", tenant);
-      mappingDTO.getVariableMap().put("userId", userId);
-      mappingDTO.getVariableMap().put("aclId", mappingEntity.getId());
-      mappingDTO.getVariableMap().forEach((key, v) -> log.trace("{} => {}", key, v));
+      mapping.getVariableMap().put("tenant", tenant);
+      mapping.getVariableMap().put("userId", userId);
+      mapping.getVariableMap().put("aclId", mappingEntity.getId());
+      mapping.getVariableMap().forEach((key, v) -> log.trace("{} => {}", key, v));
 
-      compositeAclStuff(mappingEntity, mappingDTO.getVariableMap());
-      result.add(mappingDTO);
+      compositeAclStuff(mappingEntity, mapping.getVariableMap());
+      result.add(mapping);
     }
 
     return result;
@@ -140,15 +133,8 @@ public class MappingService {
     String namespace = StringSubstitutor.replace(mapping.getNamespace(), variables, "{", "}");
     String object = StringSubstitutor.replace(mapping.getObject(), variables, "{", "}");
 
-    String groupRelationsNamespace =
-        StringSubstitutor.replace(appProperties.getGroupRelationsNamespace(), variables, "{", "}");
-    String groupRelationsObject =
-        StringSubstitutor.replace(appProperties.getGroupRelationsObject(), variables, "{", "}");
-
     variables.put("namespace", namespace);
     variables.put("object", object);
-    variables.put("groupRelationsNamespace", groupRelationsNamespace);
-    variables.put("groupRelationsObject", groupRelationsObject);
   }
 
   private Map<String, String> parseRequestJsonBody(BodyMapping bodyMapping, String requestBody) {

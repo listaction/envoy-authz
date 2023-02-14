@@ -1,14 +1,15 @@
 package com.example.splittest.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 
 @Data
 @Builder
@@ -32,4 +33,5 @@ public class CheckResult {
   private String tenantId;
   private String userId;
   private String allowedTags;
+
 }
