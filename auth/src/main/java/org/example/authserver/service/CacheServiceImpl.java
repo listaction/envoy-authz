@@ -131,7 +131,7 @@ public class CacheServiceImpl implements CacheService {
       // very rare exceptions linked with race condition between instances.
       // If revision in composite key doesn't help with uniqueness, must be changed to optimistic
       // lock.
-      log.warn("Cache saving problems", e);
+      log.debug("Cache saving problems", e);
     }
   }
 

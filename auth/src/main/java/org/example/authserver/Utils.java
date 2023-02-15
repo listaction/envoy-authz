@@ -79,6 +79,6 @@ public class Utils {
   }
 
   public static String prettyPrintObject(Object o) throws JsonProcessingException {
-    return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(o);
+    return mapper.writeValueAsString(o);
   }
 }
