@@ -12,5 +12,7 @@ public class AppProperties {
   private boolean cacheEnabled;
   private String jwtParam;
   private boolean jwtParamEnabled;
+  private boolean accessTokenCookieEnabled;
+  private String accessTokenCookie;
   private boolean tokenSignOutCheckEnabled;
 }
