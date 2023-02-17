@@ -61,14 +61,14 @@ public class TokenService {
     if (map.get("cookie") == null) return Optional.empty();
     Map<String, String> cookies = new HashMap<>();
     String cookiesRaw = map.get("cookie");
-    String[] tmp = cookiesRaw.split(",");
+    String[] tmp = cookiesRaw.split(";");
     for (String cookie : tmp) {
       String[] parts = cookie.split("=");
       if (parts.length != 2) continue;
 
       String key = parts[0];
       String val = parts[1];
-      cookies.put(key, val);
+      cookies.put(key.trim(), val);
     }
 
     return Optional.ofNullable(cookies.get(appProperties.getAccessTokenCookie()));
