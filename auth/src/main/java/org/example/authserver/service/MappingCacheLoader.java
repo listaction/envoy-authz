@@ -1,15 +1,19 @@
 package org.example.authserver.service;
 
-import static org.example.authserver.service.RedisService.*;
+import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.config.Constants;
+import org.example.authserver.entity.MappingEntity;
+import org.example.authserver.repo.MappingRepository;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.entity.MappingEntity;
-import org.example.authserver.repo.MappingRepository;
 
 @Slf4j
 public class MappingCacheLoader {
@@ -18,12 +22,13 @@ public class MappingCacheLoader {
       Executors.newSingleThreadScheduledExecutor();
   private static final ScheduledExecutorService checkCacheRefreshExecutor =
       Executors.newSingleThreadScheduledExecutor();
-  private static final ScheduledExecutorService deleteCacheRefreshExecutor =
-      Executors.newSingleThreadScheduledExecutor();
+
+  private final AtomicBoolean refreshCacheRunning;
+  private final AtomicLong refreshCacheRunningTime;
+  private final AtomicLong refreshCacheLastTime;
+
   private final Map<String, MappingEntity> cache;
   private final MappingRepository mappingRepository;
-  private static final Integer REFRESH_CACHE_MARKER_TTL = 60 * 1000; // 60 seconds
-  private static final String REDIS_IDENTIFIER = UUID.randomUUID().toString();
   private final RedisService redisService;
 
   public MappingCacheLoader(
@@ -33,6 +38,10 @@ public class MappingCacheLoader {
     this.mappingRepository = mappingRepository;
     this.cache = cache;
     this.redisService = redisService;
+
+    refreshCacheRunning = new AtomicBoolean(false);
+    refreshCacheRunningTime = new AtomicLong(0);
+    refreshCacheLastTime = new AtomicLong(0);
   }
 
   public void schedule(int period, TimeUnit timeUnit) {
@@ -44,45 +53,38 @@ public class MappingCacheLoader {
         this::checkAndRefreshCacheIfNeeded, 0, period, timeUnit);
   }
 
-  public void scheduleDeleteCacheRefresh(int period, TimeUnit timeUnit) {
-    deleteCacheRefreshExecutor.scheduleAtFixedRate(
-        this::checkAndDeleteNeedRefreshCacheMarker, 0, period, timeUnit);
-  }
-
   public void checkAndRefreshCacheIfNeeded() {
     try {
       Long lastRefreshCacheRequestTime = getNeedRefreshCacheRequestTime();
-      Long lastRefreshCacheTime = getLastRefreshCacheTime();
+      long lastRefreshCacheTime = refreshCacheLastTime.get();
       boolean needToRefresh =
           lastRefreshCacheRequestTime != null
-              && !Objects.equals(lastRefreshCacheRequestTime, lastRefreshCacheTime);
-
-      //            log.info("checkAndRefreshCacheIfNeeded :: {}", needToRefresh);
+              && lastRefreshCacheTime < lastRefreshCacheRequestTime;
 
       if (needToRefresh) {
         log.info("Refresh cache by request");
-        redisService.set(
-            getRedisInstanceKey(TIME_OF_REFRESH_MAPPING_CACHE_BY_REQUEST_KEY),
-            lastRefreshCacheRequestTime.toString());
-
+        refreshCacheLastTime.set(lastRefreshCacheRequestTime);
         refreshCache();
       }
-    } catch (Exception ex) {
-      log.info(ex.getMessage(), ex);
+    } catch (Exception e) {
+      log.info(e.getMessage(), e);
     }
   }
 
   public void refreshCache() {
-    if (isRefreshCacheRunning()) {
+    if (refreshCacheRunning.get()) {
       log.info("Refreshing mappings cache is running");
-
+      if ((System.currentTimeMillis() - refreshCacheRunningTime.get()) > 2 * 60 * 1000L){
+        refreshCacheRunning.set(false);
+      }
       return;
     }
 
-    try {
-      log.info("Refreshing mappings cache");
-      markRefreshCacheRunning();
+    log.info("Refreshing mappings cache");
+    refreshCacheRunning.set(true);
+    refreshCacheRunningTime.set(System.currentTimeMillis());
 
+    try {
       List<MappingEntity> mappings = mappingRepository.findAll();
       Set<String> ids = mappings.stream().map(MappingEntity::getId).collect(Collectors.toSet());
 
@@ -95,57 +97,19 @@ public class MappingCacheLoader {
               });
 
       mappings.forEach(mappingEntity -> cache.put(mappingEntity.getId(), mappingEntity));
-    } finally {
-      unmarkRefreshCacheRunning();
+    } catch (Exception e){
+      log.warn("Can't load mappings", e);
     }
+
+    refreshCacheRunning.set(false);
+    log.info("Refresh cache - done");
   }
 
-  private void checkAndDeleteNeedRefreshCacheMarker() {
-    try {
-      Long lastRefreshCacheRequestTime = getNeedRefreshCacheRequestTime();
-      boolean needToDeleteMarker =
-          lastRefreshCacheRequestTime != null
-              && (System.currentTimeMillis() - lastRefreshCacheRequestTime)
-                  > REFRESH_CACHE_MARKER_TTL;
-      //            log.info("checkAndDeleteNeedRefreshCacheMarker :: {}", needToDeleteMarker);
-
-      if (needToDeleteMarker) {
-        log.info("Auto remove need to refresh cache marker");
-        redisService.del(NEED_REFRESH_MAPPING_CACHE_MARKER_KEY);
-      }
-    } catch (Exception ex) {
-      log.info(ex.getMessage(), ex);
-    }
-  }
-
-  private boolean isRefreshCacheRunning() {
-    String marker = redisService.get(REFRESH_PROCESSING_MARKER_KEY);
-
-    return marker != null && MARKER_ON.equals(marker);
-  }
 
   private Long getNeedRefreshCacheRequestTime() {
-    String lastRefreshCacheRequestTime = redisService.get(NEED_REFRESH_MAPPING_CACHE_MARKER_KEY);
+    String lastRefreshCacheRequestTime = redisService.get(Constants.NEED_REFRESH_MAPPING_CACHE_MARKER_KEY);
 
     return lastRefreshCacheRequestTime != null ? Long.valueOf(lastRefreshCacheRequestTime) : null;
   }
 
-  private Long getLastRefreshCacheTime() {
-    String lastRefreshCacheTime =
-        redisService.get(getRedisInstanceKey(TIME_OF_REFRESH_MAPPING_CACHE_BY_REQUEST_KEY));
-
-    return lastRefreshCacheTime != null ? Long.valueOf(lastRefreshCacheTime) : null;
-  }
-
-  private void markRefreshCacheRunning() {
-    redisService.set(getRedisInstanceKey(REFRESH_PROCESSING_MARKER_KEY), MARKER_ON);
-  }
-
-  private void unmarkRefreshCacheRunning() {
-    redisService.del(getRedisInstanceKey(REFRESH_PROCESSING_MARKER_KEY));
-  }
-
-  private String getRedisInstanceKey(String key) {
-    return String.format("%s_%s", key, REDIS_IDENTIFIER);
-  }
 }

@@ -115,10 +115,6 @@ public class MappingService {
     mappingRepository.deleteById(id);
   }
 
-  public void notifyAllToRefreshCache() {
-    mappingCacheService.notifyAllToRefreshCache();
-  }
-
   private Map<String, String> parseHeaders(
       List<HeaderMappingKey> headerMapping, Map<String, String> headersMap) {
     Map<String, String> variables = new HashMap<>();

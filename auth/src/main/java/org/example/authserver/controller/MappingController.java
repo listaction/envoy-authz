@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.entity.MappingEntityList;
 import org.example.authserver.repo.MappingRepository;
+import org.example.authserver.service.MappingCacheService;
 import org.example.authserver.service.zanzibar.MappingService;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,12 +16,13 @@ import org.springframework.web.bind.annotation.*;
 public class MappingController {
 
   private final MappingRepository repository;
-
   private final MappingService mappingService;
+  private final MappingCacheService mappingCacheService;
 
-  public MappingController(MappingRepository repository, MappingService mappingService) {
+  public MappingController(MappingRepository repository, MappingService mappingService, MappingCacheService mappingCacheService) {
     this.repository = repository;
     this.mappingService = mappingService;
+    this.mappingCacheService = mappingCacheService;
   }
 
   @GetMapping("/list")
@@ -55,6 +57,6 @@ public class MappingController {
 
   @GetMapping("/refresh-cache")
   public void notifyAllToRefreshCache() {
-    mappingService.notifyAllToRefreshCache();
+    mappingCacheService.notifyAllToRefreshCache();
   }
 }
