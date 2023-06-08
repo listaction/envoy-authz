@@ -1,10 +1,5 @@
 package org.example.authserver.service;
 
-import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.config.Constants;
-import org.example.authserver.entity.MappingEntity;
-import org.example.authserver.repo.MappingRepository;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,6 +9,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.example.authserver.config.Constants;
+import org.example.authserver.entity.MappingEntity;
+import org.example.authserver.repo.MappingRepository;
 
 @Slf4j
 public class MappingCacheLoader {
@@ -58,8 +57,7 @@ public class MappingCacheLoader {
       Long lastRefreshCacheRequestTime = getNeedRefreshCacheRequestTime();
       long lastRefreshCacheTime = refreshCacheLastTime.get();
       boolean needToRefresh =
-          lastRefreshCacheRequestTime != null
-              && lastRefreshCacheTime < lastRefreshCacheRequestTime;
+          lastRefreshCacheRequestTime != null && lastRefreshCacheTime < lastRefreshCacheRequestTime;
 
       if (needToRefresh) {
         log.info("Refresh cache by request");
@@ -74,7 +72,7 @@ public class MappingCacheLoader {
   public void refreshCache() {
     if (refreshCacheRunning.get()) {
       log.info("Refreshing mappings cache is running");
-      if ((System.currentTimeMillis() - refreshCacheRunningTime.get()) > 2 * 60 * 1000L){
+      if ((System.currentTimeMillis() - refreshCacheRunningTime.get()) > 2 * 60 * 1000L) {
         refreshCacheRunning.set(false);
       }
       return;
@@ -97,7 +95,7 @@ public class MappingCacheLoader {
               });
 
       mappings.forEach(mappingEntity -> cache.put(mappingEntity.getId(), mappingEntity));
-    } catch (Exception e){
+    } catch (Exception e) {
       log.warn("Can't load mappings", e);
     }
 
@@ -105,11 +103,10 @@ public class MappingCacheLoader {
     log.info("Refresh cache - done");
   }
 
-
   private Long getNeedRefreshCacheRequestTime() {
-    String lastRefreshCacheRequestTime = redisService.get(Constants.NEED_REFRESH_MAPPING_CACHE_MARKER_KEY);
+    String lastRefreshCacheRequestTime =
+        redisService.get(Constants.NEED_REFRESH_MAPPING_CACHE_MARKER_KEY);
 
     return lastRefreshCacheRequestTime != null ? Long.valueOf(lastRefreshCacheRequestTime) : null;
   }
-
 }

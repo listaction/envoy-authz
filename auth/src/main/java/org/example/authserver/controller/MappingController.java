@@ -1,7 +1,7 @@
 package org.example.authserver.controller;
 
+import jakarta.validation.Valid;
 import java.util.List;
-import javax.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.entity.MappingEntityList;
@@ -19,7 +19,10 @@ public class MappingController {
   private final MappingService mappingService;
   private final MappingCacheService mappingCacheService;
 
-  public MappingController(MappingRepository repository, MappingService mappingService, MappingCacheService mappingCacheService) {
+  public MappingController(
+      MappingRepository repository,
+      MappingService mappingService,
+      MappingCacheService mappingCacheService) {
     this.repository = repository;
     this.mappingService = mappingService;
     this.mappingCacheService = mappingCacheService;
