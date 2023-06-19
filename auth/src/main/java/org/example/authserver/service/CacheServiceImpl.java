@@ -10,9 +10,9 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.authserver.Utils;
 import org.example.authserver.entity.RelCache;
 import org.example.authserver.repo.RelCacheRepository;
+import org.example.authserver.util.AuthzUtils;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.util.CollectionUtils;
 
@@ -52,7 +52,7 @@ public class CacheServiceImpl implements CacheService {
       String principal, String namespace, String object, String path, long maxAclUpdate) {
     List<RelCache> cache =
         relCacheRepository.findAllByUsrAndRevAndNsobjectAndPath(
-            principal, maxAclUpdate, Utils.createNsObject(namespace, object), path);
+            principal, maxAclUpdate, AuthzUtils.createNsObject(namespace, object), path);
 
     if (CollectionUtils.isEmpty(cache)) {
       return new HashSet<>();
@@ -64,7 +64,7 @@ public class CacheServiceImpl implements CacheService {
         .map(
             relCache -> {
               Set<String> tags = new HashSet<>();
-              tags.add(Utils.createTag(relCache.getNsobject(), relCache.getRelation()));
+              tags.add(AuthzUtils.createTag(relCache.getNsobject(), relCache.getRelation()));
               Optional.ofNullable(relCache.getNestedRelations()).ifPresent(tags::addAll);
 
               return tags;
@@ -99,7 +99,7 @@ public class CacheServiceImpl implements CacheService {
       Set<String> nestedTags = new HashSet<>(relations);
       nestedTags.remove(tag); // remove current
       String id = UUID.randomUUID().toString();
-      Acl parsedTag = Utils.parseTag(tag);
+      Acl parsedTag = AuthzUtils.parseTag(tag);
       if (parsedTag == null) {
         continue;
       }
@@ -108,7 +108,7 @@ public class CacheServiceImpl implements CacheService {
           RelCache.builder()
               .id(id)
               .rev(revision)
-              .nsobject(Utils.createNsObject(parsedTag.getNamespace(), parsedTag.getObject()))
+              .nsobject(AuthzUtils.createNsObject(parsedTag.getNamespace(), parsedTag.getObject()))
               .relation(parsedTag.getRelation())
               .nestedRelations(nestedTags)
               .usr(principal)
