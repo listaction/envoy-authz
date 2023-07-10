@@ -1,18 +1,17 @@
 package org.example.authserver.service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.config.Constants;
 import org.example.authserver.entity.MappingEntity;
 import org.example.authserver.repo.MappingRepository;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.JedisPool;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -44,6 +43,8 @@ public class MappingCacheService {
     log.info("Notify all to refresh cache request");
 
     redisService.set(
-        Constants.NEED_REFRESH_MAPPING_CACHE_MARKER_KEY, String.valueOf(System.currentTimeMillis()), 60);
+        Constants.NEED_REFRESH_MAPPING_CACHE_MARKER_KEY,
+        String.valueOf(System.currentTimeMillis()),
+        60);
   }
 }

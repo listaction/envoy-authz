@@ -19,12 +19,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.example.authserver.Utils;
 import org.example.authserver.config.AppProperties;
 import org.example.authserver.config.Constants;
 import org.example.authserver.entity.CheckResult;
 import org.example.authserver.service.zanzibar.AclFilterService;
 import org.example.authserver.service.zanzibar.TokenService;
+import org.example.authserver.util.AuthzUtils;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -93,7 +93,7 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     try {
       Map<String, Object> resultMap = result.getResultMap();
 
-      String logEntry = Utils.prettyPrintObject(resultMap);
+      String logEntry = AuthzUtils.prettyPrintObject(resultMap);
       log.info(logEntry);
     } catch (JsonProcessingException e) {
       log.warn("Can't read resultMap", e);

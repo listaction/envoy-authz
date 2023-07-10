@@ -27,9 +27,9 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
   @Override
   public void publish(Acl acl) {
     if (jedis == null) return;
-    try (Jedis conn = jedis.getResource()){
+    try (Jedis conn = jedis.getResource()) {
       conn.publish("pubsub_acl", acl.getId().toString());
-    } catch (Exception e){
+    } catch (Exception e) {
       log.warn("Can't send pubsub acl event to pubsub");
     }
   }
@@ -37,9 +37,9 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
   @Override
   public void publish(AclRelationConfig config) {
     if (jedis == null) return;
-    try (Jedis conn = jedis.getResource()){
+    try (Jedis conn = jedis.getResource()) {
       conn.publish("pubsub_config", config.getId().toString());
-    } catch (Exception e){
+    } catch (Exception e) {
       log.warn("Can't send pubsub acl event to pubsub");
     }
   }
@@ -53,7 +53,7 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
         sink -> {
           try (Jedis conn = jedis.getResource()) {
             conn.subscribe(new AclListener(sink), PUBSUB_ACL);
-          } catch (Exception e){
+          } catch (Exception e) {
             log.warn("Can't subscribe to {}", PUBSUB_ACL, e);
           }
         });
@@ -68,7 +68,7 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
         sink -> {
           try (Jedis conn = jedis.getResource()) {
             conn.subscribe(new AclListener(sink), PUBSUB_CONFIG);
-          } catch (Exception e){
+          } catch (Exception e) {
             log.warn("Can't subscribe to {}", PUBSUB_CONFIG, e);
           }
         });

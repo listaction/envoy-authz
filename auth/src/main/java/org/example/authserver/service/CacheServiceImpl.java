@@ -3,24 +3,16 @@ package org.example.authserver.service;
 import authserver.acl.Acl;
 import authserver.acl.AclRelationConfig;
 import io.micrometer.core.annotation.Timed;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.MurmurHash3;
-import org.example.authserver.Utils;
 import org.example.authserver.entity.RelCache;
 import org.example.authserver.repo.RelCacheRepository;
+import org.example.authserver.util.AuthzUtils;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.util.CollectionUtils;
 
@@ -60,7 +52,7 @@ public class CacheServiceImpl implements CacheService {
       String principal, String namespace, String object, String path, long maxAclUpdate) {
     List<RelCache> cache =
         relCacheRepository.findAllByUsrAndRevAndNsobjectAndPath(
-            principal, maxAclUpdate, Utils.createNsObject(namespace, object), path);
+            principal, maxAclUpdate, AuthzUtils.createNsObject(namespace, object), path);
 
     if (CollectionUtils.isEmpty(cache)) {
       return new HashSet<>();
@@ -72,7 +64,7 @@ public class CacheServiceImpl implements CacheService {
         .map(
             relCache -> {
               Set<String> tags = new HashSet<>();
-              tags.add(Utils.createTag(relCache.getNsobject(), relCache.getRelation()));
+              tags.add(AuthzUtils.createTag(relCache.getNsobject(), relCache.getRelation()));
               Optional.ofNullable(relCache.getNestedRelations()).ifPresent(tags::addAll);
 
               return tags;
@@ -106,9 +98,8 @@ public class CacheServiceImpl implements CacheService {
     for (String tag : relations) {
       Set<String> nestedTags = new HashSet<>(relations);
       nestedTags.remove(tag); // remove current
-      String compositeIdKey = getCompositeIdKey(principal, tag, path, revision);
-      String id = getKeyHash(compositeIdKey);
-      Acl parsedTag = Utils.parseTag(tag);
+      String id = UUID.randomUUID().toString();
+      Acl parsedTag = AuthzUtils.parseTag(tag);
       if (parsedTag == null) {
         continue;
       }
@@ -117,7 +108,7 @@ public class CacheServiceImpl implements CacheService {
           RelCache.builder()
               .id(id)
               .rev(revision)
-              .nsobject(Utils.createNsObject(parsedTag.getNamespace(), parsedTag.getObject()))
+              .nsobject(AuthzUtils.createNsObject(parsedTag.getNamespace(), parsedTag.getObject()))
               .relation(parsedTag.getRelation())
               .nestedRelations(nestedTags)
               .usr(principal)
@@ -133,18 +124,5 @@ public class CacheServiceImpl implements CacheService {
       // lock.
       log.debug("Cache saving problems", e);
     }
-  }
-
-  private String getKeyHash(String compositeIdKey) {
-    long[] vec = MurmurHash3.hash128(compositeIdKey.getBytes(StandardCharsets.UTF_8));
-    StringBuilder sb = new StringBuilder();
-    for (long l : vec) {
-      sb.append(Long.toHexString(l));
-    }
-    return sb.toString();
-  }
-
-  private String getCompositeIdKey(String principal, String tag, String path, Long revision) {
-    return String.format("%s+%s+%s+%s", principal, tag, path, revision);
   }
 }

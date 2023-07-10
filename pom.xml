@@ -11,8 +11,6 @@
     <modules>
         <module>acl</module>
         <module>auth</module>
-        <module>demo-service</module>
-        <module>perftest</module>
         <module>splittest</module>
     </modules>
 

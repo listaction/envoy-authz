@@ -1,7 +1,7 @@
 package org.example.authserver.entity;
 
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
-import javax.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data

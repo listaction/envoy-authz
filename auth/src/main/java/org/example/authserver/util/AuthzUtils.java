@@ -1,4 +1,4 @@
-package org.example.authserver;
+package org.example.authserver.util;
 
 import authserver.acl.Acl;
 import authserver.acl.AclRelationConfig;
@@ -9,12 +9,12 @@ import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class Utils {
+public class AuthzUtils {
 
   private static final Pattern TAG_REGEX_PATTERN = Pattern.compile("(\\S+):(\\S+)#(\\S+)");
   private static final ObjectMapper mapper = new ObjectMapper();
 
-  private Utils() {}
+  private AuthzUtils() {}
 
   public static String createTag(String namespace, String object, String relation) {
     return String.format("%s:%s#%s", namespace, object, relation);

@@ -8,10 +8,10 @@ import org.apache.commons.text.StringSubstitutor;
 import org.example.authserver.entity.*;
 import org.example.authserver.repo.MappingRepository;
 import org.example.authserver.service.MappingCacheService;
+import org.example.authserver.util.pattern.PathPatternParser;
+import org.example.authserver.util.pattern.PathPatternRouteMatcher;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.util.pattern.PathPatternParser;
-import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 
 @Slf4j
 @Service
