@@ -14,12 +14,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/mapping")
 public class MappingController {
-
   private final MappingRepository repository;
   private final MappingService mappingService;
   private final MappingCacheService mappingCacheService;
 
-  private static final String HEADER_NAME = "X-MAPPINGS-PASSWORD";
+  public static final String HEADER_NAME = "api-key";
 
   public MappingController(
       MappingRepository repository,
@@ -31,14 +30,14 @@ public class MappingController {
   }
 
   @GetMapping("/list")
-  public List<MappingEntity> listMappings(@RequestHeader(value = HEADER_NAME) String forSwagger) {
+  public List<MappingEntity> listMappings() {
     return mappingService.findAll();
   }
 
   @PostMapping("/create")
   public void addMapping(
       @Valid @RequestBody MappingEntity mappingEntity,
-      @RequestHeader(value = HEADER_NAME) String forSwagger) {
+      @RequestHeader(value = HEADER_NAME) String apiKey) {
     log.info("Created Mapping: {}", mappingEntity);
     mappingService.create(mappingEntity);
   }
@@ -46,27 +45,27 @@ public class MappingController {
   @PostMapping("/create-many")
   public void addMappings(
       @Valid @RequestBody MappingEntityList dto,
-      @RequestHeader(value = HEADER_NAME) String forSwagger) {
+      @RequestHeader(value = HEADER_NAME) String apiKey) {
     for (MappingEntity entity : dto.getMappings()) {
-      addMapping(entity, forSwagger);
+      addMapping(entity, apiKey);
     }
   }
 
   @DeleteMapping("/clear")
-  public void clearMappings(@RequestHeader(value = HEADER_NAME) String forSwagger) {
+  public void clearMappings(@RequestHeader(value = HEADER_NAME) String apiKey) {
     log.info("Delete Mappings");
     mappingService.deleteAll();
   }
 
   @DeleteMapping("/delete/{id}")
   public void deleteAcl(
-      @PathVariable String id, @RequestHeader(value = HEADER_NAME) String forSwagger) {
+      @PathVariable String id, @RequestHeader(value = HEADER_NAME) String apiKey) {
     log.info("Delete Mapping by id: {}", id);
     repository.deleteById(id);
   }
 
   @GetMapping("/refresh-cache")
-  public void notifyAllToRefreshCache(@RequestHeader(value = HEADER_NAME) String forSwagger) {
+  public void notifyAllToRefreshCache() {
     mappingCacheService.notifyAllToRefreshCache();
   }
 }

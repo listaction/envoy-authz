@@ -6,6 +6,8 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Objects;
+
+import org.example.authserver.controller.MappingController;
 import org.springframework.http.HttpStatus;
 
 public class MappingsPasswordFilter implements Filter {
@@ -24,7 +26,7 @@ public class MappingsPasswordFilter implements Filter {
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
     HttpServletResponse httpResponse = (HttpServletResponse) response;
-    String passwordHeader = ((HttpServletRequestImpl) request).getHeader("X-MAPPINGS-PASSWORD");
+    String passwordHeader = ((HttpServletRequestImpl) request).getHeader(MappingController.HEADER_NAME);
 
     if (protectionMode && !Objects.equals(password, passwordHeader)) {
       httpResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
