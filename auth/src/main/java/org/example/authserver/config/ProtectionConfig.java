@@ -21,8 +21,7 @@ public class ProtectionConfig {
         "/mapping/create",
         "/mapping/create-many",
         "/mapping/clear",
-        "/mapping/delete/**",
-        "/mapping/list");
+        "/mapping/delete/**");
 
     return filterFilterRegistrationBean;
   }
