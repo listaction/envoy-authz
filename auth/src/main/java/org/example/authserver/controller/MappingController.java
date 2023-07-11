@@ -19,6 +19,8 @@ public class MappingController {
   private final MappingService mappingService;
   private final MappingCacheService mappingCacheService;
 
+  private static final String HEADER_NAME = "X-MAPPINGS-PASSWORD";
+
   public MappingController(
       MappingRepository repository,
       MappingService mappingService,
@@ -29,37 +31,40 @@ public class MappingController {
   }
 
   @GetMapping("/list")
-  public List<MappingEntity> listMappings() {
+  public List<MappingEntity> listMappings(@RequestHeader(value=HEADER_NAME) String forSwagger) {
     return mappingService.findAll();
   }
 
   @PostMapping("/create")
-  public void addMapping(@Valid @RequestBody MappingEntity mappingEntity) {
+  public void addMapping(@Valid @RequestBody MappingEntity mappingEntity,
+                         @RequestHeader(value=HEADER_NAME) String forSwagger) {
     log.info("Created Mapping: {}", mappingEntity);
     mappingService.create(mappingEntity);
   }
 
   @PostMapping("/create-many")
-  public void addMappings(@Valid @RequestBody MappingEntityList dto) {
+  public void addMappings(@Valid @RequestBody MappingEntityList dto,
+                          @RequestHeader(value=HEADER_NAME) String forSwagger) {
     for (MappingEntity entity : dto.getMappings()) {
-      addMapping(entity);
+      addMapping(entity, forSwagger);
     }
   }
 
   @DeleteMapping("/clear")
-  public void clearMappings() {
+  public void clearMappings(@RequestHeader(value=HEADER_NAME) String forSwagger) {
     log.info("Delete Mappings");
     mappingService.deleteAll();
   }
 
   @DeleteMapping("/delete/{id}")
-  public void deleteAcl(@PathVariable String id) {
+  public void deleteAcl(@PathVariable String id,
+                        @RequestHeader(value=HEADER_NAME) String forSwagger) {
     log.info("Delete Mapping by id: {}", id);
     repository.deleteById(id);
   }
 
   @GetMapping("/refresh-cache")
-  public void notifyAllToRefreshCache() {
+  public void notifyAllToRefreshCache(@RequestHeader(value=HEADER_NAME) String forSwagger) {
     mappingCacheService.notifyAllToRefreshCache();
   }
 }

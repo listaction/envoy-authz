@@ -15,4 +15,6 @@ public class AppProperties {
   private boolean accessTokenCookieEnabled;
   private String accessTokenCookie;
   private boolean tokenSignOutCheckEnabled;
+  private String mappingPassword;
+  private boolean mappingProtectionMode;
 }
