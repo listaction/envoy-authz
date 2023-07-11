@@ -26,7 +26,7 @@ public class MappingsPasswordFilter implements Filter {
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
     HttpServletResponse httpResponse = (HttpServletResponse) response;
-    String passwordHeader = ((HttpServletRequestImpl) request).getHeader(MappingController.HEADER_NAME);
+    String passwordHeader = ((HttpServletRequestImpl) request).getHeader(MappingController.API_KEY);
 
     if (protectionMode && !Objects.equals(password, passwordHeader)) {
       httpResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
