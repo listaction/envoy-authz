@@ -13,10 +13,10 @@ public class ProtectionConfig {
   }
 
   @Bean
-  FilterRegistrationBean<MappingsPasswordFilter> mappingsPasswordFilter() {
-    final FilterRegistrationBean<MappingsPasswordFilter> filterFilterRegistrationBean =
+  FilterRegistrationBean<ApiKeyFilter> apiKeyFilter() {
+    final FilterRegistrationBean<ApiKeyFilter> filterFilterRegistrationBean =
         new FilterRegistrationBean<>();
-    filterFilterRegistrationBean.setFilter(new MappingsPasswordFilter(properties));
+    filterFilterRegistrationBean.setFilter(new ApiKeyFilter(properties));
     filterFilterRegistrationBean.addUrlPatterns(
         "/mapping/create",
         "/mapping/create-many",

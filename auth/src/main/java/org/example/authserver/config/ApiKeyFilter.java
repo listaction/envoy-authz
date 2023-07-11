@@ -10,15 +10,15 @@ import java.util.Objects;
 import org.example.authserver.controller.MappingController;
 import org.springframework.http.HttpStatus;
 
-public class MappingsPasswordFilter implements Filter {
-  private final String password;
+public class ApiKeyFilter implements Filter {
+  private final String apiKey;
   private final boolean protectionMode;
 
-  public MappingsPasswordFilter(AppProperties properties) {
-    this.password = properties.getMappingPassword();
-    this.protectionMode = properties.isMappingProtectionMode();
-    if (protectionMode && Strings.isNullOrEmpty(password)) {
-      throw new IllegalStateException("Empty mappings password");
+  public ApiKeyFilter(AppProperties properties) {
+    this.apiKey = properties.getApiKey();
+    this.protectionMode = properties.isApiProtectionMode();
+    if (protectionMode && Strings.isNullOrEmpty(apiKey)) {
+      throw new IllegalStateException("Empty api key");
     }
   }
 
@@ -26,9 +26,9 @@ public class MappingsPasswordFilter implements Filter {
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
     HttpServletResponse httpResponse = (HttpServletResponse) response;
-    String passwordHeader = ((HttpServletRequestImpl) request).getHeader(MappingController.API_KEY);
+    String requestApiKey = ((HttpServletRequestImpl) request).getHeader(MappingController.API_KEY);
 
-    if (protectionMode && !Objects.equals(password, passwordHeader)) {
+    if (protectionMode && !Objects.equals(apiKey, requestApiKey)) {
       httpResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
     } else {
       chain.doFilter(request, response);
