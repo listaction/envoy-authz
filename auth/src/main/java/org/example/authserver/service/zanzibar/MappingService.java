@@ -27,7 +27,9 @@ public class MappingService {
     this.mappingRepository = mappingRepository;
   }
 
-  /** @return mapping variables, or {@code null} for no match */
+  /**
+   * @return mapping variables, or {@code null} for no match
+   */
   public List<Mapping> processRequest(
       String requestMethod,
       String requestPath,
