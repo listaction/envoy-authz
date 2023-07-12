@@ -35,19 +35,15 @@ public class MappingController {
   }
 
   @PostMapping("/create")
-  public void addMapping(
-      @Valid @RequestBody MappingEntity mappingEntity,
-      @RequestHeader(value = API_KEY) String apiKey) {
+  public void addMapping(@Valid @RequestBody MappingEntity mappingEntity) {
     log.info("Created Mapping: {}", mappingEntity);
     mappingService.create(mappingEntity);
   }
 
   @PostMapping("/create-many")
-  public void addMappings(
-      @Valid @RequestBody MappingEntityList dto,
-      @RequestHeader(value = API_KEY) String apiKey) {
+  public void addMappings(@Valid @RequestBody MappingEntityList dto) {
     for (MappingEntity entity : dto.getMappings()) {
-      addMapping(entity, apiKey);
+      addMapping(entity);
     }
   }
 
