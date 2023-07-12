@@ -14,10 +14,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/mapping")
 public class MappingController {
-
   private final MappingRepository repository;
   private final MappingService mappingService;
   private final MappingCacheService mappingCacheService;
+
+  public static final String API_KEY = "api-key";
 
   public MappingController(
       MappingRepository repository,
@@ -34,26 +35,31 @@ public class MappingController {
   }
 
   @PostMapping("/create")
-  public void addMapping(@Valid @RequestBody MappingEntity mappingEntity) {
+  public void addMapping(
+      @Valid @RequestBody MappingEntity mappingEntity,
+      @RequestHeader(value = API_KEY) String apiKey) {
     log.info("Created Mapping: {}", mappingEntity);
     mappingService.create(mappingEntity);
   }
 
   @PostMapping("/create-many")
-  public void addMappings(@Valid @RequestBody MappingEntityList dto) {
+  public void addMappings(
+      @Valid @RequestBody MappingEntityList dto,
+      @RequestHeader(value = API_KEY) String apiKey) {
     for (MappingEntity entity : dto.getMappings()) {
-      addMapping(entity);
+      addMapping(entity, apiKey);
     }
   }
 
   @DeleteMapping("/clear")
-  public void clearMappings() {
+  public void clearMappings(@RequestHeader(value = API_KEY) String apiKey) {
     log.info("Delete Mappings");
     mappingService.deleteAll();
   }
 
   @DeleteMapping("/delete/{id}")
-  public void deleteAcl(@PathVariable String id) {
+  public void deleteAcl(
+      @PathVariable String id, @RequestHeader(value = API_KEY) String apiKey) {
     log.info("Delete Mapping by id: {}", id);
     repository.deleteById(id);
   }
