@@ -18,8 +18,6 @@ public class ProtectionConfig {
         new FilterRegistrationBean<>();
     filterFilterRegistrationBean.setFilter(new ApiKeyFilter(properties));
     filterFilterRegistrationBean.addUrlPatterns(
-        "/mapping/create",
-        "/mapping/create-many",
         "/mapping/clear",
         "/mapping/delete/**");
 
