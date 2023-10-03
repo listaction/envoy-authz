@@ -130,8 +130,8 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     try {
       if (userId != null && tenantId != null) {
         if (redisService.exists(
-            String.format(Constants.FULL_SIGNOUT_REDIS_KEY, userId))) {
-          log.debug("User {} did full signout, unauthorized", userId);
+            String.format(Constants.USER_SIGNOUT_REDIS_KEY, userId))) {
+          log.debug("User {} did signout, unauthorized", userId);
           result =
               CheckResult.builder().jwtPresent(false).result(false).events(new HashMap<>()).build();
         } else {
@@ -229,8 +229,8 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     return null;
   }
 
-  public void removeFullSignoutKey(String userId) {
-    String fullLogoutKey = String.format(Constants.FULL_SIGNOUT_REDIS_KEY, userId);
-    redisService.del(fullLogoutKey);
+  public void removeUserSignoutKey(String userId) {
+    String userLogoutKey = String.format(Constants.USER_SIGNOUT_REDIS_KEY, userId);
+    redisService.del(userLogoutKey);
   }
 }

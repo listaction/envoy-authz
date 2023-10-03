@@ -28,15 +28,15 @@ public class SignoutController {
     signoutService.signout(tenant, jti, expirationTime);
   }
 
-  @PostMapping("/full/{tenant}/{userId}")
-  public void fullSignout(@PathVariable String tenant, @PathVariable String userId) {
-    log.debug("full signout");
-    signoutService.fullSignout(tenant, userId);
+  @PostMapping("/{tenant}/{userId}")
+  public void userSignout(@PathVariable String tenant, @PathVariable String userId) {
+    log.debug("user signout");
+    signoutService.userSignout(tenant, userId);
   }
 
-  @DeleteMapping("/full/{tenant}/{userId}")
-  public void removeFullSignoutKey(@PathVariable String tenant, @PathVariable String userId) {
-    log.debug("remove full signout key");
-    authService.removeFullSignoutKey(userId);
+  @DeleteMapping("/{tenant}/{userId}")
+  public void removeUserSignoutKey(@PathVariable String tenant, @PathVariable String userId) {
+    log.debug("remove user signout key");
+    authService.removeUserSignoutKey(userId);
   }
 }
