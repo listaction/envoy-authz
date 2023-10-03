@@ -32,4 +32,13 @@ public class SignoutService {
 
     return diff > 0 ? Long.valueOf(diff).intValue() : 1;
   }
+
+  public void fullSignout(String tenant, String userId) {
+    try {
+      String key = String.format(Constants.FULL_SIGNOUT_REDIS_KEY, userId);
+      redisService.set(key, "1");
+    } catch (Exception exception) {
+      log.warn("Redis service is unavailable", exception);
+    }
+  }
 }
