@@ -63,7 +63,7 @@ class ZanzibarImplTest {
               .collect(Collectors.toSet());
       AclRelationConfig config = prepConfig();
 
-      Mockito.doReturn(acls).when(aclService).findAll();
+      Mockito.doReturn(acls).when(aclService).findAll(namespace, object, relations, page, pageSize);
       Mockito.doReturn(aclsDocReadme)
           .when(aclService)
           .findAllByNamespaceAndObjectAndUser(eq("doc"), eq("readme"), eq(principal));
@@ -106,7 +106,7 @@ class ZanzibarImplTest {
               .collect(Collectors.toSet());
       AclRelationConfig config = prepConfig();
 
-      Mockito.doReturn(acls).when(aclService).findAll();
+      Mockito.doReturn(acls).when(aclService).findAll(namespace, object, relations, page, pageSize);
       Mockito.doReturn(aclsDocReadme)
           .when(aclService)
           .findAllByNamespaceAndObjectAndUser(eq("doc"), eq("readme"), eq(principal));
@@ -142,7 +142,7 @@ class ZanzibarImplTest {
 
       AclRelationConfig config = new AclRelationConfig();
 
-      Mockito.doReturn(acls).when(aclService).findAll();
+      Mockito.doReturn(acls).when(aclService).findAll(namespace, object, relations, page, pageSize);
       Mockito.doReturn(acls)
           .when(aclService)
           .findAllByNamespaceAndObjectAndUser(eq("namespace"), eq("object"), eq(principal));
@@ -185,7 +185,7 @@ class ZanzibarImplTest {
 
       Set<AclRelationConfig> configs = prepConfig2();
 
-      Mockito.doReturn(acls).when(aclService).findAll();
+      Mockito.doReturn(acls).when(aclService).findAll(namespace, object, relations, page, pageSize);
       Mockito.doReturn(acls)
           .when(aclService)
           .findAllByNamespaceAndObjectAndUser(eq("contact"), eq("uuid1"), eq(principal));
@@ -240,7 +240,7 @@ class ZanzibarImplTest {
               .filter(acl -> acl.getNamespace().equals("api") && acl.getObject().equals("contact"))
               .collect(Collectors.toSet());
 
-      Mockito.doReturn(acls).when(aclService).findAll();
+      Mockito.doReturn(acls).when(aclService).findAll(namespace, object, relations, page, pageSize);
       Mockito.doReturn(aclsGroupContactusers)
           .when(aclService)
           .findAllByNamespaceAndObjectAndUser(eq("group"), eq("contactusers"), eq(principal));
@@ -319,7 +319,7 @@ class ZanzibarImplTest {
                       acl -> acl.getNamespace().equals("contact") && acl.getObject().equals(uuid))
                   .collect(Collectors.toSet());
 
-      Mockito.doReturn(acls).when(aclService).findAll();
+      Mockito.doReturn(acls).when(aclService).findAll(namespace, object, relations, page, pageSize);
       Mockito.doReturn(aclsGroupContactusers)
           .when(aclService)
           .findAllByNamespaceAndObjectAndUser(eq("group"), eq("contactusers"), eq(principal));
@@ -379,7 +379,7 @@ class ZanzibarImplTest {
       String principal = entry.getKey();
       boolean expected = entry.getValue();
 
-      Mockito.doReturn(acls).when(aclService).findAll();
+      Mockito.doReturn(acls).when(aclService).findAll(namespace, object, relations, page, pageSize);
       Mockito.doReturn(acls)
           .when(aclService)
           .findAllByNamespaceAndObjectAndUser(eq("group"), eq("object"), anyString());
@@ -433,7 +433,7 @@ class ZanzibarImplTest {
       String principal = entry.getKey();
       boolean expected = entry.getValue();
 
-      Mockito.doReturn(acls).when(aclService).findAll();
+      Mockito.doReturn(acls).when(aclService).findAll(namespace, object, relations, page, pageSize);
       Mockito.doReturn(acls)
           .when(aclService)
           .findAllByNamespaceAndObjectAndUser(eq("group"), eq("object"), anyString());

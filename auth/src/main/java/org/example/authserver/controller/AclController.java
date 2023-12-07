@@ -6,11 +6,16 @@ import authserver.common.AclOperationDto;
 import com.google.common.base.Stopwatch;
 import jakarta.validation.Valid;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.config.AppProperties;
 import org.example.authserver.entity.AclsRequestDTO;
+import org.example.authserver.entity.PageView;
 import org.example.authserver.repo.SubscriptionRepository;
 import org.example.authserver.service.AclService;
 import org.example.authserver.service.CacheService;
@@ -42,8 +47,8 @@ public class AclController {
   }
 
   @GetMapping("/list")
-  public Set<Acl> listAcl() {
-    return repository.findAll();
+  public PageView<Acl> listAcl(@RequestParam String namespace, @RequestParam String object, @RequestParam List<String> relations, @Min(value = 1, message = "min: 1") @RequestParam(value = "page", defaultValue = "1") Integer page, @Max(value = 100, message = "max: 100") @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
+    return repository.findAll(namespace, object, relations, page, pageSize);
   }
 
   @PostMapping("/create")

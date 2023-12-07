@@ -3,12 +3,28 @@ package org.example.authserver.repo;
 import java.util.List;
 import java.util.Set;
 import org.example.authserver.entity.AclEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
+import javax.annotation.Nullable;
+
 @Repository
 public interface AclRepository extends CrudRepository<AclEntity, String> {
+
+  Page<AclEntity> findByNamespaceLikeAndObjectLikeAndRelationIn(
+          String namespace, String object, List<String> relations, @Nullable Pageable pageable);
+
+  Page<AclEntity> findByNamespaceLike(String namespace, PageRequest pageRequest);
+
+  Page<AclEntity> findByNamespaceLikeAndObjectLike(String namespace, String object, PageRequest pageRequest);
+
+  Page<AclEntity> findByNsobjectLike(String nsobject, PageRequest pageRequest);
+
+  long countByNamespaceLikeAndObjectLikeAndRelationIn(String namespace, String object, List<String> relations);
 
   List<AclEntity> findAll();
 
@@ -42,4 +58,5 @@ public interface AclRepository extends CrudRepository<AclEntity, String> {
           String usNamespace,
           String usObject,
           String usRel);
+
 }

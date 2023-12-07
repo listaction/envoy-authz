@@ -2,12 +2,20 @@ package org.example.authserver.service;
 
 import authserver.acl.Acl;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.AclEntity;
+import org.example.authserver.entity.PageView;
 import org.example.authserver.repo.AclRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,8 +29,22 @@ public class AclService {
     this.repository = repository;
   }
 
-  public Set<Acl> findAll() {
-    return repository.findAll().stream().map(AclEntity::toAcl).collect(Collectors.toSet());
+  public PageView<Acl> findAll(String namespace, String object, List<String> relations, Integer pageNum, Integer pageSize) {
+    PageRequest pageRequest = PageRequest.of(pageNum, pageSize);
+    //String nsobject = String.format("%s:%s", namespace, object);
+    //Page<AclEntity> page = repository.findByNamespaceLikeAndObjectLikeAndRelationIn(namespace, object, relations, pageRequest);
+    Page<AclEntity> page = repository.findByNsobjectLike(namespace, pageRequest);
+    Set<Acl> acls = page.getContent()
+            .stream().map(AclEntity::toAcl).collect(Collectors.toSet());
+
+    long count = repository.countByNamespaceLikeAndObjectLikeAndRelationIn(namespace, object, relations);
+
+    return PageView.<Acl>builder()
+            .data(acls)
+            .currentPage(pageNum)
+            .pages(PageView.calculateTotalPages(count, pageSize))
+            .total(count)
+            .build();
   }
 
   public Acl findOneById(String id) {
