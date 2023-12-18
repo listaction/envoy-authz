@@ -7,6 +7,8 @@ import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.service.AuthService;
 import org.example.authserver.service.CacheLoaderService;
+import org.example.authserver.util.shutdown.ShutDownHandler;
+import org.example.authserver.util.shutdown.ShutDownUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -50,5 +52,6 @@ public class Application {
 
   public static void main(String[] args) {
     SpringApplication.run(Application.class, args);
+    ShutDownUtil.registerShutDownHookForTermAndInt(new ShutDownHandler());
   }
 }
