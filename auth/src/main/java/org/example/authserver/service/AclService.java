@@ -1,21 +1,19 @@
 package org.example.authserver.service;
 
 import authserver.acl.Acl;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.entity.AclEntity;
 import org.example.authserver.entity.PageView;
+import org.example.authserver.exception.NotSortableFieldException;
 import org.example.authserver.repo.AclRepository;
+import org.example.authserver.repo.filter.AclFilter;
+import org.example.authserver.repo.filter.Filter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,22 +27,79 @@ public class AclService {
     this.repository = repository;
   }
 
-  public PageView<Acl> findAll(String namespace, String object, List<String> relations, Integer pageNum, Integer pageSize) {
-    PageRequest pageRequest = PageRequest.of(pageNum, pageSize);
-    //String nsobject = String.format("%s:%s", namespace, object);
-    //Page<AclEntity> page = repository.findByNamespaceLikeAndObjectLikeAndRelationIn(namespace, object, relations, pageRequest);
-    Page<AclEntity> page = repository.findByNsobjectLike(namespace, pageRequest);
-    Set<Acl> acls = page.getContent()
-            .stream().map(AclEntity::toAcl).collect(Collectors.toSet());
+  public Set<Acl> findAll() {
+    return repository.findAll().stream().map(AclEntity::toAcl).collect(Collectors.toSet());
+  }
 
-    long count = repository.countByNamespaceLikeAndObjectLikeAndRelationIn(namespace, object, relations);
+  public PageView<Acl> findAll(
+      String namespace,
+      String object,
+      List<String> relations,
+      String user,
+      String usersetNamespace,
+      String usersetObject,
+      List<String> usersetRelations,
+      String sort,
+      Sort.Direction direction,
+      Integer page,
+      Integer pageSize) {
+    PageRequest pageRequest;
+    if (sort != null) {
+      String sortField = AclFilter.getSortableField(sort);
+      if (sortField == null) {
+        throw new NotSortableFieldException();
+      }
+      pageRequest =
+          PageRequest.of(
+              page - 1,
+              pageSize,
+              Sort.by(direction != null ? direction : Sort.Direction.ASC, sortField));
+    } else {
+      pageRequest = PageRequest.of(page - 1, pageSize);
+    }
+
+    Map<String, String> filterParams = new HashMap<>();
+    Filter<AclEntity> filter = new Filter<>();
+    if (namespace != null && !namespace.isEmpty() && object != null && !object.isEmpty()) {
+      filterParams.put("nsobject", namespace + ":" + object);
+    } else {
+      if (namespace != null && !namespace.isEmpty()) {
+        filterParams.put("namespace", namespace);
+      }
+      if (object != null && !object.isEmpty()) {
+        filterParams.put("object", object);
+      }
+    }
+    if (relations != null && !relations.isEmpty()) {
+      filterParams.put("relation", String.join(",", relations));
+    }
+    if (user != null && !user.isEmpty()) {
+      filterParams.put("user", String.join(",", user));
+    }
+
+    if (usersetNamespace != null && !usersetNamespace.isEmpty()) {
+      filterParams.put("userset_namespace", usersetNamespace);
+    }
+
+    if (usersetObject != null && !usersetObject.isEmpty()) {
+      filterParams.put("userset_object", usersetObject);
+    }
+
+    if (usersetRelations != null && !usersetRelations.isEmpty()) {
+      filterParams.put("userset_relation", String.join(",", usersetRelations));
+    }
+
+    AclFilter.applyFilterForUsers(filterParams, filter);
+
+    Page<AclEntity> data = repository.findAll(filter, pageRequest);
+    List<Acl> acls = data.getContent().stream().map(AclEntity::toAcl).collect(Collectors.toList());
 
     return PageView.<Acl>builder()
-            .data(acls)
-            .currentPage(pageNum)
-            .pages(PageView.calculateTotalPages(count, pageSize))
-            .total(count)
-            .build();
+        .data(acls)
+        .currentPage(page)
+        .total(data.getTotalElements())
+        .pages(data.getTotalPages())
+        .build();
   }
 
   public Acl findOneById(String id) {

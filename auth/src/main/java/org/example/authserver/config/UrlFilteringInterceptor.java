@@ -12,7 +12,7 @@ public class UrlFilteringInterceptor implements HandlerInterceptor {
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
       throws Exception {
     StringBuffer url = request.getRequestURL();
-    url.delete(0,7); // http://
+    url.delete(0, 7); // http://
     if (url.indexOf("//") != -1) {
       log.error("Double slash detected, blocking url {}", request.getRequestURL());
       response.sendError(400, "Double slash in URL is prohibited");

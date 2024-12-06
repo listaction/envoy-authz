@@ -1,10 +1,9 @@
 package org.example.authserver.entity;
 
+import java.util.Collection;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-
-import java.util.Collection;
 
 @SuperBuilder
 @Data

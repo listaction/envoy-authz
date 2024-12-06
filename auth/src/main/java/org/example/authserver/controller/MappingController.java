@@ -54,8 +54,7 @@ public class MappingController {
   }
 
   @DeleteMapping("/delete/{id}")
-  public void deleteAcl(
-      @PathVariable String id, @RequestHeader(value = API_KEY) String apiKey) {
+  public void deleteAcl(@PathVariable String id, @RequestHeader(value = API_KEY) String apiKey) {
     log.info("Delete Mapping by id: {}", id);
     repository.deleteById(id);
   }

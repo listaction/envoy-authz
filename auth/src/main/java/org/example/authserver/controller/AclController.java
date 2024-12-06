@@ -5,13 +5,13 @@ import authserver.common.AclOperation;
 import authserver.common.AclOperationDto;
 import com.google.common.base.Stopwatch;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.example.authserver.config.AppProperties;
 import org.example.authserver.entity.AclsRequestDTO;
@@ -20,6 +20,7 @@ import org.example.authserver.repo.SubscriptionRepository;
 import org.example.authserver.service.AclService;
 import org.example.authserver.service.CacheService;
 import org.example.authserver.service.SplitTestService;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -47,8 +48,32 @@ public class AclController {
   }
 
   @GetMapping("/list")
-  public PageView<Acl> listAcl(@RequestParam String namespace, @RequestParam String object, @RequestParam List<String> relations, @Min(value = 1, message = "min: 1") @RequestParam(value = "page", defaultValue = "1") Integer page, @Max(value = 100, message = "max: 100") @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
-    return repository.findAll(namespace, object, relations, page, pageSize);
+  public PageView<Acl> listAcl(
+      @RequestParam(required = false) String namespace,
+      @RequestParam(required = false) String object,
+      @RequestParam(required = false) List<String> relations,
+      @RequestParam(required = false) String user,
+      @RequestParam(name = "userset_namespace", required = false) String usersetNamespace,
+      @RequestParam(name = "userset_object", required = false) String usersetObject,
+      @RequestParam(name = "userset_relation", required = false) List<String> usersetRelations,
+      @RequestParam(value = "sort", required = false) String sort,
+      @RequestParam(value = "direction", required = false) Sort.Direction direction,
+      @Min(value = 1, message = "min: 1") @RequestParam(value = "page", defaultValue = "1")
+          Integer page,
+      @Max(value = 100, message = "max: 100") @RequestParam(value = "pageSize", defaultValue = "50")
+          Integer pageSize) {
+    return repository.findAll(
+        namespace,
+        object,
+        relations,
+        user,
+        usersetNamespace,
+        usersetObject,
+        usersetRelations,
+        sort,
+        direction,
+        page,
+        pageSize);
   }
 
   @PostMapping("/create")
@@ -72,6 +97,29 @@ public class AclController {
   private void createAcl_(Acl acl) {
     Stopwatch stopwatch = Stopwatch.createStarted();
     log.info("Creating ACL: {}", acl);
+    List<String> relations = acl.getRelation() != null ? List.of(acl.getRelation()) : null;
+    List<String> usersetRelations =
+        acl.getUsersetRelation() != null ? List.of(acl.getUsersetRelation()) : null;
+    PageView<Acl> existingAcls =
+        repository.findAll(
+            acl.getNamespace(),
+            acl.getObject(),
+            relations,
+            acl.getUser(),
+            acl.getUsersetNamespace(),
+            acl.getUsersetObject(),
+            usersetRelations,
+            null,
+            Sort.Direction.ASC,
+            1,
+            1);
+    if (existingAcls.getTotal() > 0) {
+      log.info(
+          "Skipping acl {}, existing aclId {}",
+          acl,
+          new ArrayList<>(existingAcls.getData()).get(0).getId());
+      return;
+    }
     repository.save(acl);
     subscriptionRepository.publish(acl);
     if (appProperties.isCopyModeEnabled()) {

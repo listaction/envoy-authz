@@ -1,12 +1,11 @@
 package org.example.authserver.util.shutdown;
 
 import io.micrometer.core.instrument.util.StringUtils;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import lombok.extern.slf4j.Slf4j;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 
 @Slf4j
 public class ShutDownHandler implements SignalHandler {

@@ -17,9 +17,7 @@ public class ProtectionConfig {
     final FilterRegistrationBean<ApiKeyFilter> filterFilterRegistrationBean =
         new FilterRegistrationBean<>();
     filterFilterRegistrationBean.setFilter(new ApiKeyFilter(properties));
-    filterFilterRegistrationBean.addUrlPatterns(
-        "/mapping/clear",
-        "/mapping/delete/**");
+    filterFilterRegistrationBean.addUrlPatterns("/mapping/clear", "/mapping/delete/**");
 
     return filterFilterRegistrationBean;
   }
