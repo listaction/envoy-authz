@@ -129,9 +129,16 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     CheckResult result;
     try {
       if (userId != null && tenantId != null) {
-        result =
-            aclFilterService.checkRequest(
-                dto.getHttpMethod(), dto.getRequestPath(), dto.getHeadersMap(), userId, tenantId);
+        if (redisService.exists(
+            String.format(Constants.USER_SIGNOUT_REDIS_KEY, userId))) {
+          log.debug("User {} did signout, unauthorized", userId);
+          result =
+              CheckResult.builder().jwtPresent(false).result(false).events(new HashMap<>()).build();
+        } else {
+          result =
+              aclFilterService.checkRequest(
+                  dto.getHttpMethod(), dto.getRequestPath(), dto.getHeadersMap(), userId, tenantId);
+        }
       } else {
         result =
             CheckResult.builder().jwtPresent(false).result(false).events(new HashMap<>()).build();
@@ -205,7 +212,6 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
     } catch (Exception ex) {
       log.warn("Redis service is unavailable");
     }
-
     return null;
   }
 
@@ -221,5 +227,10 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
       return m.group(2);
     }
     return null;
+  }
+
+  public void removeUserSignoutKey(String userId) {
+    String userLogoutKey = String.format(Constants.USER_SIGNOUT_REDIS_KEY, userId);
+    redisService.del(userLogoutKey);
   }
 }
