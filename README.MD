@@ -38,7 +38,7 @@ The Zanzibar architecture consists of several key components:
 
 2. **Consistency Model**
    - Strong consistency for writes
-   - Eventual consistency for writes (this is different from the original Zanzibar Implementation )
+   - Strong consistency for reads (this is different from the original Zanzibar Implementation )
    - Global snapshot reads
 
 3. **Performance Characteristics**
