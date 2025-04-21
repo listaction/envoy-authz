@@ -1,4 +1,4 @@
-# Envoy External Authorization (AuthZ) Demo
+# Authorization Server for Fine grained and Coarse grained control
 
 This repository demonstrates a production-grade implementation of external authorization (AuthZ) using Envoy Proxy, with a complete microservices architecture showcasing access control and authentication.
 
