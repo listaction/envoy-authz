@@ -219,14 +219,6 @@ curl -X GET http://localhost:18000/contact/contact123 \
 
 Example RBAC setup:
 ```bash
-# Create roles
-curl -X POST http://localhost:8081/acl/roles \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "admin",
-    "permissions": ["*"]
-  }'
-
 curl -X POST http://localhost:8081/acl/roles \
   -H "Content-Type: application/json" \
   -d '{
