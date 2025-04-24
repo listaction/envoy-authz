@@ -90,7 +90,7 @@ The system consists of the following components:
 - **Front Envoy**: Acts as the API Gateway/Edge Proxy
 - **AuthZ Service**: Handles authorization decisions
 - **Demo Service**: Example backend service with protected endpoints
-- **Redis**: For caching and session management
+- **Redis**: For caching
 - **PostgreSQL**: Persistent storage for authorization data
 
 ### System Components
