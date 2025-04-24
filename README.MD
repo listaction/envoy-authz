@@ -62,11 +62,11 @@ The Zanzibar architecture consists of several key components:
 2. **Relation-based Access Control**
    ```
    ┌─────────────────────────────────────────────────────────────┐
-   │                     Access Control Graph                     │
+   │                     Access Control Graph                    │
    │                                                             │
    │  document:readme ────── owner ──────► user:alice            │
-   │         │                                                     │
-   │         └─────── reader ───────► group:engineering           │
+   │         │                                                   │
+   │         └─────── reader ───────► group:engineering          │
    │                                                             │
    └─────────────────────────────────────────────────────────────┘
    ```
@@ -74,11 +74,11 @@ The Zanzibar architecture consists of several key components:
 3. **Consistency Model**
    ```
    ┌─────────────────────────────────────────────────────────────┐
-   │                     Consistency Model                        │
+   │                     Consistency Model                       │
    │                                                             │
    │  Write ──────► Strong Consistency ──────► Global State      │
    │                                                             │
-   │  Read  ──────► Eventual Consistency ────► Local Cache       │
+   │  Read  ──────► Stong Consistency ──────► Global State       │
    │                                                             │
    └─────────────────────────────────────────────────────────────┘
    ```
