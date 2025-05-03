@@ -13,6 +13,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.java.Log;
+import org.json.JSONObject;
 
 @Log
 @Data
@@ -89,6 +90,23 @@ public class Acl implements Cloneable, Serializable {
   public int hashCode() {
     return Objects.hash(
         namespace, object, relation, user, usersetNamespace, usersetObject, usersetRelation);
+  }
+
+  @Override
+  public String toString() {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put("id", id.toString());
+    jsonObject.put("namespace", namespace);
+    jsonObject.put("object", object);
+    jsonObject.put("relation", relation);
+    jsonObject.put("user", user);
+    jsonObject.put("usersetNamespace", usersetNamespace);
+    jsonObject.put("usersetObject", usersetObject);
+    jsonObject.put("usersetRelation", usersetRelation);
+    jsonObject.put("created", created);
+    jsonObject.put("updated", updated);
+
+    return jsonObject.toString();
   }
 
   private static Acl parseAcl(String aclExpr) {

@@ -6,7 +6,6 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Objects;
-
 import org.example.authserver.controller.MappingController;
 import org.springframework.http.HttpStatus;
 
