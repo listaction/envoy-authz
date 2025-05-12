@@ -10,15 +10,13 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.5</version>
+        <version>3.4.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
 
     <properties>
         <java.version>17</java.version>
-        <spring.native.version>0.12.1</spring.native.version>
-        <native.buildtools.version>0.9.13</native.buildtools.version>
     </properties>
 
     <dependencies>
@@ -70,7 +68,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.1.0</version>
+            <version>2.8.6</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -85,15 +83,29 @@
             <artifactId>jedis</artifactId>
             <version>4.4.2</version>
         </dependency>
+
+        <!-- PostgreSQL Driver -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- Flyway for db migration -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>10.20.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
             <artifactId>json-path</artifactId>
-            <version>2.8.0</version>
+            <version>2.9.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -108,27 +120,27 @@
         <dependency>
             <groupId>io.envoyproxy.controlplane</groupId>
             <artifactId>api</artifactId>
-            <version>1.0.37</version>
+            <version>1.0.49</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
-            <version>1.55.1</version>
+            <version>1.72.0</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
-            <version>1.55.1</version>
+            <version>1.72.0</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
-            <version>1.55.1</version>
+            <version>1.72.0</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-services</artifactId>
-            <version>1.55.1</version>
+            <version>1.72.0</version>
         </dependency>
 
         <dependency>
@@ -186,7 +198,7 @@
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
-            <version>20230227</version>
+            <version>20231013</version>
         </dependency>
     </dependencies>
 
@@ -234,71 +246,6 @@
                     </plugin>
 <!-- OPTIONAL_PLUGINS -->
 <!-- /OPTIONAL_PLUGINS -->
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>native</id>
-            <dependencies>
-                <dependency>
-                    <groupId>org.springframework.experimental</groupId>
-                    <artifactId>spring-native</artifactId>
-                    <version>${spring.native.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.springframework.experimental</groupId>
-                    <artifactId>spring-aot-maven-plugin</artifactId>
-                    <version>0.12.1</version>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.graalvm.nativeimage</groupId>
-                        <artifactId>native-image-maven-plugin</artifactId>
-                        <version>21.2.0</version>
-                        <configuration>
-                            <mainClass>org.example.authserver.Application</mainClass>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>native-image</goal>
-                                </goals>
-                                <phase>package</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-maven-plugin</artifactId>
-                        <configuration>
-                            <image>
-                                <env>
-                                    <BP_BOOT_NATIVE_IMAGE>true</BP_BOOT_NATIVE_IMAGE>
-                                </env>
-                            </image>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>com.google.cloud.tools</groupId>
-                        <artifactId>jib-maven-plugin</artifactId>
-                        <version>3.2.1</version>
-                        <dependencies>
-                            <dependency>
-                                <groupId>com.google.cloud.tools</groupId>
-                                <artifactId>jib-native-image-extension-maven</artifactId>
-                                <version>0.1.0</version>
-                            </dependency>
-                        </dependencies>
-                        <configuration>
-                            <pluginExtensions>
-                                <pluginExtension>
-                                    <implementation>com.google.cloud.tools.jib.maven.extension.nativeimage.JibNativeImageExtension</implementation>
-                                </pluginExtension>
-                            </pluginExtensions>
-                        </configuration>
-                    </plugin>
                 </plugins>
             </build>
         </profile>

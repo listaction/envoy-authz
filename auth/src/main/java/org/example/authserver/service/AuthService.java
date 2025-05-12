@@ -131,7 +131,7 @@ public class AuthService extends AuthorizationGrpc.AuthorizationImplBase {
       if (userId != null && tenantId != null) {
         if (redisService.exists(
             String.format(Constants.USER_SIGNOUT_REDIS_KEY, userId))) {
-          log.debug("User {} did signout, unauthorized", userId);
+          log.debug("UserDto {} did signout, unauthorized", userId);
           result =
               CheckResult.builder().jwtPresent(false).result(false).events(new HashMap<>()).build();
         } else {
