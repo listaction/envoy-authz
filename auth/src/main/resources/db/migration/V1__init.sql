@@ -59,7 +59,7 @@ create table resources (
 
 create table roles (
     id varchar(255) not null
-         constraint resources_pkey
+         constraint roles_pkey
              primary key,
     permissions jsonb,
     created bigint,
